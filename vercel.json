@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://report-app-uctr.onrender.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://report-app-uctr.onrender.com/health"
+    }
+  ]
+}

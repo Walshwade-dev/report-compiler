@@ -1,14 +1,27 @@
 import { UPLOAD_ENDPOINTS } from "./constants";
 
+const LOCAL_API_ORIGIN = "http://127.0.0.1:8000";
+
 export const API_ORIGIN = (
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://127.0.0.1:8000"
+  LOCAL_API_ORIGIN
 ).replace(/\/+$/, "");
+
+function isHostedBrowser() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return !["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
 
 export function apiUrl(path: string) {
   const cleanPath = path.replace(/^\/+/, "");
+  const origin = isHostedBrowser() ? "" : API_ORIGIN;
 
-  return `${API_ORIGIN}/api/${cleanPath}`;
+  return origin
+    ? `${origin}/api/${cleanPath}`
+    : `/api/${cleanPath}`;
 }
 
 export type CreateReportSessionPayload = {
