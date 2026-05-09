@@ -2,3 +2,15 @@
   base = "frontend"
   command = "npm run build"
   publish = "out"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://report-app-uctr.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "https://report-app-uctr.onrender.com/health"
+  status = 200
+  force = true

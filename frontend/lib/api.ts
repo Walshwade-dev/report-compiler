@@ -37,9 +37,13 @@ export async function getApiOrigin() {
     isBrowser &&
     ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
-  cachedOrigin = isLocalFrontend && (await canReach(LOCAL_ORIGIN))
-    ? LOCAL_ORIGIN
-    : ONLINE_ORIGIN;
+  if (isLocalFrontend && (await canReach(LOCAL_ORIGIN))) {
+    cachedOrigin = LOCAL_ORIGIN;
+  } else if (isBrowser && !isLocalFrontend) {
+    cachedOrigin = "";
+  } else {
+    cachedOrigin = ONLINE_ORIGIN;
+  }
 
   if (process.env.NODE_ENV === "development") {
     console.info(`[api] selected API origin: ${cachedOrigin}`);
@@ -52,7 +56,9 @@ export async function apiUrl(path: string) {
   const origin = await getApiOrigin();
   const cleanPath = path.replace(/^\/+/, "");
 
-  return `${origin}/api/${cleanPath}`;
+  return origin
+    ? `${origin}/api/${cleanPath}`
+    : `/api/${cleanPath}`;
 }
 
 export type CreateReportSessionPayload = {
