@@ -5,12 +5,12 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://report-app-uctr.onrender.com/api/:splat"
+  to = "https://report-app-px6c.onrender.com/api/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/health"
-  to = "https://report-app-uctr.onrender.com/health"
+  to = "https://report-app-px6c.onrender.com/health"
   status = 200
   force = true

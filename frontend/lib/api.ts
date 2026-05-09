@@ -4,7 +4,7 @@ const LOCAL_API_ORIGIN = "http://127.0.0.1:8000";
 
 export const API_ORIGIN = (
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  LOCAL_API_ORIGIN
+  "https://report-app-px6c.onrender.com"
 ).replace(/\/+$/, "");
 
 function isHostedBrowser() {
@@ -17,7 +17,7 @@ function isHostedBrowser() {
 
 export function apiUrl(path: string) {
   const cleanPath = path.replace(/^\/+/, "");
-  const origin = isHostedBrowser() ? "" : API_ORIGIN;
+  const origin = isHostedBrowser() ? "" : API_ORIGIN || LOCAL_API_ORIGIN;
 
   return origin
     ? `${origin}/api/${cleanPath}`
