@@ -54,6 +54,10 @@ export function SectionPreviewPanel({
 }: SectionPreviewPanelProps) {
   const [previewSrc, setPreviewSrc] =
     useState<string | null>(null);
+  const [docxPreviewSrc, setDocxPreviewSrc] =
+    useState<string | null>(null);
+  const [previewError, setPreviewError] =
+    useState<string | null>(null);
 
   const sectionName =
     REPORT_SECTION_NAMES[
@@ -66,6 +70,8 @@ export function SectionPreviewPanel({
     async function loadPreviewSrc() {
       if (!reportId || !sectionName) {
         setPreviewSrc(null);
+        setDocxPreviewSrc(null);
+        setPreviewError(null);
         return;
       }
 
@@ -73,6 +79,8 @@ export function SectionPreviewPanel({
 
       if (!cancelled) {
         setPreviewSrc(`${url}?format=${previewFormat}`);
+        setDocxPreviewSrc(`${url}?format=docx`);
+        setPreviewError(null);
       }
     }
 
@@ -152,16 +160,42 @@ export function SectionPreviewPanel({
 
         ) : previewFormat === "png" ? (
 
-          <div className="overflow-auto rounded-xl border border-cyan-900/50 bg-white p-2">
+          previewError ? (
+            <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-amber-500/40 bg-[#071827] p-6 text-center">
+              <p className="text-sm font-semibold text-amber-200">
+                {previewError}
+              </p>
 
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewSrc || ""}
-              alt={`Section ${selectedSection} preview`}
-              className="w-full rounded-lg object-contain"
-              loading="eager"
-            />
-          </div>
+              <p className="mt-2 text-xs text-slate-400">
+                The generated Word preview is still available.
+              </p>
+
+              <a
+                href={docxPreviewSrc || "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950"
+              >
+                Open DOCX Preview
+              </a>
+            </div>
+          ) : (
+            <div className="overflow-auto rounded-xl border border-cyan-900/50 bg-white p-2">
+
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewSrc || ""}
+                alt={`Section ${selectedSection} preview`}
+                className="w-full rounded-lg object-contain"
+                loading="eager"
+                onError={() => {
+                  setPreviewError(
+                    "PNG preview could not be rendered by the backend."
+                  );
+                }}
+              />
+            </div>
+          )
 
         ) : (
 
