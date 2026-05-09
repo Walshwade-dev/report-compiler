@@ -1,5 +1,10 @@
-import { redirect } from "next/navigation";
+import ReportsLayout from "./reports/layout";
+import NewReportPage from "./reports/static-weighbridge/new/page";
 
 export default function HomePage() {
-  redirect("/reports/static-weighbridge/new");
+  return (
+    <ReportsLayout>
+      <NewReportPage />
+    </ReportsLayout>
+  );
 }

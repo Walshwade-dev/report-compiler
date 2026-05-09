@@ -33,8 +33,6 @@ import {
   BACKEND_SECTION_STATUS_MAP,
 } from "@/lib/constants";
 
-export const dynamic = "force-dynamic";
-
 const ACTIVE_WEIGHBRIDGE_KEY = "active-weighbridge-name";
 const ACTIVE_BOUND_KEY = "active-bound-name";
 
