@@ -32,7 +32,12 @@ export async function getApiOrigin() {
     return cachedOrigin;
   }
 
-  cachedOrigin = (await canReach(LOCAL_ORIGIN))
+  const isBrowser = typeof window !== "undefined";
+  const isLocalFrontend =
+    isBrowser &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+  cachedOrigin = isLocalFrontend && (await canReach(LOCAL_ORIGIN))
     ? LOCAL_ORIGIN
     : ONLINE_ORIGIN;
 
