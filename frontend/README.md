@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Report Compiler Frontend
 
-## Getting Started
+Next.js frontend for the Daily Report Automation report builder.
 
-First, run the development server:
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open the local URL printed by the dev server with your browser to see the result.
+Open the local URL printed by the dev server.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Backend API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+API URL construction lives in:
 
-## Learn More
+```txt
+lib/api.ts
+```
 
-To learn more about Next.js, take a look at the following resources:
+Local development defaults to:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```txt
+http://127.0.0.1:8000/api
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Hosted deployments call same-origin `/api/*`, and the hosting platform rewrites those requests to:
 
-## Deploy on Vercel
+```txt
+https://report-app-px6c.onrender.com/api
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Build
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run build
+```
+
+The app is configured for static export in `next.config.ts`, so production output is written to:
+
+```txt
+out/
+```
+
+## Netlify
+
+The root `netlify.toml` sets:
+
+```txt
+base = frontend
+command = npm run build
+publish = out
+```
+
+## Preview Limitation
+
+DOCX previews work in production. PNG/PDF previews require the backend deployment to include `libreoffice` and `poppler-utils`.

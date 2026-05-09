@@ -1651,3 +1651,159 @@ Behavior:
 
 - `npx tsc --noEmit` passes.
 - `npm run lint` passes.
+
+---
+
+## 20. Implementation Update — 2026-05-09 Hosting And API Configuration
+
+### Current Hosted Frontend
+
+The frontend is hosted as a static-exported Next.js app.
+
+Current production frontend:
+
+```txt
+https://dnkreport.netlify.app
+```
+
+Current GitHub repository:
+
+```txt
+git@github.com:Walshwade-dev/report-compiler.git
+```
+
+Current branch:
+
+```txt
+main
+```
+
+### Current Backend
+
+The active deployed backend is:
+
+```txt
+https://report-app-px6c.onrender.com
+```
+
+Backend health check:
+
+```txt
+GET https://report-app-px6c.onrender.com/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+### Frontend API Routing
+
+Implemented in:
+
+- `frontend/lib/api.ts`
+- `netlify.toml`
+- `vercel.json`
+- `frontend/vercel.json`
+
+The frontend centralizes API URL construction in `frontend/lib/api.ts`.
+
+Local development:
+
+```txt
+http://127.0.0.1:8000/api/{path}
+```
+
+Hosted browser runtime:
+
+```txt
+/api/{path}
+```
+
+Netlify and Vercel rewrite same-origin `/api/*` requests to:
+
+```txt
+https://report-app-px6c.onrender.com/api/*
+```
+
+This avoids browser CORS issues because the browser talks to the frontend host, while the hosting platform forwards the request to Render.
+
+### Netlify Configuration
+
+`netlify.toml` currently uses static export output:
+
+```toml
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "out"
+```
+
+API rewrites:
+
+```toml
+[[redirects]]
+  from = "/api/*"
+  to = "https://report-app-px6c.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "https://report-app-px6c.onrender.com/health"
+  status = 200
+  force = true
+```
+
+### Vercel Configuration
+
+`vercel.json` and `frontend/vercel.json` both include API rewrites so either root-directory deployment mode works:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://report-app-px6c.onrender.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://report-app-px6c.onrender.com/health"
+    }
+  ]
+}
+```
+
+### Preview Behavior
+
+DOCX previews work from the deployed backend.
+
+PNG and PDF previews currently return backend `500` errors in production because those formats require server-side conversion:
+
+```txt
+DOCX -> LibreOffice -> PDF -> pdftoppm -> PNG
+```
+
+The Render backend environment must include OS-level packages:
+
+```txt
+libreoffice
+poppler-utils
+```
+
+Until those packages are available in the backend deployment, the frontend handles failed PNG previews gracefully and offers the generated DOCX preview as a fallback.
+
+Recommended backend deployment fix:
+
+- Deploy the backend with Docker.
+- Install `libreoffice` and `poppler-utils` in the backend image.
+- Keep `MPLCONFIGDIR=/tmp/matplotlib`.
+
+### Verification
+
+- `https://report-app-px6c.onrender.com/health` returns `200`.
+- `npm run lint` passes in `frontend/`.
+- `npm run build` passes in `frontend/`.
+- Netlify should serve the app from `frontend/out`.
+- Hosted API requests should use `/api/...` in the browser network tab.
