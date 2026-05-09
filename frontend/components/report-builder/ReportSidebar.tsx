@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { REPORT_NAV_ITEMS } from "@/lib/constants";
-import Image from "next/image";
 import { ProgressSummary } from "./ProgressSummary";
 import { useReportProgress } from "./ReportProgressContext";
 
@@ -28,7 +27,8 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
     <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-cyan-900/40 bg-[#0b2135] p-5">
       <div className="flex items-center justify-center">
         {!logoError ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             loading="eager"
             src="/dnk.png"
             alt="Danka Logo"
