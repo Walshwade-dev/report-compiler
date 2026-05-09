@@ -45,6 +45,9 @@ const formats: PreviewFormat[] = [
   "docx",
 ];
 
+const PNG_PREVIEW_RETRY_DELAY_MS = 5000;
+const PNG_PREVIEW_MAX_ATTEMPTS = 14;
+
 export function SectionPreviewPanel({
   selectedSection,
   setSelectedSection,
@@ -58,6 +61,12 @@ export function SectionPreviewPanel({
     useState<string | null>(null);
   const [previewError, setPreviewError] =
     useState<string | null>(null);
+  const [pngPreviewStatus, setPngPreviewStatus] =
+    useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [pngPreviewAttempt, setPngPreviewAttempt] =
+    useState(0);
+  const [pngRetryPending, setPngRetryPending] =
+    useState(false);
 
   const sectionName =
     REPORT_SECTION_NAMES[
@@ -72,6 +81,9 @@ export function SectionPreviewPanel({
         setPreviewSrc(null);
         setDocxPreviewSrc(null);
         setPreviewError(null);
+        setPngPreviewStatus("idle");
+        setPngPreviewAttempt(0);
+        setPngRetryPending(false);
         return;
       }
 
@@ -81,6 +93,11 @@ export function SectionPreviewPanel({
         setPreviewSrc(`${url}?format=${previewFormat}`);
         setDocxPreviewSrc(`${url}?format=docx`);
         setPreviewError(null);
+        setPngPreviewStatus(
+          previewFormat === "png" ? "loading" : "idle"
+        );
+        setPngPreviewAttempt(0);
+        setPngRetryPending(false);
       }
     }
 
@@ -90,6 +107,35 @@ export function SectionPreviewPanel({
       cancelled = true;
     };
   }, [reportId, sectionName, previewFormat]);
+
+  useEffect(() => {
+    if (
+      previewFormat !== "png" ||
+      !pngRetryPending ||
+      pngPreviewAttempt >= PNG_PREVIEW_MAX_ATTEMPTS
+    ) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setPngPreviewAttempt((attempt) => attempt + 1);
+      setPngRetryPending(false);
+    }, PNG_PREVIEW_RETRY_DELAY_MS);
+
+    return () => clearTimeout(timeout);
+  }, [previewFormat, pngRetryPending, pngPreviewAttempt]);
+
+  const pngPreviewSrc =
+    previewSrc && previewFormat === "png"
+      ? `${previewSrc}&previewAttempt=${pngPreviewAttempt}`
+      : previewSrc;
+
+  const pngRetrySeconds =
+    Math.round(
+      (PNG_PREVIEW_RETRY_DELAY_MS *
+        (PNG_PREVIEW_MAX_ATTEMPTS - 1)) /
+        1000
+    );
 
   return (
     <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-5">
@@ -180,17 +226,46 @@ export function SectionPreviewPanel({
               </a>
             </div>
           ) : (
-            <div className="overflow-auto rounded-xl border border-cyan-900/50 bg-white p-2">
+            <div className="relative min-h-64 overflow-auto rounded-xl border border-cyan-900/50 bg-white p-2">
+              {pngPreviewStatus === "loading" && (
+                <div className="absolute inset-2 z-10 flex min-h-64 flex-col items-center justify-center rounded-lg bg-[#071827]/90 p-6 text-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+
+                  <p className="mt-4 text-sm font-semibold text-cyan-100">
+                    Rendering PNG preview...
+                  </p>
+
+                  <p className="mt-2 max-w-sm text-xs text-slate-300">
+                    First-time previews can take up to {pngRetrySeconds} seconds
+                    while the backend converts the report section.
+                  </p>
+                </div>
+              )}
 
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={previewSrc || ""}
+                src={pngPreviewSrc || ""}
                 alt={`Section ${selectedSection} preview`}
-                className="w-full rounded-lg object-contain"
-                loading="eager"
+                className={`w-full rounded-lg object-contain ${
+                  pngPreviewStatus === "ready" ? "opacity-100" : "opacity-0"
+                }`}
+                loading="lazy"
+                onLoad={() => {
+                  setPngPreviewStatus("ready");
+                  setPreviewError(null);
+                  setPngRetryPending(false);
+                }}
                 onError={() => {
+                  if (pngPreviewAttempt < PNG_PREVIEW_MAX_ATTEMPTS - 1) {
+                    setPngPreviewStatus("loading");
+                    setPngRetryPending(true);
+                    return;
+                  }
+
+                  setPngPreviewStatus("error");
+                  setPngRetryPending(false);
                   setPreviewError(
-                    "PNG preview could not be rendered by the backend."
+                    "PNG preview is taking too long or could not be rendered by the backend."
                   );
                 }}
               />
