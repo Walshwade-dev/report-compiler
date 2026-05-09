@@ -26,6 +26,8 @@ type SectionPreviewPanelProps = {
   >;
 
   reportId: string | null;
+
+  previewsEnabled: boolean;
 };
 
 const sections = [
@@ -54,6 +56,7 @@ export function SectionPreviewPanel({
   previewFormat,
   setPreviewFormat,
   reportId,
+  previewsEnabled,
 }: SectionPreviewPanelProps) {
   const [previewSrc, setPreviewSrc] =
     useState<string | null>(null);
@@ -77,7 +80,7 @@ export function SectionPreviewPanel({
     let cancelled = false;
 
     async function loadPreviewSrc() {
-      if (!reportId || !sectionName) {
+      if (!reportId || !sectionName || !previewsEnabled) {
         setPreviewSrc(null);
         setDocxPreviewSrc(null);
         setPreviewError(null);
@@ -87,17 +90,28 @@ export function SectionPreviewPanel({
         return;
       }
 
-      const url = await getSectionPreviewUrl(reportId, sectionName);
+      try {
+        const url = await getSectionPreviewUrl(reportId, sectionName);
 
-      if (!cancelled) {
-        setPreviewSrc(`${url}?format=${previewFormat}`);
-        setDocxPreviewSrc(`${url}?format=docx`);
-        setPreviewError(null);
-        setPngPreviewStatus(
-          previewFormat === "png" ? "loading" : "idle"
-        );
-        setPngPreviewAttempt(0);
-        setPngRetryPending(false);
+        if (!cancelled) {
+          setPreviewSrc(`${url}?format=${previewFormat}`);
+          setDocxPreviewSrc(`${url}?format=docx`);
+          setPreviewError(null);
+          setPngPreviewStatus(
+            previewFormat === "png" ? "loading" : "idle"
+          );
+          setPngPreviewAttempt(0);
+          setPngRetryPending(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setPreviewSrc(null);
+          setDocxPreviewSrc(null);
+          setPreviewError("Preview URL could not be prepared.");
+          setPngPreviewStatus("error");
+          setPngPreviewAttempt(0);
+          setPngRetryPending(false);
+        }
       }
     }
 
@@ -106,7 +120,7 @@ export function SectionPreviewPanel({
     return () => {
       cancelled = true;
     };
-  }, [reportId, sectionName, previewFormat]);
+  }, [reportId, sectionName, previewFormat, previewsEnabled]);
 
   useEffect(() => {
     if (
@@ -204,6 +218,18 @@ export function SectionPreviewPanel({
             Create a backend session first.
           </div>
 
+        ) : !previewsEnabled ? (
+          <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-cyan-800/50 bg-transparent p-6 text-center">
+            <p className="text-sm font-semibold text-sky-300">
+              Upload all required CSV files to unlock previews.
+            </p>
+
+            <p className="mt-2 max-w-sm text-xs text-sky-200/70">
+              PNG rendering will start after Daily Hour, Wideload,
+              Impounded / Prohibited, and Impounded / Overloaded are uploaded.
+            </p>
+          </div>
+
         ) : previewFormat === "png" ? (
 
           previewError ? (
@@ -228,14 +254,14 @@ export function SectionPreviewPanel({
           ) : (
             <div className="relative min-h-64 overflow-auto rounded-xl border border-cyan-900/50 bg-white p-2">
               {pngPreviewStatus === "loading" && (
-                <div className="absolute inset-2 z-10 flex min-h-64 flex-col items-center justify-center rounded-lg bg-[#071827]/90 p-6 text-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+                <div className="absolute inset-2 z-10 flex min-h-64 flex-col items-center justify-center rounded-lg bg-transparent p-6 text-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
 
-                  <p className="mt-4 text-sm font-semibold text-cyan-100">
+                  <p className="mt-4 text-sm font-semibold text-sky-600">
                     Rendering PNG preview...
                   </p>
 
-                  <p className="mt-2 max-w-sm text-xs text-slate-300">
+                  <p className="mt-2 max-w-sm text-xs text-sky-500">
                     First-time previews can take up to {pngRetrySeconds} seconds
                     while the backend converts the report section.
                   </p>

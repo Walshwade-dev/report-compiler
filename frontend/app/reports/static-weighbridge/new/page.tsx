@@ -692,6 +692,7 @@ export default function NewReportPage() {
                 setSelectedSection={setSelectedSection}
                 previewFormat={previewFormat}
                 setPreviewFormat={setPreviewFormat}
+                previewsEnabled={uploadsComplete}
               />
             </div>
           </div>
