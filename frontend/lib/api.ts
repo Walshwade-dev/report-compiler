@@ -1,64 +1,14 @@
 import { UPLOAD_ENDPOINTS } from "./constants";
 
-const LOCAL_ORIGIN = "http://localhost:8000";
-const ONLINE_ORIGIN = "https://report-app-uctr.onrender.com";
-const HEALTH_CHECK_TIMEOUT_MS = 1200;
+export const API_ORIGIN = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
 
-let cachedOrigin: string | null = null;
-
-async function canReach(origin: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    HEALTH_CHECK_TIMEOUT_MS
-  );
-
-  try {
-    const response = await fetch(`${origin}/health`, {
-      method: "GET",
-      signal: controller.signal,
-    });
-
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-export async function getApiOrigin() {
-  if (cachedOrigin) {
-    return cachedOrigin;
-  }
-
-  const isBrowser = typeof window !== "undefined";
-  const isLocalFrontend =
-    isBrowser &&
-    ["localhost", "127.0.0.1"].includes(window.location.hostname);
-
-  if (isLocalFrontend && (await canReach(LOCAL_ORIGIN))) {
-    cachedOrigin = LOCAL_ORIGIN;
-  } else if (isBrowser && !isLocalFrontend) {
-    cachedOrigin = "";
-  } else {
-    cachedOrigin = ONLINE_ORIGIN;
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.info(`[api] selected API origin: ${cachedOrigin}`);
-  }
-
-  return cachedOrigin;
-}
-
-export async function apiUrl(path: string) {
-  const origin = await getApiOrigin();
+export function apiUrl(path: string) {
   const cleanPath = path.replace(/^\/+/, "");
 
-  return origin
-    ? `${origin}/api/${cleanPath}`
-    : `/api/${cleanPath}`;
+  return `${API_ORIGIN}/api/${cleanPath}`;
 }
 
 export type CreateReportSessionPayload = {
@@ -135,7 +85,7 @@ export async function createReportSession(
   payload: CreateReportSessionPayload
 ) {
   const response = await fetch(
-    await apiUrl("report-sessions"),
+    apiUrl("report-sessions"),
     {
       method: "POST",
 
@@ -169,7 +119,7 @@ export async function uploadSectionFile(
     UPLOAD_ENDPOINTS[section];
 
   const response = await fetch(
-    await apiUrl(`report-sessions/${reportId}/uploads/${endpoint}`),
+    apiUrl(`report-sessions/${reportId}/uploads/${endpoint}`),
     {
       method: "POST",
       body: formData,
@@ -191,7 +141,7 @@ export async function updateManualInputs(
   payload: unknown
 ) {
   const response = await fetch(
-    await apiUrl(`report-sessions/${reportId}/manual-inputs`),
+    apiUrl(`report-sessions/${reportId}/manual-inputs`),
     {
       method: "PATCH",
       headers: {
@@ -212,7 +162,7 @@ export async function getReportSession(
   reportId: string
 ) {
   const response = await fetch(
-    await apiUrl(`report-sessions/${reportId}`)
+    apiUrl(`report-sessions/${reportId}`)
   );
 
   if (!response.ok) {
@@ -229,7 +179,7 @@ export async function updateReportSessionMetadata(
   payload: UpdateReportSessionMetadataPayload
 ) {
   const response = await fetch(
-    await apiUrl(`report-sessions/${reportId}/metadata`),
+    apiUrl(`report-sessions/${reportId}/metadata`),
     {
       method: "PATCH",
       headers: {
@@ -252,7 +202,7 @@ export async function getSummaryCards(
   reportId: string
 ) {
   const response = await fetch(
-    await apiUrl(`report-sessions/${reportId}/summary-cards`)
+    apiUrl(`report-sessions/${reportId}/summary-cards`)
   );
 
   if (!response.ok) {
@@ -268,7 +218,7 @@ export async function buildFinalReport(
   reportId: string
 ) {
   const response = await fetch(
-    await apiUrl(`report-sessions/${reportId}/build-final-report`),
+    apiUrl(`report-sessions/${reportId}/build-final-report`),
     {
       method: "POST",
     }
