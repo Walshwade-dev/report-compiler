@@ -1,10 +1,13 @@
 "use client";
 import {
+  BarChart3,
   ChevronDown,
   FileText,
+  LayoutDashboard,
   Settings,
   Truck,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { REPORT_NAV_ITEMS } from "@/lib/constants";
 import { ProgressSummary } from "./ProgressSummary";
@@ -15,11 +18,9 @@ type ReportSidebarProps = {
 };
 
 export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
-  const [reportsOpen, setReportsOpen] =
-  useState(true);
+  const [reportsOpen, setReportsOpen] = useState(true);
 
-  const [logoError, setLogoError] =
-  useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   const progress = useReportProgress();
 
@@ -44,55 +45,119 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
         )}
       </div>
 
-      <nav className="mt-10 space-y-2">
-        <button
-          onClick={() =>
-            setReportsOpen((prev) => !prev)
-          }
-          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-300 hover:bg-cyan-500/10">
-          <span>Reports</span>
-          <ChevronDown
-            size={16}
-            className={`transition-transform ${
-              reportsOpen ? "rotate-0" : "-rotate-90"
-            }`}
-          />
-        </button>
+      <nav className="mt-8 space-y-6" aria-label="Report workspace navigation">
+        <div>
+          <p className="px-3 text-[11px] font-bold uppercase text-cyan-300/70">
+            Menu
+          </p>
 
-        {reportsOpen && (
-        <div className="ml-3 space-y-1 border-l border-cyan-900/50 pl-3">
-          {REPORT_NAV_ITEMS[0].items.map((item) => (
-            <a
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                item.active
-                  ? "bg-cyan-500/20 text-cyan-200"
-                  : "text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-200"
-              }`}
-            >
-              {item.icon === "file" ? (
-                <FileText size={16} />
-              ) : (
-                <Truck size={16} />
+          <ul className="mt-2 space-y-1">
+            <li>
+              <Link
+                href="/"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+              >
+                <LayoutDashboard size={16} />
+                <span>Dashboard</span>
+              </Link>
+            </li>
+
+            <li>
+              <button
+                onClick={() => setReportsOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10"
+                aria-expanded={reportsOpen}
+              >
+                <span className="flex items-center gap-3">
+                  <FileText size={16} />
+                  Reports
+                </span>
+
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${
+                    reportsOpen ? "rotate-0" : "-rotate-90"
+                  }`}
+                />
+              </button>
+
+              {reportsOpen && (
+                <ul className="ml-6 mt-1 space-y-1 border-l border-cyan-900/50 pl-3">
+                  {REPORT_NAV_ITEMS[0].items.map((item) => (
+                    <li key={item.label}>
+                      {item.href === "#" ? (
+                        <a
+                          href={item.href}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                            item.active
+                              ? "bg-cyan-500/20 text-cyan-200"
+                              : "text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-200"
+                          }`}
+                        >
+                          {item.icon === "file" ? (
+                            <FileText size={16} />
+                          ) : (
+                            <Truck size={16} />
+                          )}
+
+                          <span>{item.label}</span>
+                        </a>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                            item.active
+                              ? "bg-cyan-500/20 text-cyan-200"
+                              : "text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-200"
+                          }`}
+                        >
+                          {item.icon === "file" ? (
+                            <FileText size={16} />
+                          ) : (
+                            <Truck size={16} />
+                          )}
+
+                          <span>{item.label}</span>
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               )}
+            </li>
 
-              <span>{item.label}</span>
-            </a>
-          ))}
-        </div> )}
+            <li>
+              <a
+                href="#"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+              >
+                <BarChart3 size={16} />
+                <span>Analytics</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="px-3 text-[11px] font-bold uppercase text-cyan-300/70">
+            General
+          </p>
+
+          <ul className="mt-2 space-y-1">
+            <li>
+              <button
+                onClick={onOpenSettings}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+              >
+                <Settings size={16} />
+                <span>Settings</span>
+              </button>
+            </li>
+          </ul>
+        </div>
       </nav>
 
-
-      <button
-        onClick={onOpenSettings}
-        className="mt-auto mb-8 border-b-1 border-l-1 border-r-1 flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
-      >
-        <Settings size={16} />
-        <span>Settings</span>
-      </button>
-
-      <div className="mb-4">
+      <div className="mt-auto mb-4">
         <ProgressSummary
           metadataComplete={progress.metadataComplete}
           uploadsComplete={progress.uploadsComplete}
@@ -101,7 +166,6 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
           canBuild={progress.canBuild}
         />
       </div>
-
     </aside>
   );
 }
