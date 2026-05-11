@@ -78,6 +78,10 @@ export type ReportSessionResponse = {
     download_url: string | null;
     error: string | null;
   };
+
+  excel_report?: {
+    download_url: string | null;
+  };
 };
 
 export type SummaryCard = {
@@ -250,6 +254,12 @@ export async function getFinalReportDownloadUrl(
   reportId: string
 ) {
   return apiUrl(`report-sessions/${reportId}/download-final-report`);
+}
+
+export async function getExcelReportDownloadUrl(
+  reportId: string
+) {
+  return apiUrl(`report-sessions/${reportId}/download-excel-report`);
 }
 
 

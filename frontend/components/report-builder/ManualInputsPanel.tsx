@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+  FileSpreadsheet,
+  FileText,
+} from "lucide-react";
 
 import {
   BuildStatus,
@@ -14,11 +18,13 @@ type ManualInputsPanelProps = {
   buildStatus: BuildStatus;
   onBuildReport: () => void;
   onDownloadReport: () => void;
+  onDownloadExcelReport: () => void;
   canBuild: boolean;
   setManualInputsTouched: React.Dispatch<React.SetStateAction<boolean>>;
   manualSaveStatus: "idle" | "saving" | "saved" | "error";
   buildError: string | null;
   finalReportDownloadUrl: string | null;
+  excelReportDownloadUrl: string | null;
 };
 
 const emptyDailyTransgression = {
@@ -54,11 +60,13 @@ export function ManualInputsPanel({
   buildStatus,
   onBuildReport,
   onDownloadReport,
+  onDownloadExcelReport,
   canBuild,
   setManualInputsTouched,
   manualSaveStatus,
   buildError,
   finalReportDownloadUrl,
+  excelReportDownloadUrl,
 }: ManualInputsPanelProps) {
   const [transgressionModalOpen, setTransgressionModalOpen] =
     useState(false);
@@ -245,9 +253,22 @@ export function ManualInputsPanel({
           disabled={Boolean(
             buildStatus !== "completed" || !finalReportDownloadUrl
           )}
-          className="mt-3 w-full rounded-lg border border-cyan-700 px-4 py-3 text-sm font-bold text-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-700 px-4 py-3 text-sm font-bold text-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
         >
+          <FileText aria-hidden="true" size={16} />
           Download DOCX
+        </button>
+
+        <button
+          suppressHydrationWarning
+          onClick={onDownloadExcelReport}
+          disabled={Boolean(
+            buildStatus !== "completed" || !excelReportDownloadUrl
+          )}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/60 px-4 py-3 text-sm font-bold text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <FileSpreadsheet aria-hidden="true" size={16} />
+          Download Excel
         </button>
       </aside>
 

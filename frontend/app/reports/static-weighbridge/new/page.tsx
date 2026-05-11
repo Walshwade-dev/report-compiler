@@ -21,6 +21,7 @@ import {
 import {
   buildFinalReport,
   createReportSession,
+  getExcelReportDownloadUrl,
   getFinalReportDownloadUrl,
   uploadSectionFile,
   getReportSession,
@@ -155,6 +156,8 @@ export default function NewReportPage() {
   const [buildError, setBuildError] = useState<string | null>(null);
   const [finalReportDownloadUrl, setFinalReportDownloadUrl] =
     useState<string | null>(null);
+  const [excelReportDownloadUrl, setExcelReportDownloadUrl] =
+    useState<string | null>(null);
 
   const metadataComplete =
     metadata.date.trim() !== "" &&
@@ -260,6 +263,7 @@ export default function NewReportPage() {
     setBuildStatus("building");
     setBuildError(null);
     setFinalReportDownloadUrl(null);
+    setExcelReportDownloadUrl(null);
 
     try {
       const response = await buildFinalReport(reportId);
@@ -269,6 +273,9 @@ export default function NewReportPage() {
         setBuildStatus("completed");
         setFinalReportDownloadUrl(
           await getFinalReportDownloadUrl(response.report_id)
+        );
+        setExcelReportDownloadUrl(
+          await getExcelReportDownloadUrl(response.report_id)
         );
         return;
       }
@@ -293,6 +300,12 @@ export default function NewReportPage() {
     if (!finalReportDownloadUrl) return;
 
     window.open(finalReportDownloadUrl, "_blank", "noreferrer");
+  }
+
+  function handleDownloadExcelReport() {
+    if (!excelReportDownloadUrl) return;
+
+    window.open(excelReportDownloadUrl, "_blank", "noreferrer");
   }
 
   function handleResetReport() {
@@ -323,6 +336,7 @@ export default function NewReportPage() {
     setBuildStatus("not_ready");
     setBuildError(null);
     setFinalReportDownloadUrl(null);
+    setExcelReportDownloadUrl(null);
     setSelectedSection(1);
     setPreviewFormat("png");
     setReportId(null);
@@ -535,6 +549,9 @@ export default function NewReportPage() {
           setFinalReportDownloadUrl(
             await getFinalReportDownloadUrl(savedReportId)
           );
+          setExcelReportDownloadUrl(
+            await getExcelReportDownloadUrl(savedReportId)
+          );
           setBuildError(null);
         } else if (session.final_report?.status === "error") {
           setBuildStatus("error");
@@ -543,6 +560,7 @@ export default function NewReportPage() {
               "The backend reported a final report build error."
           );
           setFinalReportDownloadUrl(null);
+          setExcelReportDownloadUrl(null);
         }
       } catch (error) {
         console.error("Failed to restore session:", error);
@@ -577,6 +595,11 @@ export default function NewReportPage() {
         setFinalReportDownloadUrl(
           response.final_report.status === "ready"
             ? await getFinalReportDownloadUrl(response.report_id)
+            : null
+        );
+        setExcelReportDownloadUrl(
+          response.final_report.status === "ready"
+            ? await getExcelReportDownloadUrl(response.report_id)
             : null
         );
         setBuildError(response.final_report.error);
@@ -707,10 +730,12 @@ export default function NewReportPage() {
             buildStatus={buildStatus}
             onBuildReport={handleBuildReport}
             onDownloadReport={handleDownloadReport}
+            onDownloadExcelReport={handleDownloadExcelReport}
             canBuild={canBuild}
             manualSaveStatus={manualSaveStatus}
             buildError={buildError}
             finalReportDownloadUrl={finalReportDownloadUrl}
+            excelReportDownloadUrl={excelReportDownloadUrl}
           />
         </div>
       </div>
