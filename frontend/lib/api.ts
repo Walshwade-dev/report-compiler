@@ -372,6 +372,14 @@ export function getMobileExcelReportDownloadUrl(
   return apiUrl(`report-sessions/${reportId}/download-mobile-excel-report`);
 }
 
+export function getMobileWordReportDownloadUrl(
+  reportId: string
+) {
+  return resolveApiUrl(
+    `/api/report-sessions/${reportId}/download-mobile-word-report`
+  );
+}
+
 
 export async function getSectionPreviewUrl(
   reportId: string,

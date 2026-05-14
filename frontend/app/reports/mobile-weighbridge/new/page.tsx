@@ -22,6 +22,7 @@ import { useReportProgress } from "@/components/report-builder/ReportProgressCon
 import {
   createReportSession,
   getMobileExcelReportDownloadUrl,
+  getMobileWordReportDownloadUrl,
   MobileReportUploadResponse,
   resolveApiUrl,
   updateManualInputs,
@@ -193,6 +194,9 @@ export default function NewMobileReportPage() {
   );
   const { setProgress } = useReportProgress();
 
+  const mobileWordUrl = reportId
+    ? getMobileWordReportDownloadUrl(reportId)
+    : null;
   const summary = uploadResponse?.sections.mobile_report?.summary;
   const normalizedRows = uploadResponse?.mobile_report?.data || [];
 
@@ -479,6 +483,47 @@ export default function NewMobileReportPage() {
           : "Failed to download mobile Excel report."
       );
       window.open(mobileExcelUrl, "_blank", "noreferrer");
+    }
+  }
+
+  async function handleDownloadMobileWord() {
+    if (!mobileWordUrl) {
+      return;
+    }
+
+    const filename = `${inputs.station}_${inputs.bound}_${inputs.reportDate}_mobile_report`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    try {
+      const response = await fetch(mobileWordUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to download mobile Word report.");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(
+        new Blob([blob], {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        })
+      );
+      const link = document.createElement("a");
+
+      link.href = objectUrl;
+      link.download = `${filename || "mobile_report"}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to download mobile Word report."
+      );
+      window.open(mobileWordUrl, "_blank", "noreferrer");
     }
   }
 
@@ -1014,9 +1059,19 @@ export default function NewMobileReportPage() {
 
           <button
             type="button"
+            onClick={handleDownloadMobileWord}
+            disabled={!uploadComplete || !mobileWordUrl}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Download aria-hidden="true" size={16} />
+            Download Mobile Word
+          </button>
+
+          <button
+            type="button"
             onClick={handleDownloadMobileExcel}
             disabled={!uploadComplete || !mobileExcelUrl}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download aria-hidden="true" size={16} />
             Download Mobile Excel
