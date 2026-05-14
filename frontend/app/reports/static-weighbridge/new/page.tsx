@@ -33,6 +33,10 @@ import {
   BACKEND_SECTION_KEYS,
   BACKEND_SECTION_STATUS_MAP,
 } from "@/lib/constants";
+import {
+  isSupportedSpreadsheetFile,
+  supportedSpreadsheetFileMessage,
+} from "@/lib/files";
 
 const ACTIVE_WEIGHBRIDGE_KEY = "active-weighbridge-name";
 const ACTIVE_BOUND_KEY = "active-bound-name";
@@ -365,8 +369,27 @@ export default function NewReportPage() {
   }, [metadata.date, metadata.preparedBy, metadata.approvedBy, weighbridgeName, boundName]);
 
   async function handleSectionUpload(section: UploadKey, file: File) {
+    if (!isSupportedSpreadsheetFile(file)) {
+      setUploads((prev) => ({
+        ...prev,
+        [section]: {
+          status: "error",
+          filename: file.name,
+          error: supportedSpreadsheetFileMessage(),
+        },
+      }));
+      return;
+    }
+
     if (!reportId) {
-      alert("Create backend session first.");
+      setUploads((prev) => ({
+        ...prev,
+        [section]: {
+          status: "error",
+          filename: file.name,
+          error: "Start a report workspace before uploading files.",
+        },
+      }));
       return;
     }
 
@@ -698,6 +721,7 @@ export default function NewReportPage() {
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2a45] p-5">
             <UploadChecklist
               uploads={uploads}
+              canUpload={Boolean(reportId)}
               onSectionUpload={handleSectionUpload}
             />
 

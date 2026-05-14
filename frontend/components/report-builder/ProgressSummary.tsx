@@ -1,42 +1,70 @@
 import { CheckCircle2, CircleDashed } from "lucide-react";
 
 type ProgressSummaryProps = {
+  reportType?: "static" | "mobile";
   metadataComplete: boolean;
   uploadsComplete: boolean;
   manualInputsComplete: boolean;
   uploadCount: number;
+  uploadTotal?: number;
   canBuild: boolean;
 };
 
 export function ProgressSummary({
+  reportType = "static",
   metadataComplete,
   uploadsComplete,
   manualInputsComplete,
   uploadCount,
+  uploadTotal = 4,
   canBuild,
 }: ProgressSummaryProps) {
-  const items = [
-    {
-      label: "Metadata",
-      complete: metadataComplete,
-      value: metadataComplete ? "Done" : "Pending",
-    },
-    {
-      label: "Uploads",
-      complete: uploadsComplete,
-      value: `${uploadCount}/4`,
-    },
-    {
-      label: "Manual",
-      complete: manualInputsComplete,
-      value: manualInputsComplete ? "Done" : "Pending",
-    },
-    {
-      label: "Build",
-      complete: canBuild,
-      value: canBuild ? "Ready" : "Blocked",
-    },
-  ];
+  const items =
+    reportType === "mobile"
+      ? [
+          {
+            label: "Session",
+            complete: metadataComplete,
+            value: metadataComplete ? "Ready" : "Pending",
+          },
+          {
+            label: "Manual",
+            complete: manualInputsComplete,
+            value: manualInputsComplete ? "Saved" : "Pending",
+          },
+          {
+            label: "Register",
+            complete: uploadsComplete,
+            value: `${uploadCount}/${uploadTotal}`,
+          },
+          {
+            label: "Excel",
+            complete: canBuild,
+            value: canBuild ? "Ready" : "Blocked",
+          },
+        ]
+      : [
+          {
+            label: "Metadata",
+            complete: metadataComplete,
+            value: metadataComplete ? "Done" : "Pending",
+          },
+          {
+            label: "Uploads",
+            complete: uploadsComplete,
+            value: `${uploadCount}/${uploadTotal}`,
+          },
+          {
+            label: "Manual",
+            complete: manualInputsComplete,
+            value: manualInputsComplete ? "Done" : "Pending",
+          },
+          {
+            label: "Build",
+            complete: canBuild,
+            value: canBuild ? "Ready" : "Blocked",
+          },
+        ];
 
   return (
     <section className="rounded-lg border border-cyan-900/50 bg-[#0b2a45] p-3">
@@ -46,7 +74,9 @@ export function ProgressSummary({
         </h2>
 
         <p className="mt-0.5 text-[11px] text-slate-500">
-          Report build readiness
+          {reportType === "mobile"
+            ? "Mobile report workflow"
+            : "Report build readiness"}
         </p>
       </div>
 

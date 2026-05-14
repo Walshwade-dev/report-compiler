@@ -1,10 +1,10 @@
 import { UPLOAD_ENDPOINTS } from "./constants";
 
-const LOCAL_API_ORIGIN = "http://127.0.0.1:8000";
+const DEPLOYED_API_ORIGIN = "https://report-app-px6c.onrender.com";
 
 export const API_ORIGIN = (
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "https://report-app-px6c.onrender.com"
+  DEPLOYED_API_ORIGIN
 ).replace(/\/+$/, "");
 
 function isHostedBrowser() {
@@ -17,11 +17,54 @@ function isHostedBrowser() {
 
 export function apiUrl(path: string) {
   const cleanPath = path.replace(/^\/+/, "");
-  const origin = isHostedBrowser() ? "" : API_ORIGIN || LOCAL_API_ORIGIN;
+  const origin = isHostedBrowser() ? "" : API_ORIGIN;
 
   return origin
     ? `${origin}/api/${cleanPath}`
     : `/api/${cleanPath}`;
+}
+
+export function resolveApiUrl(url: string | null | undefined) {
+  if (!url) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const cleanUrl = url.replace(/^\/+/, "");
+
+  if (cleanUrl.startsWith("api/")) {
+    const origin = isHostedBrowser() ? "" : API_ORIGIN;
+
+    return origin ? `${origin}/${cleanUrl}` : `/${cleanUrl}`;
+  }
+
+  return apiUrl(cleanUrl);
+}
+
+async function getErrorMessage(response: Response, fallback: string) {
+  try {
+    const body = await response.json();
+    const detail = body?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+
+    if (typeof detail?.message === "string") {
+      return detail.message;
+    }
+
+    if (typeof body?.message === "string") {
+      return body.message;
+    }
+  } catch {
+    // The backend may return an empty or non-JSON error body.
+  }
+
+  return fallback;
 }
 
 export type CreateReportSessionPayload = {
@@ -29,8 +72,8 @@ export type CreateReportSessionPayload = {
   station: string;
   bound: string;
   weighbridge_name: string;
-  prepared_by: string;
-  confirmed_by: string;
+  prepared_by?: string;
+  confirmed_by?: string;
 };
 
 export type UpdateReportSessionMetadataPayload = {
@@ -70,6 +113,7 @@ export type ReportSessionResponse = {
     {
       status: string;
       preview_url?: string;
+      summary?: MobileReportSummary;
     }
   >;
 
@@ -81,6 +125,39 @@ export type ReportSessionResponse = {
 
   excel_report?: {
     download_url: string | null;
+  };
+
+  mobile_report?: {
+    data?: Record<string, unknown>[];
+  };
+
+  mobile_excel_report?: {
+    status?: string;
+    download_url?: string | null;
+  };
+};
+
+export type MobileReportSummary = {
+  total_records?: number;
+  total_trucks_weighed?: number;
+  warned_trucks?: number;
+  charged_trucks?: number;
+  charged_gvw_axle_trucks?: number;
+  charged_dimensions_trucks?: number;
+  overloaded_records?: number;
+  total_excess_kg?: number;
+  mismatch_records?: number;
+  hourly_counts?: Record<string, number>;
+  station?: string;
+  report_date?: string;
+};
+
+export type MobileReportUploadResponse = ReportSessionResponse & {
+  sections: ReportSessionResponse["sections"] & {
+    mobile_report?: {
+      status: string;
+      summary?: MobileReportSummary;
+    };
   };
 };
 
@@ -116,7 +193,7 @@ export async function createReportSession(
 
   if (!response.ok) {
     throw new Error(
-      "Failed to create report session"
+      await getErrorMessage(response, "Failed to create report session")
     );
   }
 
@@ -145,11 +222,36 @@ export async function uploadSectionFile(
 
   if (!response.ok) {
     throw new Error(
-      `Failed to upload ${section}`
+      await getErrorMessage(response, `Failed to upload ${section}`)
     );
   }
 
   return response.json();
+}
+
+export async function uploadMobileReportFile(
+  reportId: string,
+  file: File
+) {
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await fetch(
+    apiUrl(`report-sessions/${reportId}/uploads/mobile-report`),
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to upload mobile report register")
+    );
+  }
+
+  return response.json() as Promise<MobileReportUploadResponse>;
 }
 
 
@@ -169,7 +271,9 @@ export async function updateManualInputs(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to update manual inputs");
+    throw new Error(
+      await getErrorMessage(response, "Failed to update manual inputs")
+    );
   }
 
   return response.json();
@@ -184,7 +288,7 @@ export async function getReportSession(
 
   if (!response.ok) {
     throw new Error(
-      "Failed to fetch report session"
+      await getErrorMessage(response, "Failed to fetch report session")
     );
   }
 
@@ -208,7 +312,7 @@ export async function updateReportSessionMetadata(
 
   if (!response.ok) {
     throw new Error(
-      "Failed to update report session metadata"
+      await getErrorMessage(response, "Failed to update report session metadata")
     );
   }
 
@@ -224,7 +328,7 @@ export async function getSummaryCards(
 
   if (!response.ok) {
     throw new Error(
-      "Failed to fetch summary cards"
+      await getErrorMessage(response, "Failed to fetch summary cards")
     );
   }
 
@@ -243,23 +347,29 @@ export async function buildFinalReport(
 
   if (!response.ok) {
     throw new Error(
-      "Failed to build final report"
+      await getErrorMessage(response, "Failed to build final report")
     );
   }
 
   return response.json() as Promise<ReportSessionResponse>;
 }
 
-export async function getFinalReportDownloadUrl(
+export function getFinalReportDownloadUrl(
   reportId: string
 ) {
   return apiUrl(`report-sessions/${reportId}/download-final-report`);
 }
 
-export async function getExcelReportDownloadUrl(
+export function getExcelReportDownloadUrl(
   reportId: string
 ) {
   return apiUrl(`report-sessions/${reportId}/download-excel-report`);
+}
+
+export function getMobileExcelReportDownloadUrl(
+  reportId: string
+) {
+  return apiUrl(`report-sessions/${reportId}/download-mobile-excel-report`);
 }
 
 

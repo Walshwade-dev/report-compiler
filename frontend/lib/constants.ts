@@ -19,7 +19,7 @@ export const REPORT_NAV_ITEMS = [
       {
         label: "Mobile Weighbridge Report",
 
-        href: "#",
+        href: "/reports/mobile-weighbridge/new",
 
         icon: "truck",
 

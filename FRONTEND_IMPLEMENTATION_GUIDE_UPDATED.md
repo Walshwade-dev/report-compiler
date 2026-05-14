@@ -1807,3 +1807,68 @@ Recommended backend deployment fix:
 - `npm run build` passes in `frontend/`.
 - Netlify should serve the app from `frontend/out`.
 - Hosted API requests should use `/api/...` in the browser network tab.
+
+---
+
+## 21. Implementation Update — 2026-05-14 Mobile Report Progress
+
+### Mobile Weighbridge Report Route
+
+Implemented in `frontend/app/reports/mobile-weighbridge/new/page.tsx`.
+
+- Added a dedicated Mobile Weighbridge Report workflow at:
+
+```txt
+/reports/mobile-weighbridge/new
+```
+
+- The page now supports:
+  - Mobile report metadata entry for report date, station, and shift.
+  - Backend session creation through the shared report session API.
+  - Manual mobile fields for Danka staff, police officers, vehicle, mileage, route, and cases cleared in court.
+  - Local draft persistence with reset/reupload support.
+  - Mobile register upload with CSV/XLSX/XLS validation.
+  - KPI cards for total weighed, warned, charged GVW/axle, and charged dimensions.
+  - Backend summary details and normalized uploaded-row preview.
+  - Mobile Excel report download after successful upload.
+
+### Shared Navigation And Progress
+
+Implemented in:
+
+- `frontend/app/reports/layout.tsx`
+- `frontend/components/report-builder/ReportSidebar.tsx`
+- `frontend/components/report-builder/ProgressSummary.tsx`
+- `frontend/components/report-builder/ReportProgressContext.tsx`
+- `frontend/lib/constants.ts`
+
+Progress made:
+
+- The reports navigation now links to both Static Weighbridge and Mobile Weighbridge workflows.
+- The mobile/tablet header mirrors the report navigation so both workflows are reachable without the desktop sidebar.
+- `ReportProgressContext` now tracks `reportType` and `uploadTotal`, allowing the sidebar summary to display either the static report checklist or the mobile workflow checklist.
+- The mobile workflow reports progress as Session, Manual, Register, and Excel readiness.
+
+### API And Type Support
+
+Implemented in:
+
+- `frontend/lib/api.ts`
+- `frontend/lib/types.ts`
+- `frontend/lib/files.ts`
+
+Progress made:
+
+- Added mobile register upload support through `uploadMobileReportFile()`.
+- Added mobile Excel download URL support through `getMobileExcelReportDownloadUrl()`.
+- Reused `createReportSession()` and `updateManualInputs()` for the mobile report flow.
+- Added `resolveApiUrl()` handling for backend-provided download URLs.
+- Added mobile report input and vehicle charge types for the frontend state model.
+- Centralized supported spreadsheet validation for CSV/XLS/XLSX uploads.
+
+### Current Status
+
+- Static weighbridge workflow remains the primary full DOCX workflow.
+- Mobile weighbridge workflow is now present as an application route and wired to the backend session/upload/download flow.
+- Mobile Excel generation depends on backend support for `/uploads/mobile-report` and `/download-mobile-excel-report`.
+- The next frontend pass should live-test mobile upload/download against the deployed or local backend and then tighten any response-shape mismatches.

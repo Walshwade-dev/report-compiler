@@ -3,17 +3,22 @@ import {
   UploadState,
 } from "@/lib/types";
 
-export interface UploadChecklistProps {
+type UploadChecklistProps = {
   uploads: Record<UploadKey, UploadState>;
+  canUpload: boolean;
 
   onSectionUpload: (
     section: UploadKey,
     file: File
   ) => Promise<void>;
-}
-
+};
 
 const uploadSections = [
+  {
+    key: "daily_hour",
+    label: "Daily Hour",
+  },
+
   {
     key: "wideload",
     label: "Wideload",
@@ -28,47 +33,36 @@ const uploadSections = [
     key: "impounded_overloaded",
     label: "Impounded / Overloaded",
   },
-
-  {
-    key: "daily_hour",
-    label: "Daily Hour",
-  },
 ] as const;
 
 const uploadOrder = uploadSections.map((section) => section.key);
 
-export function UploadChecklist(props: UploadChecklistProps) {
-  const {
-    uploads,
-    onSectionUpload,
-  } = props;
-  
+export function UploadChecklist({
+  uploads,
+  canUpload,
+  onSectionUpload,
+}: UploadChecklistProps) {
   return (
     <div>
-
       <div className="mt-4 grid gap-4 grid-cols-1 md:grid-cols-2 2xl:grid-cols-4">
       {uploadSections.map((section) => {
         const upload =
           uploads[section.key];
         const sectionIndex = uploadOrder.indexOf(section.key);
-        const uploadEnabled =
-          uploadOrder
-            .slice(0, sectionIndex)
-            .every(
-              (uploadKey) =>
-                uploads[uploadKey].status === "uploaded"
-            );
-        const disabled =
-          !uploadEnabled;
-        const disabledReason =
-          "Complete the previous upload first.";
+        const previousUploadsComplete = uploadOrder
+          .slice(0, sectionIndex)
+          .every((uploadKey) => uploads[uploadKey].status === "uploaded");
+        const disabled = !canUpload || !previousUploadsComplete;
+        const disabledReason = !canUpload
+          ? "Start a report workspace before uploading files."
+          : "Complete the previous upload first.";
 
         return (
           <div
             key={section.key}
             className={`rounded-xl border p-4 ${
               disabled
-                ? "border-slate-800 bg-[#071827]/60 opacity-60"
+                ? "border-slate-800 bg-[#071827]/60 opacity-70"
                 : "border-cyan-900/50 bg-[#071827]"
             }`}
           >
@@ -122,11 +116,13 @@ export function UploadChecklist(props: UploadChecklistProps) {
                     section.key,
                     file
                   );
+                  e.target.value = "";
                 }}
               />
 
               <label
                 htmlFor={disabled ? undefined : section.key}
+                aria-disabled={disabled}
                 className={`flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition ${
                   disabled
                     ? "cursor-not-allowed border-slate-700 text-slate-500"

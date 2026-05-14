@@ -1158,7 +1158,7 @@ Recommended next implementation task:
 The frontend has successfully transitioned from static UI to backend-integrated functionality. The following integrations have been completed:
 
 - FastAPI backend connection established
-- Automatic API origin selection in `lib/api.ts`
+- Environment variable setup using NEXT_PUBLIC_API_BASE_URL
 - Shared API helper created in lib/api.ts
 - Report session creation connected to backend
 - report_id persistence implemented in frontend state
@@ -1291,9 +1291,9 @@ frontend/
 - `updateManualInputs(reportId, payload)` using `PATCH /api/report-sessions/{reportId}/manual-inputs`
 - `updateReportSessionMetadata(reportId, payload)` using `PATCH /api/report-sessions/{reportId}/metadata`
 - `getSummaryCards(reportId)` using `GET /api/report-sessions/{reportId}/summary-cards`
-- `getSectionPreviewUrl(reportId, sectionName)` resolving `/api/report-sessions/{reportId}/sections/{sectionName}/preview`
+- `getSectionPreviewUrl(reportId, sectionName)` returning `/api/report-sessions/{reportId}/sections/{sectionName}/preview`
 
-`lib/api.ts` checks the local backend health endpoint first, then falls back to the deployed backend origin.
+`NEXT_PUBLIC_API_BASE_URL` is supported, with `http://127.0.0.1:8000` as the fallback.
 
 ### Current Upload Model
 
@@ -1433,7 +1433,7 @@ Build flow now works as follows:
 - `npm run build` passes.
 - The first sandboxed production build failed only because Next needed network access to fetch Google Fonts for `next/font`.
 - Re-running `npm run build` with approved network access passed.
-- The local FastAPI server was not running during this pass, so the final build endpoint could not be live-tested from the browser.
+- The local FastAPI server was not running on `127.0.0.1:8000`, so the final build endpoint could not be live-tested from the browser during this pass.
 
 ### Backend Contract Confirmed From Source
 
@@ -1505,7 +1505,7 @@ Behavior:
 
 - `npm run lint` passes.
 - `npm run build` passes after allowing Next to fetch Google Fonts for `next/font`.
-- The local FastAPI server was not running during this pass, so restored-session hydration and upload sequencing were verified through code path/build checks rather than a live browser session against the backend.
+- The local FastAPI server was not running on `127.0.0.1:8000`, so restored-session hydration and upload sequencing were verified through code path/build checks rather than a live browser session against the backend.
 
 ---
 
@@ -1651,3 +1651,224 @@ Behavior:
 
 - `npx tsc --noEmit` passes.
 - `npm run lint` passes.
+
+---
+
+## 20. Implementation Update — 2026-05-09 Hosting And API Configuration
+
+### Current Hosted Frontend
+
+The frontend is hosted as a static-exported Next.js app.
+
+Current production frontend:
+
+```txt
+https://dnkreport.netlify.app
+```
+
+Current GitHub repository:
+
+```txt
+git@github.com:Walshwade-dev/report-compiler.git
+```
+
+Current branch:
+
+```txt
+main
+```
+
+### Current Backend
+
+The active deployed backend is:
+
+```txt
+https://report-app-px6c.onrender.com
+```
+
+Backend health check:
+
+```txt
+GET https://report-app-px6c.onrender.com/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+### Frontend API Routing
+
+Implemented in:
+
+- `frontend/lib/api.ts`
+- `netlify.toml`
+- `vercel.json`
+- `frontend/vercel.json`
+
+The frontend centralizes API URL construction in `frontend/lib/api.ts`.
+
+Local development:
+
+```txt
+http://127.0.0.1:8000/api/{path}
+```
+
+Hosted browser runtime:
+
+```txt
+/api/{path}
+```
+
+Netlify and Vercel rewrite same-origin `/api/*` requests to:
+
+```txt
+https://report-app-px6c.onrender.com/api/*
+```
+
+This avoids browser CORS issues because the browser talks to the frontend host, while the hosting platform forwards the request to Render.
+
+### Netlify Configuration
+
+`netlify.toml` currently uses static export output:
+
+```toml
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "out"
+```
+
+API rewrites:
+
+```toml
+[[redirects]]
+  from = "/api/*"
+  to = "https://report-app-px6c.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "https://report-app-px6c.onrender.com/health"
+  status = 200
+  force = true
+```
+
+### Vercel Configuration
+
+`vercel.json` and `frontend/vercel.json` both include API rewrites so either root-directory deployment mode works:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://report-app-px6c.onrender.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://report-app-px6c.onrender.com/health"
+    }
+  ]
+}
+```
+
+### Preview Behavior
+
+DOCX previews work from the deployed backend.
+
+PNG and PDF previews currently return backend `500` errors in production because those formats require server-side conversion:
+
+```txt
+DOCX -> LibreOffice -> PDF -> pdftoppm -> PNG
+```
+
+The Render backend environment must include OS-level packages:
+
+```txt
+libreoffice
+poppler-utils
+```
+
+Until those packages are available in the backend deployment, the frontend handles failed PNG previews gracefully and offers the generated DOCX preview as a fallback.
+
+Recommended backend deployment fix:
+
+- Deploy the backend with Docker.
+- Install `libreoffice` and `poppler-utils` in the backend image.
+- Keep `MPLCONFIGDIR=/tmp/matplotlib`.
+
+### Verification
+
+- `https://report-app-px6c.onrender.com/health` returns `200`.
+- `npm run lint` passes in `frontend/`.
+- `npm run build` passes in `frontend/`.
+- Netlify should serve the app from `frontend/out`.
+- Hosted API requests should use `/api/...` in the browser network tab.
+
+---
+
+## 21. Implementation Update — 2026-05-14 Mobile Report Progress
+
+### Mobile Weighbridge Report Route
+
+Implemented in `frontend/app/reports/mobile-weighbridge/new/page.tsx`.
+
+- Added a dedicated Mobile Weighbridge Report workflow at:
+
+```txt
+/reports/mobile-weighbridge/new
+```
+
+- The page now supports:
+  - Mobile report metadata entry for report date, station, and shift.
+  - Backend session creation through the shared report session API.
+  - Manual mobile fields for Danka staff, police officers, vehicle, mileage, route, and cases cleared in court.
+  - Local draft persistence with reset/reupload support.
+  - Mobile register upload with CSV/XLSX/XLS validation.
+  - KPI cards for total weighed, warned, charged GVW/axle, and charged dimensions.
+  - Backend summary details and normalized uploaded-row preview.
+  - Mobile Excel report download after successful upload.
+
+### Shared Navigation And Progress
+
+Implemented in:
+
+- `frontend/app/reports/layout.tsx`
+- `frontend/components/report-builder/ReportSidebar.tsx`
+- `frontend/components/report-builder/ProgressSummary.tsx`
+- `frontend/components/report-builder/ReportProgressContext.tsx`
+- `frontend/lib/constants.ts`
+
+Progress made:
+
+- The reports navigation now links to both Static Weighbridge and Mobile Weighbridge workflows.
+- The mobile/tablet header mirrors the report navigation so both workflows are reachable without the desktop sidebar.
+- `ReportProgressContext` now tracks `reportType` and `uploadTotal`, allowing the sidebar summary to display either the static report checklist or the mobile workflow checklist.
+- The mobile workflow reports progress as Session, Manual, Register, and Excel readiness.
+
+### API And Type Support
+
+Implemented in:
+
+- `frontend/lib/api.ts`
+- `frontend/lib/types.ts`
+- `frontend/lib/files.ts`
+
+Progress made:
+
+- Added mobile register upload support through `uploadMobileReportFile()`.
+- Added mobile Excel download URL support through `getMobileExcelReportDownloadUrl()`.
+- Reused `createReportSession()` and `updateManualInputs()` for the mobile report flow.
+- Added `resolveApiUrl()` handling for backend-provided download URLs.
+- Added mobile report input and vehicle charge types for the frontend state model.
+- Centralized supported spreadsheet validation for CSV/XLS/XLSX uploads.
+
+### Current Status
+
+- Static weighbridge workflow remains the primary full DOCX workflow.
+- Mobile weighbridge workflow is now present as an application route and wired to the backend session/upload/download flow.
+- Mobile Excel generation depends on backend support for `/uploads/mobile-report` and `/download-mobile-excel-report`.
+- The next frontend pass should live-test mobile upload/download against the deployed or local backend and then tighten any response-shape mismatches.

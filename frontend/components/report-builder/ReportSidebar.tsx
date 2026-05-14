@@ -8,6 +8,7 @@ import {
   Truck,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { REPORT_NAV_ITEMS } from "@/lib/constants";
 import { ProgressSummary } from "./ProgressSummary";
@@ -19,6 +20,7 @@ type ReportSidebarProps = {
 
 export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
   const [reportsOpen, setReportsOpen] = useState(true);
+  const pathname = usePathname();
 
   const [logoError, setLogoError] = useState(false);
 
@@ -85,31 +87,21 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
                 <ul className="ml-6 mt-1 space-y-1 border-l border-cyan-900/50 pl-3">
                   {REPORT_NAV_ITEMS[0].items.map((item) => (
                     <li key={item.label}>
-                      {item.href === "#" ? (
-                        <a
-                          href={item.href}
-                          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                            item.active
-                              ? "bg-cyan-500/20 text-cyan-200"
-                              : "text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-200"
-                          }`}
-                        >
-                          {item.icon === "file" ? (
-                            <FileText size={16} />
-                          ) : (
-                            <Truck size={16} />
-                          )}
+                      {(() => {
+                        const active =
+                          pathname === item.href ||
+                          (pathname === "/" &&
+                            item.href === "/reports/static-weighbridge/new");
 
-                          <span>{item.label}</span>
-                        </a>
-                      ) : (
+                        return (
                         <Link
                           href={item.href}
                           className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                            item.active
+                            active
                               ? "bg-cyan-500/20 text-cyan-200"
                               : "text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-200"
                           }`}
+                          aria-current={active ? "page" : undefined}
                         >
                           {item.icon === "file" ? (
                             <FileText size={16} />
@@ -119,7 +111,8 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
 
                           <span>{item.label}</span>
                         </Link>
-                      )}
+                        );
+                      })()}
                     </li>
                   ))}
                 </ul>
@@ -159,10 +152,12 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
 
       <div className="mt-auto mb-4">
         <ProgressSummary
+          reportType={progress.reportType}
           metadataComplete={progress.metadataComplete}
           uploadsComplete={progress.uploadsComplete}
           manualInputsComplete={progress.manualInputsComplete}
           uploadCount={progress.uploadCount}
+          uploadTotal={progress.uploadTotal}
           canBuild={progress.canBuild}
         />
       </div>

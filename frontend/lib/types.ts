@@ -66,6 +66,49 @@ export type ManualInputs = {
   transgressionActions: TransgressionActionRow[];
 };
 
+export type MobileChargeAction =
+  | "charged"
+  | "warned"
+  | "legal";
+
+export type MobileChargeType =
+  | "gvw_axle"
+  | "dimensions";
+
+export type MobileVehicleChargeRow = {
+  id: string;
+  dateWeighed: string;
+  vehicleReg: string;
+  transporter: string;
+  configuration: string;
+  chargeType: MobileChargeType;
+  action: MobileChargeAction;
+  gvwExcessKg: string;
+  axleExcessKg: string;
+  dimensionDetails: string;
+  origin: string;
+  destination: string;
+  cargo: string;
+  remarks: string;
+};
+
+export type MobileReportInputs = {
+  station: string;
+  bound: string;
+  reportDate: string;
+  totalWeighed: number;
+  dmEntry: string;
+  driverEntry: string;
+  policeOfficerOne: string;
+  policeOfficerTwo: string;
+  route: string;
+  mobileVehicleReg: string;
+  startMileage: string;
+  stopMileage: string;
+  casesClearedInCourt: string;
+  vehicleCharges: MobileVehicleChargeRow[];
+};
+
 export type PreviewFormat =
   | "png"
   | "pdf"
