@@ -19,17 +19,19 @@ API URL construction lives in:
 lib/api.ts
 ```
 
-Local development defaults to:
+Local browser sessions default to:
 
 ```txt
 http://127.0.0.1:8000/api
 ```
 
-Hosted deployments call same-origin `/api/*`, and the hosting platform rewrites those requests to:
+Hosted browser sessions call same-origin `/api/*`, and the hosting platform rewrites those requests to:
 
 ```txt
 https://report-app-px6c.onrender.com/api
 ```
+
+Set `NEXT_PUBLIC_API_BASE_URL` to override both defaults.
 
 ## Build
 

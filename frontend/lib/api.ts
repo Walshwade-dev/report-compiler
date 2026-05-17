@@ -1,27 +1,32 @@
 import { UPLOAD_ENDPOINTS } from "./constants";
 
 const DEPLOYED_API_ORIGIN = "https://report-app-px6c.onrender.com";
+const LOCAL_API_ORIGIN = "http://127.0.0.1:8000";
+const ENV_API_ORIGIN = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "");
 
-export const API_ORIGIN = (
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  DEPLOYED_API_ORIGIN
-).replace(/\/+$/, "");
+export const API_ORIGIN = ENV_API_ORIGIN || DEPLOYED_API_ORIGIN;
 
-function isHostedBrowser() {
+function isLocalBrowser() {
   if (typeof window === "undefined") {
     return false;
   }
 
-  return !["localhost", "127.0.0.1"].includes(window.location.hostname);
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+}
+
+function getApiOrigin() {
+  if (ENV_API_ORIGIN) {
+    return ENV_API_ORIGIN;
+  }
+
+  return isLocalBrowser() ? LOCAL_API_ORIGIN : "";
 }
 
 export function apiUrl(path: string) {
   const cleanPath = path.replace(/^\/+/, "");
-  const origin = isHostedBrowser() ? "" : API_ORIGIN;
+  const origin = getApiOrigin();
 
-  return origin
-    ? `${origin}/api/${cleanPath}`
-    : `/api/${cleanPath}`;
+  return `${origin}/api/${cleanPath}`;
 }
 
 export function resolveApiUrl(url: string | null | undefined) {
@@ -36,9 +41,9 @@ export function resolveApiUrl(url: string | null | undefined) {
   const cleanUrl = url.replace(/^\/+/, "");
 
   if (cleanUrl.startsWith("api/")) {
-    const origin = isHostedBrowser() ? "" : API_ORIGIN;
+    const origin = getApiOrigin();
 
-    return origin ? `${origin}/${cleanUrl}` : `/${cleanUrl}`;
+    return `${origin}/${cleanUrl}`;
   }
 
   return apiUrl(cleanUrl);
