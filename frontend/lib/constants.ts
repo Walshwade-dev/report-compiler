@@ -59,7 +59,7 @@ export const UPLOAD_ENDPOINTS = {
 export const BACKEND_SECTION_STATUS_MAP = {
   missing: "missing",
   ready: "uploaded",
-  error: "missing",
+  error: "error",
 } as const;
 
 export const BACKEND_SECTION_KEYS = {

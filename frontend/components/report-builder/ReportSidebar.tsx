@@ -37,7 +37,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
             alt="Danka Logo"
             width={160}
             height={160}
-            className="h-28 w-48 object-contain"
+            className="h-28 w-48 object-contain border-0 shadow-none outline-none"
             onError={() => setLogoError(true)}
           />
         ) : (
@@ -57,7 +57,11 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
             <li>
               <Link
                 href="/"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
+                  pathname === "/"
+                    ? "bg-cyan-500/20 text-cyan-200"
+                    : "text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+                }`}
               >
                 <LayoutDashboard size={16} />
                 <span>Dashboard</span>
@@ -88,10 +92,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
                   {REPORT_NAV_ITEMS[0].items.map((item) => (
                     <li key={item.label}>
                       {(() => {
-                        const active =
-                          pathname === item.href ||
-                          (pathname === "/" &&
-                            item.href === "/reports/static-weighbridge/new");
+                        const active = pathname === item.href;
 
                         return (
                         <Link
@@ -120,13 +121,17 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
             </li>
 
             <li>
-              <a
-                href="#"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+              <Link
+                href="/analytics"
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                  pathname === "/analytics"
+                    ? "bg-cyan-500/20 text-cyan-200"
+                    : "text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+                }`}
               >
                 <BarChart3 size={16} />
                 <span>Analytics</span>
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

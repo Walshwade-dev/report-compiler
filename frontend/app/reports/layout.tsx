@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import { FileText, Settings, Truck } from "lucide-react";
+import { FileText, Settings, Truck, ShieldCheck, Database, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -67,13 +67,9 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
                 Settings
               </button>
             </div>
-
             <nav className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Report navigation">
               {REPORT_NAV_ITEMS[0].items.map((item) => {
-                const active =
-                  pathname === item.href ||
-                  (pathname === "/" &&
-                    item.href === "/reports/static-weighbridge/new");
+                const active = pathname === item.href;
 
                 return (
                   <Link
@@ -124,6 +120,44 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
             </div>
 
             <div className="mt-6 space-y-4">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300 border border-cyan-500/20">
+                <Zap size={12} className="animate-pulse" /> System Operational
+              </div>
+
+              <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
+                <p className="text-sm font-bold text-cyan-200 mb-3">
+                  System Status
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-lg bg-[#0b2135]/60 p-2.5 border border-cyan-950">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-emerald-400" />
+                      <div>
+                        <p className="text-xs font-semibold text-white">API Gateway</p>
+                        <p className="text-[9px] text-slate-400">FastAPI backend online</p>
+                      </div>
+                    </div>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg bg-[#0b2135]/60 p-2.5 border border-cyan-950">
+                    <div className="flex items-center gap-2">
+                      <Database size={16} className="text-cyan-400" />
+                      <div>
+                        <p className="text-xs font-semibold text-white">Temporary Cache</p>
+                        <p className="text-[9px] text-slate-400">In-memory Store active</p>
+                      </div>
+                    </div>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-cyan-900/30">
+                  <p className="text-[9px] text-slate-500 text-center">
+                    Antigravity Compiler Engine v1.1.0
+                  </p>
+                </div>
+              </div>
+
               <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
                 <p className="text-sm font-bold text-cyan-200">
                   Report Officers

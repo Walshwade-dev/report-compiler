@@ -56,12 +56,19 @@ export type TransgressionActionRow = {
   taggedInSystem: string;
 };
 
+export type CCRecordRow = {
+  buses_gte_3500kg: number;
+  vehicles_3500_to_7000_excluding_buses: number;
+  vehicles_gte_7000_excluding_buses: number;
+};
+
 export type ManualInputs = {
   casesCleared: number;
   transgressions: number;
   buses3500: number;
   vehicles3500to7000: number;
   vehicles7000: number;
+  ccRecords: CCRecordRow[];
   dailyTransgressions: DailyTransgressionRow[];
   transgressionActions: TransgressionActionRow[];
 };

@@ -3,6 +3,9 @@ import {
   WEIGHBRIDGE_OPTIONS,
 } from "@/lib/constants";
 
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+
 type ReportHeaderProps = {
     weighbridgeName: string;
 
@@ -25,15 +28,34 @@ export function ReportHeader({
 }: ReportHeaderProps) {
   
   return (
-    <header className="mb-6 flex items-center justify-between">
-      <div>
-        <h1 className="text-xl font-bold">
-          Static Weighbridge Report
-        </h1>
-        <p className="text-sm text-cyan-400">
-          Daily report builder
-        </p>
-      </div>
+    <header className="mb-6">
+      {/* Breadcrumbs */}
+      <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-400" aria-label="Breadcrumbs">
+        <Link href="/" className="hover:text-cyan-400 transition-colors">
+          Dashboard
+        </Link>
+        <ChevronRight size={12} className="opacity-60" />
+        <span className="opacity-80">Reports</span>
+        <ChevronRight size={12} className="opacity-60" />
+        <span className="text-cyan-300 font-semibold">Static Weighbridge</span>
+      </nav>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {/* Mobile-only logo */}
+          <div className="block xl:hidden rounded-lg bg-cyan-950/40 p-1.5 border border-cyan-900/40">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/dnk.png" alt="Logo" className="h-8 w-12 object-contain" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+              Static Weighbridge Report
+            </h1>
+            <p className="text-xs text-slate-400">
+              Compile daily & hourly statistics workspace
+            </p>
+          </div>
+        </div>
 
       <div className="mt-4 flex flex-wrap gap-3">
         <select
@@ -70,6 +92,7 @@ export function ReportHeader({
           ))}
         </select>
       </div>
+     </div>
     </header>
   );
 }

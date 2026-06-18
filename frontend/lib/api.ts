@@ -177,6 +177,16 @@ export type SummaryCard = {
 
 export type SummaryCardsResponse = {
   report_id: string;
+  station?: string;
+  bound?: string;
+  weighbridge_name?: string;
+  x_total?: number;
+  y_total?: number;
+  g_total?: number;
+  c_total?: number;
+  z_total?: number;
+  r_total?: number;
+  cases_cleared?: number;
   cards: SummaryCard[];
 };
 
@@ -282,6 +292,16 @@ export async function updateManualInputs(
   }
 
   return response.json();
+}
+
+export async function getReportSessions() {
+  const response = await fetch(apiUrl("report-sessions"));
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to fetch report sessions")
+    );
+  }
+  return response.json() as Promise<ReportSessionResponse[]>;
 }
 
 export async function getReportSession(

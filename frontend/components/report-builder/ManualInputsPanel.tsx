@@ -7,6 +7,7 @@ import {
 import {
   BuildStatus,
   ManualInputs,
+  CCRecordRow,
 } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 
@@ -70,6 +71,46 @@ export function ManualInputsPanel({
 }: ManualInputsPanelProps) {
   const [transgressionModalOpen, setTransgressionModalOpen] =
     useState(false);
+
+  const handleCellChange = (rowIndex: number, colKey: keyof CCRecordRow, value: number) => {
+    setManualInputsTouched(true);
+    setManualInputs((prev) => {
+      const nextCcRecords = prev.ccRecords ? [...prev.ccRecords] : [
+        { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+        { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+        { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+      ];
+      nextCcRecords[rowIndex] = {
+        ...nextCcRecords[rowIndex],
+        [colKey]: value,
+      };
+      return {
+        ...prev,
+        ccRecords: nextCcRecords,
+      };
+    });
+  };
+
+  const ccRecords = manualInputs.ccRecords || [
+    { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+    { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+    { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+  ];
+
+  const rowTotals = ccRecords.map(
+    (row) =>
+      (row.buses_gte_3500kg || 0) +
+      (row.vehicles_3500_to_7000_excluding_buses || 0) +
+      (row.vehicles_gte_7000_excluding_buses || 0)
+  );
+
+  const colTotals = {
+    buses: ccRecords.reduce((sum, r) => sum + (r.buses_gte_3500kg || 0), 0),
+    v3500to7000: ccRecords.reduce((sum, r) => sum + (r.vehicles_3500_to_7000_excluding_buses || 0), 0),
+    v7000: ccRecords.reduce((sum, r) => sum + (r.vehicles_gte_7000_excluding_buses || 0), 0),
+  };
+
+  const grandTotal = colTotals.buses + colTotals.v3500to7000 + colTotals.v7000;
 
   return (
     <>
@@ -168,68 +209,102 @@ export function ManualInputsPanel({
             Manage Transgression Details
           </button>
 
-          <label className="block">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Buses ≥ 3500KG
+          <div className="mt-5 space-y-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
+              Traffic Census (CC Records)
             </span>
-
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={manualInputs.buses3500}
-              onChange={(e) => {
-                setManualInputsTouched(true);
-                setManualInputs((prev) => ({
-                  ...prev,
-                  buses3500: Number(e.target.value),
-                }));
-              }}
-              className="mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Vehicles 3500–7000KG
-            </span>
-
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={manualInputs.vehicles3500to7000}
-              onChange={(e) => {
-                setManualInputsTouched(true);
-                setManualInputs((prev) => ({
-                  ...prev,
-                  vehicles3500to7000: Number(e.target.value),
-                }));
-              }}
-              className="mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Vehicles ≥ 7000KG
-            </span>
-
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={manualInputs.vehicles7000}
-              onChange={(e) => {
-                setManualInputsTouched(true);
-                setManualInputs((prev) => ({
-                  ...prev,
-                  vehicles7000: Number(e.target.value),
-                }));
-              }}
-              className="mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
-            />
-          </label>
+            <div className="overflow-x-auto rounded-lg border border-cyan-800/40 bg-[#071827] p-2">
+              <table className="w-full border-collapse text-xs text-slate-300">
+                <thead>
+                  <tr className="border-b border-cyan-800/40 text-slate-400 font-bold uppercase text-[9px] tracking-wider text-center">
+                    <th className="py-2 px-1">
+                      <div className="flex flex-col items-center leading-tight">
+                        <span>Buses</span>
+                        <span className="text-[8px] text-slate-500 font-normal mt-0.5">&ge;3.5k</span>
+                      </div>
+                    </th>
+                    <th className="py-2 px-1">
+                      <div className="flex flex-col items-center leading-tight">
+                        <span>Vehicles</span>
+                        <span className="text-[8px] text-slate-500 font-normal mt-0.5">3.5-7k</span>
+                      </div>
+                    </th>
+                    <th className="py-2 px-1">
+                      <div className="flex flex-col items-center leading-tight">
+                        <span>Vehicles</span>
+                        <span className="text-[8px] text-slate-500 font-normal mt-0.5">&ge;7k</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cyan-950/40">
+                  {[0, 1, 2].map((rowIndex) => (
+                    <tr key={rowIndex} className="hover:bg-cyan-950/10 text-center">
+                      <td className="py-1 px-0.5">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={ccRecords[rowIndex]?.buses_gte_3500kg ?? 0}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            handleCellChange(rowIndex, "buses_gte_3500kg", val ? Number(val) : 0);
+                          }}
+                          className="w-16 sm:w-20 rounded border border-cyan-800/60 bg-[#051421] px-1.5 py-1 text-center text-xs outline-none focus:border-cyan-500 text-white font-mono"
+                        />
+                      </td>
+                      <td className="py-1 px-0.5">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={ccRecords[rowIndex]?.vehicles_3500_to_7000_excluding_buses ?? 0}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            handleCellChange(rowIndex, "vehicles_3500_to_7000_excluding_buses", val ? Number(val) : 0);
+                          }}
+                          className="w-16 sm:w-20 rounded border border-cyan-800/60 bg-[#051421] px-1.5 py-1 text-center text-xs outline-none focus:border-cyan-500 text-white font-mono"
+                        />
+                      </td>
+                      <td className="py-1 px-0.5">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={ccRecords[rowIndex]?.vehicles_gte_7000_excluding_buses ?? 0}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            handleCellChange(rowIndex, "vehicles_gte_7000_excluding_buses", val ? Number(val) : 0);
+                          }}
+                          className="w-16 sm:w-20 rounded border border-cyan-800/60 bg-[#051421] px-1.5 py-1 text-center text-xs outline-none focus:border-cyan-500 text-white font-mono"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-cyan-950/20 font-bold border-t border-cyan-900 text-center">
+                    <td className="py-2 px-1 font-mono text-cyan-300">
+                      <div className="flex flex-col items-center">
+                        <span className="text-[7px] text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Total</span>
+                        <span>{colTotals.buses.toLocaleString()}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-1 font-mono text-cyan-300">
+                      <div className="flex flex-col items-center">
+                        <span className="text-[7px] text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Total</span>
+                        <span>{colTotals.v3500to7000.toLocaleString()}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-1 font-mono text-cyan-300">
+                      <div className="flex flex-col items-center">
+                        <span className="text-[7px] text-slate-500 font-semibold uppercase tracking-wider mb-0.5">Total</span>
+                        <span>{colTotals.v7000.toLocaleString()}</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <button
@@ -247,29 +322,45 @@ export function ManualInputsPanel({
             : "Build Final Report"}
         </button>
 
-        <button
-          suppressHydrationWarning
-          onClick={onDownloadReport}
-          disabled={Boolean(
-            buildStatus !== "completed" || !finalReportDownloadUrl
-          )}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-700 px-4 py-3 text-sm font-bold text-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <FileText aria-hidden="true" size={16} />
-          Download DOCX
-        </button>
+        {buildStatus === "completed" && finalReportDownloadUrl ? (
+          <a
+            href={finalReportDownloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-700 px-4 py-3 text-sm font-bold text-cyan-300 hover:bg-cyan-500/10"
+          >
+            <FileText aria-hidden="true" size={16} />
+            Download DOCX
+          </a>
+        ) : (
+          <button
+            disabled
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-700 px-4 py-3 text-sm font-bold text-cyan-300 cursor-not-allowed opacity-40"
+          >
+            <FileText aria-hidden="true" size={16} />
+            Download DOCX
+          </button>
+        )}
 
-        <button
-          suppressHydrationWarning
-          onClick={onDownloadExcelReport}
-          disabled={Boolean(
-            buildStatus !== "completed" || !excelReportDownloadUrl
-          )}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/60 px-4 py-3 text-sm font-bold text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <FileSpreadsheet aria-hidden="true" size={16} />
-          Download Excel
-        </button>
+        {buildStatus === "completed" && excelReportDownloadUrl ? (
+          <a
+            href={excelReportDownloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/60 px-4 py-3 text-sm font-bold text-emerald-300 hover:bg-[#10b981]/10"
+          >
+            <FileSpreadsheet aria-hidden="true" size={16} />
+            Download Excel
+          </a>
+        ) : (
+          <button
+            disabled
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/60 px-4 py-3 text-sm font-bold text-emerald-300 cursor-not-allowed opacity-40"
+          >
+            <FileSpreadsheet aria-hidden="true" size={16} />
+            Download Excel
+          </button>
+        )}
       </aside>
 
       {transgressionModalOpen && (
