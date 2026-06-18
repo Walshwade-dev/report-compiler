@@ -546,30 +546,50 @@ export default function NewMobileReportPage() {
     {
       title: "Total Weighed",
       value: totalWeighed,
-      subtitle: summary ? "from uploaded register" : "awaiting register",
+      subtitle: uploadComplete ? "from uploaded register" : "awaiting register",
       icon: Scale,
-      className: "border-sky-500/50 bg-sky-600/20 text-sky-100",
+      className: uploadComplete 
+        ? "border-sky-500/50 bg-sky-600/25 text-sky-100" 
+        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+      iconClass: uploadComplete ? "bg-sky-400/15 text-sky-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: uploadComplete ? "text-sky-100" : "text-slate-300",
+      subtitleClass: uploadComplete ? "text-sky-200" : "text-slate-400",
     },
     {
       title: "Warned",
       value: warned,
       subtitle: "warned trucks",
       icon: AlertTriangle,
-      className: "border-amber-500/50 bg-amber-600/20 text-amber-100",
+      className: uploadComplete 
+        ? "border-amber-500/50 bg-amber-600/20 text-amber-100" 
+        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+      iconClass: uploadComplete ? "bg-amber-400/15 text-amber-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: uploadComplete ? "text-amber-100" : "text-slate-300",
+      subtitleClass: uploadComplete ? "text-amber-200" : "text-slate-400",
     },
     {
       title: "Charged GVW/Axle",
       value: chargedGvwAxle,
       subtitle: "weight offences",
       icon: Truck,
-      className: "border-rose-500/50 bg-rose-600/20 text-rose-100",
+      className: uploadComplete 
+        ? "border-rose-500/50 bg-rose-600/20 text-rose-100" 
+        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+      iconClass: uploadComplete ? "bg-rose-400/15 text-rose-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: uploadComplete ? "text-rose-100" : "text-slate-300",
+      subtitleClass: uploadComplete ? "text-rose-200" : "text-slate-400",
     },
     {
       title: "Charged Dimensions",
       value: chargedDimensions,
       subtitle: "dimension offences",
       icon: Ruler,
-      className: "border-emerald-500/50 bg-emerald-600/20 text-emerald-100",
+      className: uploadComplete 
+        ? "border-emerald-500/50 bg-emerald-600/20 text-emerald-100" 
+        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+      iconClass: uploadComplete ? "bg-emerald-400/15 text-emerald-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: uploadComplete ? "text-emerald-100" : "text-slate-300",
+      subtitleClass: uploadComplete ? "text-emerald-200" : "text-slate-400",
     },
   ];
 
@@ -602,44 +622,43 @@ export default function NewMobileReportPage() {
         </div>
       </header>
 
-      <section
-        aria-labelledby="mobile-kpis-heading"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        <h2 id="mobile-kpis-heading" className="sr-only">
-          Mobile report KPI cards
-        </h2>
-
-        {kpiCards.map((card) => {
-          const Icon = card.icon;
-
-          return (
-            <article
-              key={card.title}
-              className={`rounded-xl border p-5 shadow-lg ${card.className}`}
-            >
-              <div className="flex min-h-12 items-start justify-between gap-3">
-                <p className="text-sm font-bold uppercase tracking-wider">
-                  {card.title}
-                </p>
-
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10">
-                  <Icon aria-hidden="true" size={22} strokeWidth={2.3} />
-                </span>
-              </div>
-
-              <p className="mt-5 text-4xl font-black text-white">
-                {card.value}
-              </p>
-
-              <p className="mt-2 text-base font-semibold">{card.subtitle}</p>
-            </article>
-          );
-        })}
-      </section>
-
       <div className="mt-5 grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-5">
+          <section
+            aria-labelledby="mobile-kpis-heading"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+          >
+            <h2 id="mobile-kpis-heading" className="sr-only">
+              Mobile report KPI cards
+            </h2>
+
+            {kpiCards.map((card) => {
+              const Icon = card.icon;
+
+              return (
+                <article
+                  key={card.title}
+                  className={`rounded-xl border p-5 shadow-lg transition duration-200 ${card.className}`}
+                >
+                  <div className="flex min-h-12 items-start justify-between gap-3">
+                    <p className={`text-sm font-bold uppercase tracking-wider ${card.titleClass}`}>
+                      {card.title}
+                    </p>
+
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${card.iconClass}`}>
+                      <Icon aria-hidden="true" size={22} strokeWidth={2.3} />
+                    </span>
+                  </div>
+
+                  <p className="mt-5 text-4xl font-black text-white">
+                    {uploadComplete ? card.value : "—"}
+                  </p>
+
+                  <p className={`mt-2 text-base font-semibold ${card.subtitleClass}`}>{card.subtitle}</p>
+                </article>
+              );
+            })}
+          </section>
           <section
             aria-labelledby="session-heading"
             className="rounded-xl border border-cyan-900/50 bg-[#0b2a45] p-5"
