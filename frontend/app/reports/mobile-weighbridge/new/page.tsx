@@ -63,6 +63,9 @@ function createInitialMobileInputs(): MobileReportInputs {
     startMileage: "",
     stopMileage: "",
     casesClearedInCourt: "0",
+    transgressionsCount: "0",
+    exemptedPermit: "0",
+    manuallyWeighed: "0",
     vehicleCharges: [],
   };
 }
@@ -225,7 +228,10 @@ export default function NewMobileReportPage() {
       inputs.mobileVehicleReg &&
       inputs.startMileage &&
       inputs.stopMileage &&
-      inputs.casesClearedInCourt
+      inputs.casesClearedInCourt &&
+      inputs.transgressionsCount &&
+      inputs.exemptedPermit &&
+      inputs.manuallyWeighed
   );
 
   const uploadComplete =
@@ -253,6 +259,9 @@ export default function NewMobileReportPage() {
             mileageStart === null ? inputs.startMileage : mileageStart,
           mileage_end: mileageStop === null ? inputs.stopMileage : mileageStop,
           cases_cleared_in_court: inputs.casesClearedInCourt,
+          transgressions_count: inputs.transgressionsCount,
+          exempted_permit: inputs.exemptedPermit,
+          manually_weighed: inputs.manuallyWeighed,
         },
       },
     }),
@@ -878,6 +887,36 @@ export default function NewMobileReportPage() {
                 uppercase={false}
                 value={inputs.casesClearedInCourt}
                 onChange={(value) => updateInput("casesClearedInCourt", value)}
+              />
+
+              <TextInput
+                id="transgressions-count"
+                label="Transgressions (L)"
+                type="number"
+                min={0}
+                uppercase={false}
+                value={inputs.transgressionsCount}
+                onChange={(value) => updateInput("transgressionsCount", value)}
+              />
+
+              <TextInput
+                id="exempted-permit"
+                label="Exempted permit (E)"
+                type="number"
+                min={0}
+                uppercase={false}
+                value={inputs.exemptedPermit}
+                onChange={(value) => updateInput("exemptedPermit", value)}
+              />
+
+              <TextInput
+                id="manually-weighed"
+                label="Manually Weighed (M)"
+                type="number"
+                min={0}
+                uppercase={false}
+                value={inputs.manuallyWeighed}
+                onChange={(value) => updateInput("manuallyWeighed", value)}
               />
 
               <label htmlFor="operation-route" className="block">

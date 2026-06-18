@@ -113,6 +113,9 @@ export type MobileReportInputs = {
   startMileage: string;
   stopMileage: string;
   casesClearedInCourt: string;
+  transgressionsCount: string;
+  exemptedPermit: string;
+  manuallyWeighed: string;
   vehicleCharges: MobileVehicleChargeRow[];
 };
 
