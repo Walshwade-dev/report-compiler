@@ -67,7 +67,7 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
                 Settings
               </button>
             </div>
-            <nav className="mt-3 grid gap-2 sm:grid-cols-2" aria-label="Report navigation">
+            <nav className="mt-3 hidden lg:grid gap-2 sm:grid-cols-2" aria-label="Report navigation">
               {REPORT_NAV_ITEMS[0].items.map((item) => {
                 const active = pathname === item.href;
 
