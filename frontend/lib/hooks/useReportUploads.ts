@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
 import { UploadKey, UploadState } from "../types";
-import { uploadSectionFile } from "../api";
+import { uploadSectionFile, ReportSessionResponse } from "../api";
 import { BACKEND_SECTION_KEYS, BACKEND_SECTION_STATUS_MAP } from "../constants";
 import { isSupportedSpreadsheetFile, supportedSpreadsheetFileMessage } from "../files";
 
 export function useReportUploads(
   reportId: string | null,
-  onUploadSuccess?: (session: any) => void
+  onUploadSuccess?: (session: ReportSessionResponse) => void
 ) {
   const [uploads, setUploads] = useState<Record<UploadKey, UploadState>>({
     daily_hour: { status: "missing" },
@@ -21,7 +21,7 @@ export function useReportUploads(
 
   const uploadsComplete = uploadCount === 4;
 
-  const setUploadsStateFromSession = useCallback((session: any) => {
+  const setUploadsStateFromSession = useCallback((session: ReportSessionResponse) => {
     if (!session) return;
 
     const restoredUploads: Record<UploadKey, UploadState> = {

@@ -8,6 +8,7 @@ import {
   buildFinalReport,
   getFinalReportDownloadUrl,
   getExcelReportDownloadUrl,
+  ReportSessionResponse,
 } from "../api";
 import { BACKEND_SECTION_KEYS, BACKEND_SECTION_STATUS_MAP } from "../constants";
 import { UploadKey, UploadState } from "../types";
@@ -104,7 +105,7 @@ function splitThreeRows(total: number): [number, number, number] {
 }
 
 export function useReportSession() {
-  const [sessionData, setSessionData] = useState<any>(null);
+  const [sessionData, setSessionData] = useState<ReportSessionResponse | null>(null);
 
   const [metadata, setMetadata] = useState<ReportMetadata>({
     date: "",
@@ -156,7 +157,7 @@ export function useReportSession() {
     !reportId;
 
   // Function to load session details from backend response
-  const loadSessionData = useCallback(async (session: any) => {
+  const loadSessionData = useCallback(async (session: ReportSessionResponse) => {
     setSessionData(session);
 
     setMetadata({

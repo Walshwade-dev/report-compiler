@@ -73,8 +73,8 @@ export function RecentReportsList() {
   };
 
   return (
-    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md">
-      <div className="flex items-center justify-between mb-5">
+    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md h-full flex flex-col">
+      <div className="flex items-center justify-between mb-5 shrink-0">
         <div>
           <h2 className="text-lg font-bold text-white">Recent Workspaces</h2>
           <p className="text-xs text-slate-400">Manage your recently active report builder sessions.</p>
@@ -87,7 +87,7 @@ export function RecentReportsList() {
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto flex-1 min-h-0 custom-scrollbar">
         <table className="w-full border-collapse text-left text-sm text-slate-300">
           <thead>
             <tr className="border-b border-cyan-900/40 text-xs font-bold uppercase tracking-wider text-slate-400">

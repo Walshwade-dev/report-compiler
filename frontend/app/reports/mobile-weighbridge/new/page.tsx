@@ -23,6 +23,7 @@ import {
   createReportSession,
   getMobileExcelReportDownloadUrl,
   getMobileWordReportDownloadUrl,
+  getReportSession,
   MobileReportUploadResponse,
   resolveApiUrl,
   updateManualInputs,
@@ -303,7 +304,7 @@ export default function NewMobileReportPage() {
   ]);
 
   useEffect(() => {
-    Promise.resolve().then(() => {
+    Promise.resolve().then(async () => {
       const savedDraft = localStorage.getItem(MOBILE_DRAFT_KEY);
       const savedReportId = localStorage.getItem(MOBILE_REPORT_ID_KEY);
 
@@ -322,6 +323,16 @@ export default function NewMobileReportPage() {
         setReportId(savedReportId);
         setSessionStatus("ready");
         setMobileExcelUrl(getMobileExcelReportDownloadUrl(savedReportId));
+
+        try {
+          const session = await getReportSession(savedReportId);
+          if (session.sections.mobile_report) {
+            setUploadResponse(session as MobileReportUploadResponse);
+            setUploadStatus(session.sections.mobile_report.status === "ready" ? "ready" : "error");
+          }
+        } catch (error) {
+          console.error("Failed to restore mobile session from backend:", error);
+        }
       }
 
       setDraftLoaded(true);

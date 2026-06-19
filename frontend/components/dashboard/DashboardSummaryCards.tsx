@@ -12,30 +12,53 @@ export function DashboardSummaryCards() {
     minGross: 0,
     chargedRedist: "0 / 0",
     reportsGenerated: 0,
+    mobileWeighed: 0,
+    mobileWarned: 0,
+    mobileCharged: 0,
+    hasStaticData: false,
+    hasMobileData: false,
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const activeReportId = localStorage.getItem("active-report-id");
-    if (!activeReportId) return;
+    const activeMobileReportId = localStorage.getItem("active-mobile-report-id");
+    if (!activeReportId && !activeMobileReportId) return;
 
     let active = true;
     async function fetchData() {
       try {
-        const res = await getSummaryCards(activeReportId as string);
-        if (!active) return;
+        let newData = { ...data };
 
-        const hasUploadData = (res.x_total || 0) > 0 || (res.y_total || 0) > 0;
+        if (activeReportId) {
+          const res = await getSummaryCards(activeReportId);
+          const hasUploadData = (res.x_total || 0) > 0 || (res.y_total || 0) > 0;
+          
+          if (hasUploadData && active) {
+            newData.hasStaticData = true;
+            newData.weighed = res.x_total || 0;
+            newData.overloads = Math.max((res.y_total || 0) - (res.g_total || 0), 0);
+            newData.minGross = res.g_total || 0;
+            newData.chargedRedist = `${res.z_total || 0} / ${res.r_total || 0}`;
+            newData.reportsGenerated = 1;
+          }
+        }
 
-        if (hasUploadData) {
-          setData({
-            weighed: res.x_total || 0,
-            overloads: Math.max((res.y_total || 0) - (res.g_total || 0), 0),
-            psvOverloads: 0,
-            minGross: res.g_total || 0,
-            chargedRedist: `${res.z_total || 0} / ${res.r_total || 0}`,
-            reportsGenerated: 1,
-          });
+        if (activeMobileReportId) {
+          const { getReportSession } = await import("@/lib/api");
+          const session = await getReportSession(activeMobileReportId);
+          
+          if (session.sections.mobile_report?.status === "ready" && active) {
+            const summary = session.sections.mobile_report.summary;
+            newData.hasMobileData = true;
+            newData.mobileWeighed = summary?.total_trucks_weighed || 0;
+            newData.mobileWarned = summary?.warned_trucks || 0;
+            newData.mobileCharged = summary?.charged_trucks || 0;
+          }
+        }
+
+        if (active) {
+          setData(newData);
         }
       } catch (err) {
         console.error("Failed to fetch dashboard summary cards", err);
@@ -50,76 +73,135 @@ export function DashboardSummaryCards() {
   const cards = [
     {
       title: "Total Weighed Vehicles",
-      value: data.weighed ? data.weighed.toLocaleString() : "0",
-      change: data.weighed ? "From active session" : "No active session",
+      value: data.hasStaticData ? data.weighed.toLocaleString() : "0",
+      change: data.hasStaticData ? "From active session" : "No active session",
       icon: BarChart3,
       color: "from-cyan-500/20 to-blue-500/10 border-cyan-500/30 text-cyan-300",
     },
     {
       title: "Truck Overloads (No Permit)",
-      value: data.overloads ? data.overloads.toLocaleString() : "0",
-      change: data.overloads ? "Excluded permit holders" : "No active session",
+      value: data.hasStaticData ? data.overloads.toLocaleString() : "0",
+      change: data.hasStaticData ? "Excluded permit holders" : "No active session",
       icon: ShieldAlert,
       color: "from-rose-500/20 to-red-500/10 border-rose-500/30 text-rose-300",
     },
     {
       title: "PSV Overloads (No Permit)",
-      value: data.psvOverloads ? data.psvOverloads.toLocaleString() : "0",
+      value: data.hasStaticData ? data.psvOverloads.toLocaleString() : "0",
       change: "Buses & passenger vehicles",
       icon: Bus,
       color: "from-amber-500/20 to-orange-500/10 border-amber-500/30 text-amber-300",
     },
     {
       title: "Min Gross Overload (Allowed)",
-      value: data.minGross ? data.minGross.toLocaleString() : "0",
+      value: data.hasStaticData ? data.minGross.toLocaleString() : "0",
       change: "Within minimal gross margin",
       icon: Scale,
       color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-300",
     },
     {
       title: "Charged vs Redistributed",
-      value: data.chargedRedist,
-      change: data.weighed ? `${data.chargedRedist.split(" / ")[0]} Charged, ${data.chargedRedist.split(" / ")[1]} Redistributed` : "No active session",
+      value: data.hasStaticData ? data.chargedRedist : "0 / 0",
+      change: data.hasStaticData ? `${data.chargedRedist.split(" / ")[0]} Charged, ${data.chargedRedist.split(" / ")[1]} Redistributed` : "No active session",
       icon: Gavel,
       color: "from-blue-500/20 to-indigo-500/10 border-blue-500/30 text-blue-300",
     },
     {
       title: "Reports Generated",
-      value: data.reportsGenerated.toString(),
+      value: data.hasStaticData ? data.reportsGenerated.toString() : "0",
       change: "In active workspace",
       icon: FileText,
       color: "from-purple-500/20 to-indigo-500/10 border-purple-500/30 text-purple-300",
     },
+    {
+      title: "Mobile Weighed",
+      value: data.hasMobileData ? data.mobileWeighed.toLocaleString() : "0",
+      change: data.hasMobileData ? "From mobile session" : "No mobile session",
+      icon: Scale,
+      color: "from-sky-500/20 to-cyan-500/10 border-sky-500/30 text-sky-300",
+    },
+    {
+      title: "Mobile Warned",
+      value: data.hasMobileData ? data.mobileWarned.toLocaleString() : "0",
+      change: data.hasMobileData ? "Warned trucks" : "No mobile session",
+      icon: ShieldAlert,
+      color: "from-amber-500/20 to-yellow-500/10 border-amber-500/30 text-amber-300",
+    },
+    {
+      title: "Mobile Charged",
+      value: data.hasMobileData ? data.mobileCharged.toLocaleString() : "0",
+      change: data.hasMobileData ? "Charged trucks" : "No mobile session",
+      icon: Gavel,
+      color: "from-rose-500/20 to-red-500/10 border-rose-500/30 text-rose-300",
+    },
   ];
 
+  const staticCards = cards.slice(0, 6);
+  const mobileCards = cards.slice(6, 9);
+
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {cards.map((card, i) => {
-        const Icon = card.icon;
-        return (
-          <div
-            key={i}
-            className={`relative overflow-hidden rounded-xl border bg-gradient-to-br p-5 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] ${card.color}`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                {card.title}
-              </span>
-              <Icon size={20} className="opacity-80" />
-            </div>
+    <>
+      {/* Column 1: Static Report KPIs */}
+      <div className="flex flex-col gap-4 h-full">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-cyan-200">Static Report KPIs</h2>
+        <div className="grid grid-cols-2 gap-3 flex-1">
+          {staticCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={`static-${i}`}
+                className={`relative flex flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-3 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] min-h-[100px] ${card.color}`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
+                    {card.title}
+                  </span>
+                  <Icon size={14} className="opacity-80 shrink-0" />
+                </div>
+                <div className="mt-2">
+                  <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-white block">
+                    {card.value}
+                  </span>
+                  <p className="mt-0.5 text-[9px] text-slate-400 font-medium truncate" title={card.change}>
+                    {card.change}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-white">
-                {card.value}
-              </span>
-            </div>
-
-            <p className="mt-2 text-xs text-slate-400 font-medium">
-              {card.change}
-            </p>
-          </div>
-        );
-      })}
-    </div>
+      {/* Column 2: Mobile Report KPIs */}
+      <div className="flex flex-col gap-4 h-full">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-cyan-200">Mobile Report KPIs</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3 flex-1">
+          {mobileCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={`mobile-${i}`}
+                className={`relative flex flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-4 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] min-h-[100px] ${card.color}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 leading-tight">
+                    {card.title}
+                  </span>
+                  <Icon size={16} className="opacity-80 shrink-0" />
+                </div>
+                <div className="mt-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white block">
+                    {card.value}
+                  </span>
+                  <p className="mt-0.5 text-[10px] text-slate-400 font-medium truncate" title={card.change}>
+                    {card.change}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
   );
 }

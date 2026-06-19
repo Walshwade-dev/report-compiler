@@ -77,7 +77,7 @@ export function DashboardCharts() {
     if (typeof window === "undefined") return;
     const activeReportId = localStorage.getItem("active-report-id");
     if (!activeReportId) {
-      setStations(initialStations);
+      setStations([initialStations[0]]);
       setHasData(false);
       return;
     }
@@ -90,7 +90,7 @@ export function DashboardCharts() {
 
         const hasUploadData = (res.x_total || 0) > 0 || (res.y_total || 0) > 0;
         if (!hasUploadData) {
-          setStations(initialStations);
+          setStations([initialStations[0]]);
           setHasData(false);
           return;
         }
@@ -113,16 +113,12 @@ export function DashboardCharts() {
                 isBoundA = true;
               } else if (boundVal.toLowerCase().includes("nairobi") || boundVal.toLowerCase().includes("bound b") || boundVal.toLowerCase().includes("outgoing")) {
                 isBoundB = true;
-              } else {
-                isBoundA = true;
               }
             } else {
               if (boundVal.toLowerCase().includes("bound a") || boundVal.toLowerCase().includes("a") || boundVal.toLowerCase().includes("incoming")) {
                 isBoundA = true;
               } else if (boundVal.toLowerCase().includes("bound b") || boundVal.toLowerCase().includes("b") || boundVal.toLowerCase().includes("outgoing")) {
                 isBoundB = true;
-              } else {
-                isBoundA = true;
               }
             }
 
@@ -167,7 +163,11 @@ export function DashboardCharts() {
           return st;
         });
 
-        setStations(updated);
+        const filtered = updated.filter(
+          st => st.compliance.boundA.weighed > 0 || st.compliance.boundB.weighed > 0
+        );
+
+        setStations(filtered.length > 0 ? filtered : [initialStations[0]]);
       } catch (err) {
         console.error("Failed to fetch dashboard charts data", err);
       }
@@ -208,7 +208,7 @@ export function DashboardCharts() {
   const totalWeighed = activeStation ? (activeStation.compliance.boundA.weighed + activeStation.compliance.boundB.weighed) : 0;
 
   return (
-    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md">
+    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-cyan-950 pb-4 mb-6 gap-4">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -259,7 +259,7 @@ export function DashboardCharts() {
       </div>
 
       {/* Chart Canvas Area */}
-      <div className="relative min-h-[300px]">
+      <div className="relative min-h-[300px] flex-1 flex flex-col">
         {activeTab === "traffic" && (
           <div>
             <div className="flex justify-between items-center mb-6">
@@ -491,7 +491,7 @@ export function DashboardCharts() {
       </div>
 
       {/* Summary Footer details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-5 border-t border-cyan-950">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-5 border-t border-cyan-950 shrink-0">
         <div className="flex items-center gap-3 bg-[#071827]/40 rounded-xl p-3 border border-cyan-950">
           <TrendingUp className="text-cyan-400 shrink-0" size={18} />
           <div>
