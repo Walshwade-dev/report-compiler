@@ -180,7 +180,11 @@ export function useReportSession() {
       const dailyTransgressions = transgressions?.daily_transgressions || [];
       const transgressionActions = transgressions?.action_report || [];
 
-      let ccRecords = restoredManualInputs.cc_records;
+      let ccRecords = restoredManualInputs.cc_records?.map(r => ({
+        buses_gte_3500kg: r.buses_gte_3500kg || 0,
+        vehicles_3500_to_7000_excluding_buses: r.vehicles_3500_to_7000_excluding_buses || 0,
+        vehicles_gte_7000_excluding_buses: r.vehicles_gte_7000_excluding_buses || 0,
+      }));
       if (!ccRecords || ccRecords.length === 0) {
         const b = numberFromSession(trafficCensus?.buses_gte_3500kg);
         const v = numberFromSession(trafficCensus?.vehicles_3500_to_7000_excluding_buses);

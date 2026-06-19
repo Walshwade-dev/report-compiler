@@ -111,6 +111,11 @@ export type ReportSessionResponse = {
     };
     cases_cleared_in_court?: number;
     transgressions_count?: number;
+    cc_records?: {
+      buses_gte_3500kg?: number;
+      vehicles_3500_to_7000_excluding_buses?: number;
+      vehicles_gte_7000_excluding_buses?: number;
+    }[];
   };
 
   sections: Record<
@@ -119,6 +124,7 @@ export type ReportSessionResponse = {
       status: string;
       preview_url?: string;
       summary?: MobileReportSummary;
+      filename?: string;
     }
   >;
 
