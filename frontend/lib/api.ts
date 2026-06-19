@@ -366,6 +366,20 @@ export async function getSummaryCards(
   return response.json() as Promise<SummaryCardsResponse>;
 }
 
+export async function getAnalyticsDashboard() {
+  const response = await fetch(
+    apiUrl(`report-sessions/analytics/dashboard`)
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to fetch analytics dashboard")
+    );
+  }
+
+  return response.json();
+}
+
 export async function buildFinalReport(
   reportId: string
 ) {

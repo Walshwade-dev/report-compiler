@@ -23,42 +23,27 @@ export function DashboardSummaryCards() {
     if (typeof window === "undefined") return;
     const activeReportId = localStorage.getItem("active-report-id");
     const activeMobileReportId = localStorage.getItem("active-mobile-report-id");
-    if (!activeReportId && !activeMobileReportId) return;
 
     let active = true;
     async function fetchData() {
       try {
-        let newData = { ...data };
-
-        if (activeReportId) {
-          const res = await getSummaryCards(activeReportId);
-          const hasUploadData = (res.x_total || 0) > 0 || (res.y_total || 0) > 0;
-          
-          if (hasUploadData && active) {
-            newData.hasStaticData = true;
-            newData.weighed = res.x_total || 0;
-            newData.overloads = Math.max((res.y_total || 0) - (res.g_total || 0), 0);
-            newData.minGross = res.g_total || 0;
-            newData.chargedRedist = `${res.z_total || 0} / ${res.r_total || 0}`;
-            newData.reportsGenerated = 1;
-          }
-        }
-
-        if (activeMobileReportId) {
-          const { getReportSession } = await import("@/lib/api");
-          const session = await getReportSession(activeMobileReportId);
-          
-          if (session.sections.mobile_report?.status === "ready" && active) {
-            const summary = session.sections.mobile_report.summary;
-            newData.hasMobileData = true;
-            newData.mobileWeighed = summary?.total_trucks_weighed || 0;
-            newData.mobileWarned = summary?.warned_trucks || 0;
-            newData.mobileCharged = summary?.charged_trucks || 0;
-          }
-        }
+        const { getAnalyticsDashboard } = await import("@/lib/api");
+        const res = await getAnalyticsDashboard();
 
         if (active) {
-          setData(newData);
+          setData({
+            weighed: res.static.weighed,
+            overloads: res.static.overloads,
+            psvOverloads: 0,
+            minGross: res.static.minGross,
+            chargedRedist: res.static.chargedRedist,
+            reportsGenerated: res.static.reportsGenerated,
+            mobileWeighed: res.mobile.weighed,
+            mobileWarned: res.mobile.warned,
+            mobileCharged: res.mobile.charged,
+            hasStaticData: res.static.reportsGenerated > 0,
+            hasMobileData: res.mobile.weighed > 0 || res.mobile.warned > 0 || res.mobile.charged > 0,
+          });
         }
       } catch (err) {
         console.error("Failed to fetch dashboard summary cards", err);
@@ -74,7 +59,7 @@ export function DashboardSummaryCards() {
     {
       title: "Total Weighed Vehicles",
       value: data.hasStaticData ? data.weighed.toLocaleString() : "0",
-      change: data.hasStaticData ? "From active session" : "No active session",
+      change: data.hasStaticData ? "All active sessions" : "No active session",
       icon: BarChart3,
       color: "from-cyan-500/20 to-blue-500/10 border-cyan-500/30 text-cyan-300",
     },
@@ -109,14 +94,14 @@ export function DashboardSummaryCards() {
     {
       title: "Reports Generated",
       value: data.hasStaticData ? data.reportsGenerated.toString() : "0",
-      change: "In active workspace",
+      change: "All active sessions",
       icon: FileText,
       color: "from-purple-500/20 to-indigo-500/10 border-purple-500/30 text-purple-300",
     },
     {
       title: "Mobile Weighed",
       value: data.hasMobileData ? data.mobileWeighed.toLocaleString() : "0",
-      change: data.hasMobileData ? "From mobile session" : "No mobile session",
+      change: data.hasMobileData ? "All mobile sessions" : "No mobile session",
       icon: Scale,
       color: "from-sky-500/20 to-cyan-500/10 border-sky-500/30 text-sky-300",
     },
