@@ -61,7 +61,7 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
               <button
                 type="button"
                 onClick={() => setSettingsOpen(true)}
-                className="flex items-center gap-2 rounded-lg border border-cyan-700 px-3 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-500/10"
+                className="hidden lg:flex items-center gap-2 rounded-lg border border-cyan-700 px-3 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-500/10"
               >
                 <Settings aria-hidden="true" size={16} />
                 Settings
