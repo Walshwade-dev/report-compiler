@@ -18,8 +18,6 @@ type ManualInputsPanelProps = {
   >;
   buildStatus: BuildStatus;
   onBuildReport: () => void;
-  onDownloadReport: () => void;
-  onDownloadExcelReport: () => void;
   canBuild: boolean;
   setManualInputsTouched: React.Dispatch<React.SetStateAction<boolean>>;
   manualSaveStatus: "idle" | "saving" | "saved" | "error";
@@ -60,8 +58,6 @@ export function ManualInputsPanel({
   setManualInputs,
   buildStatus,
   onBuildReport,
-  onDownloadReport,
-  onDownloadExcelReport,
   canBuild,
   setManualInputsTouched,
   manualSaveStatus,
@@ -97,20 +93,11 @@ export function ManualInputsPanel({
     { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
   ];
 
-  const rowTotals = ccRecords.map(
-    (row) =>
-      (row.buses_gte_3500kg || 0) +
-      (row.vehicles_3500_to_7000_excluding_buses || 0) +
-      (row.vehicles_gte_7000_excluding_buses || 0)
-  );
-
   const colTotals = {
     buses: ccRecords.reduce((sum, r) => sum + (r.buses_gte_3500kg || 0), 0),
     v3500to7000: ccRecords.reduce((sum, r) => sum + (r.vehicles_3500_to_7000_excluding_buses || 0), 0),
     v7000: ccRecords.reduce((sum, r) => sum + (r.vehicles_gte_7000_excluding_buses || 0), 0),
   };
-
-  const grandTotal = colTotals.buses + colTotals.v3500to7000 + colTotals.v7000;
 
   return (
     <>

@@ -63,16 +63,11 @@ export function ReportMetadataForm({
 
           <select
             suppressHydrationWarning
-            className="rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
-            value={metadata.approvedBy}
-            onChange={(e) =>
-              setMetadata((prev) => ({
-                ...prev,
-                approvedBy: e.target.value,
-              }))
-            }
+            className="rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none opacity-60 cursor-not-allowed"
+            value={metadata.approvedBy || "Faith Njani"}
+            disabled
           >
-            <option value="">Select approved by</option>
+            <option value="Faith Njani">Faith Njani</option>
           </select>
         </div>
       </div>
@@ -118,21 +113,11 @@ export function ReportMetadataForm({
         </select>
 
         <select
-          className="rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
-          value={metadata.approvedBy}
-          onChange={(e) =>
-            setMetadata((prev) => ({
-              ...prev,
-              approvedBy: e.target.value,
-            }))
-          }
+          className="rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none opacity-60 cursor-not-allowed"
+          value={metadata.approvedBy || "Faith Njani"}
+          disabled
         >
-          <option value="">Select approved by</option>
-          {people.map((person) => (
-            <option key={person} value={person}>
-              {person}
-            </option>
-          ))}
+          <option value="Faith Njani">Faith Njani</option>
         </select>
       </div>
     </div>

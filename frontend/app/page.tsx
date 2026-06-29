@@ -6,7 +6,8 @@ import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { DMSPerformance } from "@/components/dashboard/DMSPerformance";
 import { TopDMsTable } from "@/components/dashboard/TopDMsTable";
 import { RecentReportsList } from "@/components/dashboard/RecentReportsList";
-import { PlusCircle, FileSpreadsheet, Layers, Zap } from "lucide-react";
+import { SmsSummaryPanel } from "@/components/dashboard/SmsSummaryPanel";
+import { PlusCircle, FileSpreadsheet, Layers } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -32,6 +33,11 @@ export default function HomePage() {
           <div className="h-full flex flex-col">
             <DMSPerformance />
           </div>
+        </div>
+
+        {/* SMS Summaries Row */}
+        <div className="grid grid-cols-1 gap-6">
+          <SmsSummaryPanel />
         </div>
 
         {/* Bottom Section: Analytics (Left) | Top DMs (Middle) | Actions & Workspaces (Right) */}

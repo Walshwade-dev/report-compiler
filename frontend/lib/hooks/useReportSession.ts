@@ -10,8 +10,7 @@ import {
   getExcelReportDownloadUrl,
   ReportSessionResponse,
 } from "../api";
-import { BACKEND_SECTION_KEYS, BACKEND_SECTION_STATUS_MAP } from "../constants";
-import { UploadKey, UploadState } from "../types";
+
 
 const ACTIVE_WEIGHBRIDGE_KEY = "active-weighbridge-name";
 const ACTIVE_BOUND_KEY = "active-bound-name";
@@ -110,7 +109,7 @@ export function useReportSession() {
   const [metadata, setMetadata] = useState<ReportMetadata>({
     date: "",
     preparedBy: "",
-    approvedBy: "",
+    approvedBy: "Faith Njani",
   });
 
   const [weighbridgeName, setWeighbridgeName] = useState(() =>
@@ -163,7 +162,7 @@ export function useReportSession() {
     setMetadata({
       date: session.metadata?.report_date || "",
       preparedBy: session.metadata?.prepared_by || "",
-      approvedBy: session.metadata?.confirmed_by || "",
+      approvedBy: session.metadata?.confirmed_by || "Faith Njani",
     });
 
     setWeighbridgeName(
@@ -356,7 +355,7 @@ export function useReportSession() {
     setMetadata({
       date: "",
       preparedBy: "",
-      approvedBy: "",
+      approvedBy: "Faith Njani",
     });
 
     setManualInputs({

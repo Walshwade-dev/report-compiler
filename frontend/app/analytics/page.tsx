@@ -2,55 +2,82 @@
 
 import { useState, useEffect } from "react";
 import ReportsLayout from "../reports/layout";
-import { BarChart3, Scale, Gavel, CheckCircle2, TrendingUp, Award, MapPin } from "lucide-react";
+import { BarChart3, Scale, Gavel, TrendingUp, Award, MapPin } from "lucide-react";
 
-// Mock data for Juja Weighbridge (Station specific) over days of the month
-// Nairobi Bound and Thika Bound as requested for Juja
-const jujaTrafficData = [
-  { day: "05", thikaBound: 210, nairobiBound: 190 },
-  { day: "10", thikaBound: 260, nairobiBound: 245 },
-  { day: "15", thikaBound: 315, nairobiBound: 290 },
-  { day: "20", thikaBound: 240, nairobiBound: 220 },
-  { day: "25", thikaBound: 295, nairobiBound: 265 },
-  { day: "30", thikaBound: 340, nairobiBound: 305 },
-];
+interface HoveredBarType {
+  label: string;
+  value: number;
+  title: string;
+  date: string;
+}
 
-const jujaCourtCasesData = [
-  { day: "05", thikaBound: 8, nairobiBound: 6 },
-  { day: "10", thikaBound: 10, nairobiBound: 9 },
-  { day: "15", thikaBound: 15, nairobiBound: 12 },
-  { day: "20", thikaBound: 7, nairobiBound: 5 },
-  { day: "25", thikaBound: 11, nairobiBound: 9 },
-  { day: "30", thikaBound: 14, nairobiBound: 11 },
-];
+interface TrafficDataItem {
+  day: string;
+  thikaBound: number;
+  nairobiBound: number;
+}
 
-// Cross-station court cases comparison for allowed stations
-const crossStationCases = [
-  { name: "Juja Weighbridge", cases: 69, active: true },
-  { name: "Kanyonyo", cases: 28, active: false },
-  { name: "Athi River", cases: 94, active: false },
-  { name: "Gilgil", cases: 81, active: false },
-  { name: "Isinya", cases: 42, active: false },
-  { name: "Suswa", cases: 18, active: false },
-];
+interface CourtCasesDataItem {
+  day: string;
+  thikaBound: number;
+  nairobiBound: number;
+}
+
+interface CrossStationDataItem {
+  name: string;
+  cases: number;
+  active: boolean;
+}
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<"traffic" | "court" | "cross">("traffic");
-  const [hoveredBar, setHoveredBar] = useState<any>(null);
+  const [hoveredBar, setHoveredBar] = useState<HoveredBarType | null>(null);
   const [hasData, setHasData] = useState(false);
+  const [kpis, setKpis] = useState({
+    totalTraffic: 0,
+    thikaTraffic: 0,
+    nairobiTraffic: 0,
+    totalCourtCases: 0,
+    thikaCourtCases: 0,
+    nairobiCourtCases: 0,
+    complianceRate: 0,
+    overloadsIntercepted: 0
+  });
+  const [trafficData, setTrafficData] = useState<TrafficDataItem[]>([]);
+  const [courtCasesData, setCourtCasesData] = useState<CourtCasesDataItem[]>([]);
+  const [crossStationData, setCrossStationData] = useState<CrossStationDataItem[]>([]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHasData(!!localStorage.getItem("active-report-id"));
+    let active = true;
+    async function fetchData() {
+      try {
+        const { getAnalyticsDetails } = await import("@/lib/api");
+        const res = await getAnalyticsDetails();
+        if (!active) return;
+
+        if (res.kpis) {
+          setKpis(res.kpis);
+          setTrafficData(res.trafficData || []);
+          setCourtCasesData(res.courtCasesData || []);
+          setCrossStationData(res.crossStationData || []);
+          setHasData(res.kpis.totalTraffic > 0 || res.kpis.totalCourtCases > 0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch analytics details:", err);
+      }
     }
+    fetchData();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const maxTraffic = 400;
-  const maxCases = 20;
-  const maxCrossCases = 100;
+  const maxTraffic = Math.max(...trafficData.map(d => Math.max(d.thikaBound, d.nairobiBound)), 100);
+  const maxCases = Math.max(...courtCasesData.map(d => Math.max(d.thikaBound, d.nairobiBound)), 10);
+  const maxCrossCases = Math.max(...crossStationData.map(st => st.cases), 50);
 
   const getFormattedDate = (day: string) => {
-    return `${day}th June 2026`;
+    return `Day ${day}`;
   };
 
   return (
@@ -85,22 +112,22 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Juja Total Traffic</span>
-            <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? "3,170" : "0"}</p>
-            <p className="mt-1 text-xs text-slate-500">{hasData ? "1,660 Thika / 1,510 Nairobi" : "No active session"}</p>
+            <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? kpis.totalTraffic.toLocaleString() : "0"}</p>
+            <p className="mt-1 text-xs text-slate-500">{hasData ? `${kpis.thikaTraffic.toLocaleString()} Thika / ${kpis.nairobiTraffic.toLocaleString()} Nairobi` : "No active session"}</p>
           </div>
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Juja Total Court Cases</span>
-            <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? "69" : "0"}</p>
-            <p className="mt-1 text-xs text-slate-500">{hasData ? "65 cleared in last 30 days" : "No active session"}</p>
+            <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? kpis.totalCourtCases.toLocaleString() : "0"}</p>
+            <p className="mt-1 text-xs text-slate-500">{hasData ? `${kpis.totalCourtCases} cases resolved` : "No active session"}</p>
           </div>
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Compliance Rate</span>
-            <p className="mt-3 text-3xl font-extrabold text-emerald-400">{hasData ? "83.6%" : "0%"}</p>
+            <p className="mt-3 text-3xl font-extrabold text-emerald-400">{hasData ? `${kpis.complianceRate}%` : "0%"}</p>
             <p className="mt-1 text-xs text-slate-500">{hasData ? "Average across both bounds" : "No active session"}</p>
           </div>
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Overloads Intercepted</span>
-            <p className="mt-3 text-3xl font-extrabold text-rose-400">{hasData ? "188" : "0"}</p>
+            <p className="mt-3 text-3xl font-extrabold text-rose-400">{hasData ? kpis.overloadsIntercepted.toLocaleString() : "0"}</p>
             <p className="mt-1 text-xs text-slate-500">{hasData ? "Without valid special permits" : "No active session"}</p>
           </div>
         </div>
@@ -185,7 +212,7 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
 
-                  {jujaTrafficData.map((d) => {
+                  {trafficData.map((d) => {
                     const thikaHeight = hasData ? (d.thikaBound / maxTraffic) * 160 : 0;
                     const nairobiHeight = hasData ? (d.nairobiBound / maxTraffic) * 160 : 0;
 
@@ -241,7 +268,7 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
 
-                  {jujaCourtCasesData.map((d) => {
+                  {courtCasesData.map((d) => {
                     const thikaHeight = hasData ? (d.thikaBound / maxCases) * 160 : 0;
                     const nairobiHeight = hasData ? (d.nairobiBound / maxCases) * 160 : 0;
 
@@ -289,7 +316,7 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
 
-                  {crossStationCases.map((st) => {
+                  {crossStationData.map((st) => {
                     const barHeight = hasData ? (st.cases / maxCrossCases) * 160 : 0;
 
                     return (
@@ -332,3 +359,4 @@ export default function AnalyticsPage() {
     </ReportsLayout>
   );
 }
+

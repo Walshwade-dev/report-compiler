@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileDown, Edit3, ArrowRight, Eye, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { FileDown, Edit3, ArrowRight, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import { resolveApiUrl, getReportSessions } from "@/lib/api";
 
@@ -22,7 +22,9 @@ export function RecentReportsList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
 
     async function loadSessions() {
       try {
@@ -58,6 +60,7 @@ export function RecentReportsList() {
     }
 
     loadSessions();
+    return () => clearTimeout(timer);
   }, []);
 
   const statusIcons = {

@@ -2,9 +2,32 @@
 
 import { useState, useEffect } from "react";
 import { BarChart3, Scale, Gavel, CheckCircle2, TrendingUp } from "lucide-react";
-import { getSummaryCards } from "@/lib/api";
+import { getAnalyticsDashboard } from "@/lib/api";
 
-const initialStations = [
+interface ComplianceDetail {
+  calledIn: number;
+  weighed: number;
+  compliant: number;
+}
+
+interface StationType {
+  name: string;
+  code: string;
+  traffic: { boundA: number; boundB: number };
+  cases: { boundA: number; boundB: number };
+  compliance: {
+    boundA: ComplianceDetail;
+    boundB: ComplianceDetail;
+  };
+}
+
+interface HoveredBarType {
+  label: string;
+  value: number | string;
+  title: string;
+}
+
+const initialStations: StationType[] = [
   {
     name: "Juja Weighbridge",
     code: "Juja",
@@ -69,105 +92,31 @@ const initialStations = [
 
 export function DashboardCharts() {
   const [activeTab, setActiveTab] = useState<"traffic" | "court" | "compliance">("traffic");
-  const [hoveredBar, setHoveredBar] = useState<any>(null);
-  const [stations, setStations] = useState(initialStations);
+  const [hoveredBar, setHoveredBar] = useState<HoveredBarType | null>(null);
+  const [stations, setStations] = useState<StationType[]>(initialStations);
   const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const activeReportId = localStorage.getItem("active-report-id");
-    if (!activeReportId) {
-      setStations([initialStations[0]]);
-      setHasData(false);
-      return;
-    }
-
     let active = true;
     async function fetchData() {
       try {
-        const res = await getSummaryCards(activeReportId as string);
+        const res = await getAnalyticsDashboard();
         if (!active) return;
 
-        const hasUploadData = (res.x_total || 0) > 0 || (res.y_total || 0) > 0;
-        if (!hasUploadData) {
+        if (res.stations && res.stations.length > 0) {
+          const hasAnyData = res.stations.some(
+            (st: StationType) => st.traffic.boundA > 0 || st.traffic.boundB > 0
+          );
+          setHasData(hasAnyData);
+
+          const activeStations = res.stations.filter(
+            (st: StationType) => st.traffic.boundA > 0 || st.traffic.boundB > 0
+          );
+          setStations(activeStations.length > 0 ? activeStations : [res.stations.find((s: StationType) => s.code === "Juja") || res.stations[0]]);
+        } else {
           setStations([initialStations[0]]);
           setHasData(false);
-          return;
         }
-
-        setHasData(true);
-
-        const updated = initialStations.map((st) => {
-          const stationMatches = (res.station && st.name.toLowerCase().includes(res.station.toLowerCase())) || 
-                                 (res.weighbridge_name && st.name.toLowerCase().includes(res.weighbridge_name.toLowerCase())) ||
-                                 (res.station && res.station.toLowerCase().includes(st.code.toLowerCase())) ||
-                                 (res.weighbridge_name && res.weighbridge_name.toLowerCase().includes(st.code.toLowerCase()));
-
-          if (stationMatches) {
-            const boundVal = res.bound || "";
-            let isBoundA = false;
-            let isBoundB = false;
-
-            if (st.code === "Juja") {
-              if (boundVal.toLowerCase().includes("thika") || boundVal.toLowerCase().includes("bound a") || boundVal.toLowerCase().includes("incoming")) {
-                isBoundA = true;
-              } else if (boundVal.toLowerCase().includes("nairobi") || boundVal.toLowerCase().includes("bound b") || boundVal.toLowerCase().includes("outgoing")) {
-                isBoundB = true;
-              }
-            } else {
-              if (boundVal.toLowerCase().includes("bound a") || boundVal.toLowerCase().includes("a") || boundVal.toLowerCase().includes("incoming")) {
-                isBoundA = true;
-              } else if (boundVal.toLowerCase().includes("bound b") || boundVal.toLowerCase().includes("b") || boundVal.toLowerCase().includes("outgoing")) {
-                isBoundB = true;
-              }
-            }
-
-            const traffic = { boundA: 0, boundB: 0 };
-            const cases = { boundA: 0, boundB: 0 };
-            const compliance = {
-              boundA: { calledIn: 0, weighed: 0, compliant: 0 },
-              boundB: { calledIn: 0, weighed: 0, compliant: 0 }
-            };
-
-            const calledVal = res.c_total || 0;
-            const weighedVal = res.x_total || 0;
-            const compliantVal = Math.max((res.c_total || 0) - Math.max((res.y_total || 0) - (res.g_total || 0), 0), 0);
-
-            if (isBoundA) {
-              traffic.boundA = weighedVal;
-              cases.boundA = res.cases_cleared || 0;
-              compliance.boundA = {
-                calledIn: calledVal,
-                weighed: weighedVal,
-                compliant: compliantVal,
-              };
-            }
-            if (isBoundB) {
-              traffic.boundB = weighedVal;
-              cases.boundB = res.cases_cleared || 0;
-              compliance.boundB = {
-                calledIn: calledVal,
-                weighed: weighedVal,
-                compliant: compliantVal,
-              };
-            }
-
-            return {
-              ...st,
-              traffic,
-              cases,
-              compliance,
-            };
-          }
-
-          return st;
-        });
-
-        const filtered = updated.filter(
-          st => st.compliance.boundA.weighed > 0 || st.compliance.boundB.weighed > 0
-        );
-
-        setStations(filtered.length > 0 ? filtered : [initialStations[0]]);
       } catch (err) {
         console.error("Failed to fetch dashboard charts data", err);
       }

@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { BarChart3, ShieldAlert, FileText, Scale, Gavel, Bus } from "lucide-react";
-import { getSummaryCards } from "@/lib/api";
-
 export function DashboardSummaryCards() {
   const [data, setData] = useState({
     weighed: 0,
@@ -21,8 +19,6 @@ export function DashboardSummaryCards() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const activeReportId = localStorage.getItem("active-report-id");
-    const activeMobileReportId = localStorage.getItem("active-mobile-report-id");
 
     let active = true;
     async function fetchData() {

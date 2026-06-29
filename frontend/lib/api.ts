@@ -380,6 +380,21 @@ export async function getAnalyticsDashboard() {
   return response.json();
 }
 
+export async function getAnalyticsDetails() {
+  const response = await fetch(
+    apiUrl(`report-sessions/analytics/details`)
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to fetch analytics details")
+    );
+  }
+
+  return response.json();
+}
+
+
 export async function buildFinalReport(
   reportId: string
 ) {
@@ -431,4 +446,32 @@ export async function getSectionPreviewUrl(
   sectionName: string
 ) {
   return apiUrl(`report-sessions/${reportId}/sections/${sectionName}/preview`);
+}
+
+export type SmsSummaryItem = {
+  slot: "static_bound_a" | "static_bound_b" | "mobile_1" | "mobile_2";
+  title: string;
+  exists: boolean;
+  report_id: string | null;
+  text: string;
+};
+
+export async function getSmsSummaryDates(): Promise<string[]> {
+  const response = await fetch(apiUrl("report-sessions/sms-summaries/dates"));
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to fetch SMS summary dates")
+    );
+  }
+  return response.json();
+}
+
+export async function getSmsSummariesByDate(reportDate: string): Promise<SmsSummaryItem[]> {
+  const response = await fetch(apiUrl(`report-sessions/sms-summaries/${reportDate}`));
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, `Failed to fetch SMS summaries for date ${reportDate}`)
+    );
+  }
+  return response.json();
 }

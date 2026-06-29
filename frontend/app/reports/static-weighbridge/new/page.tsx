@@ -85,15 +85,7 @@ export default function NewReportPage() {
     setProgress,
   ]);
 
-  function handleDownloadReport() {
-    if (!finalReportDownloadUrl) return;
-    window.open(finalReportDownloadUrl, "_blank", "noreferrer");
-  }
 
-  function handleDownloadExcelReport() {
-    if (!excelReportDownloadUrl) return;
-    window.open(excelReportDownloadUrl, "_blank", "noreferrer");
-  }
 
   return (
     <>
@@ -181,8 +173,6 @@ export default function NewReportPage() {
             setManualInputsTouched={setManualInputsTouched}
             buildStatus={buildStatus}
             onBuildReport={() => handleBuildReport(canBuild)}
-            onDownloadReport={handleDownloadReport}
-            onDownloadExcelReport={handleDownloadExcelReport}
             canBuild={canBuild}
             manualSaveStatus={manualSaveStatus}
             buildError={buildError}
