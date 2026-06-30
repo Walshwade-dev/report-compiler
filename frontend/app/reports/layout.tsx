@@ -100,8 +100,14 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
       </div>
 
       {settingsOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60">
-          <div className="h-full w-full max-w-md border-l border-cyan-900/50 bg-[#0b2135] p-6 shadow-2xl">
+        <div 
+          onClick={() => setSettingsOpen(false)}
+          className="fixed inset-0 z-50 flex justify-end bg-black/60"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="h-full w-full max-w-md border-l border-cyan-900/50 bg-[#0b2135] p-6 shadow-2xl"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-100">
