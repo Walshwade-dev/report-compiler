@@ -15,6 +15,7 @@ import {
   useReportSettings,
 } from "@/components/report-builder/ReportSettingsContext";
 import { REPORT_NAV_ITEMS } from "@/lib/constants";
+import { RecentReportsList } from "@/components/dashboard/RecentReportsList";
 
 type ReportsLayoutProps = {
   children: ReactNode;
@@ -155,6 +156,15 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
                   <p className="text-[9px] text-slate-500 text-center">
                     Antigravity Compiler Engine v1.1.0
                   </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
+                <p className="text-sm font-bold text-cyan-200 mb-3">
+                  Recent Workspaces (History)
+                </p>
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                  <RecentReportsList compact={true} />
                 </div>
               </div>
 

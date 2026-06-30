@@ -1,14 +1,11 @@
 "use client";
 
 import ReportsLayout from "./reports/layout";
-import { DashboardSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
+import { StaticSummaryCards, MobileSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { DMSPerformance } from "@/components/dashboard/DMSPerformance";
 import { TopDMsTable } from "@/components/dashboard/TopDMsTable";
-import { RecentReportsList } from "@/components/dashboard/RecentReportsList";
 import { SmsSummaryPanel } from "@/components/dashboard/SmsSummaryPanel";
-import { PlusCircle, FileSpreadsheet, Layers } from "lucide-react";
-import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -40,80 +37,37 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* KPI Summary Columns & DMS Tracker (3 main columns) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-          <DashboardSummaryCards />
-          <div className="h-full flex flex-col">
+        {/* Main Grid for KPIs, SMS Summaries, and DMS Performance */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Static Report KPIs: Span 1 on md (tablet), 4 on lg/larger */}
+          <div className="md:col-span-1 lg:col-span-4 h-full">
+            <StaticSummaryCards />
+          </div>
+
+          {/* Mobile Report KPIs: Span 1 on md (tablet), 2 on lg/larger */}
+          <div className="md:col-span-1 lg:col-span-2 h-full">
+            <MobileSummaryCards />
+          </div>
+
+          {/* Daily KPI SMS summaries: Span 1 on md (tablet), 3 on lg/larger */}
+          <div className="md:col-span-1 lg:col-span-3 h-full">
+            <SmsSummaryPanel />
+          </div>
+
+          {/* DMS Performance Tracker: Span 1 on md (tablet), 3 on lg/larger */}
+          <div className="md:col-span-1 lg:col-span-3 h-full flex flex-col">
             <DMSPerformance />
           </div>
         </div>
 
-        {/* SMS Summaries Row */}
-        <div className="grid grid-cols-1 gap-6">
-          <SmsSummaryPanel />
-        </div>
-
-        {/* Bottom Section: Analytics + DMs + Workspaces */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+        {/* Bottom Section: Analytics + DMs Performance Table */}
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
           <div className="flex flex-col gap-6">
             <DashboardCharts />
-            <TopDMsTable />
           </div>
 
-          <div className="flex flex-col gap-6 min-w-0">
-            <div className="rounded-2xl border border-cyan-900/50 bg-[#0b2135]/70 p-5 shadow-xl backdrop-blur-md">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white">
-                    Quick Actions
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Start a new report workflow or reopen recent workspaces.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-col gap-3">
-                <Link
-                  href="/reports/static-weighbridge/new"
-                  onClick={() => localStorage.removeItem("active-report-id")}
-                  className="flex items-center gap-3 rounded-xl border border-cyan-900/60 bg-[#071827]/80 p-3 transition-all duration-200 group hover:border-cyan-500/40 hover:bg-cyan-950/20"
-                >
-                  <div className="rounded-lg bg-cyan-500/10 p-2 text-cyan-400 transition-colors group-hover:bg-cyan-500/20">
-                    <Layers size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-white group-hover:text-cyan-300">
-                      Static Weighbridge Report
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      Create a fresh report bundle
-                    </div>
-                  </div>
-                  <PlusCircle size={14} className="ml-auto shrink-0 text-slate-500 transition-colors group-hover:text-cyan-400" />
-                </Link>
-
-                <div className="flex items-center gap-3 rounded-xl border border-cyan-900/30 bg-[#071827]/40 p-3 opacity-70">
-                  <div className="rounded-lg bg-slate-800 p-2 text-slate-400">
-                    <FileSpreadsheet size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-slate-400">
-                      Mobile Weighbridge Report
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Coming soon
-                    </div>
-                  </div>
-                  <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400">
-                    Soon
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="min-h-0">
-              <RecentReportsList />
-            </div>
+          <div className="flex flex-col gap-6 min-w-0 h-full">
+            <TopDMsTable />
           </div>
         </div>
       </div>

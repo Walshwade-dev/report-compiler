@@ -16,7 +16,7 @@ type ReportItem = {
   editUrl: string;
 };
 
-export function RecentReportsList() {
+export function RecentReportsList({ compact = false }: { compact?: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +74,61 @@ export function RecentReportsList() {
     "In Progress": "bg-cyan-500/10 text-cyan-300 border-cyan-500/20",
     Draft: "bg-amber-500/10 text-amber-300 border-amber-500/20",
   };
+
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-3">
+        {reports.length === 0 ? (
+          <p className="text-xs text-slate-500 text-center py-4">
+            {loading ? "Loading workspaces..." : "No workspaces found on record."}
+          </p>
+        ) : (
+          reports.slice(0, 5).map((report) => (
+            <div
+              key={report.id}
+              className="p-3 rounded-xl border border-cyan-900/40 bg-[#071827]/60 hover:bg-cyan-950/20 transition-all flex flex-col gap-1.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-mono text-slate-400">{report.date}</span>
+                <span
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                    statusStyles[report.status]
+                  }`}
+                >
+                  {report.status}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-white truncate">{report.station}</h3>
+                <p className="text-[10px] text-slate-400">
+                  {report.bound} • {report.type}
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 mt-1 pt-1.5 border-t border-cyan-900/10">
+                <Link
+                  href={report.editUrl}
+                  onClick={() => {
+                    localStorage.setItem("active-report-id", report.id);
+                  }}
+                  className="inline-flex items-center justify-center rounded bg-cyan-950/40 px-2 py-0.5 text-[10px] font-semibold text-cyan-300 border border-cyan-900/60 hover:bg-cyan-500/20 hover:border-cyan-500/40 transition-all"
+                >
+                  Edit
+                </Link>
+                {report.status === "Completed" && (
+                  <a
+                    href={mounted ? (resolveApiUrl(`/api/report-sessions/${report.id}/download-pdf-report`) || "#") : "#"}
+                    className="inline-flex items-center justify-center rounded bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-900/60 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all"
+                  >
+                    Download
+                  </a>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md h-full flex flex-col">
