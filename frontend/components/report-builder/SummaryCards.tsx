@@ -57,7 +57,7 @@ type SummaryCardsProps = {
 const cardVisuals = {
   "Total Weighed": {
     icon: Scale,
-    readyClass: "border-sky-500/50 bg-sky-600/25",
+    readyClass: "border-sky-500/50 bg-transparent hover:bg-sky-600/25",
     iconClass: "bg-sky-400/15 text-sky-200",
     valueClass: "text-sky-50",
     titleClass: "text-sky-100",
@@ -65,7 +65,7 @@ const cardVisuals = {
   },
   "Total Overloaded": {
     icon: TriangleAlert,
-    readyClass: "border-amber-500/50 bg-amber-600/20",
+    readyClass: "border-amber-500/50 bg-transparent hover:bg-amber-600/20",
     iconClass: "bg-amber-400/15 text-amber-200",
     valueClass: "text-amber-50",
     titleClass: "text-amber-100",
@@ -73,7 +73,7 @@ const cardVisuals = {
   },
   "Special Released": {
     icon: ShieldCheck,
-    readyClass: "border-emerald-500/50 bg-emerald-600/20",
+    readyClass: "border-emerald-500/50 bg-transparent hover:bg-emerald-600/20",
     iconClass: "bg-emerald-400/15 text-emerald-200",
     valueClass: "text-emerald-50",
     titleClass: "text-emerald-100",
@@ -81,7 +81,7 @@ const cardVisuals = {
   },
   "Wide Loads": {
     icon: Truck,
-    readyClass: "border-violet-500/50 bg-violet-600/20",
+    readyClass: "border-violet-500/50 bg-transparent hover:bg-violet-600/20",
     iconClass: "bg-violet-400/15 text-violet-200",
     valueClass: "text-violet-50",
     titleClass: "text-violet-100",
@@ -91,7 +91,7 @@ const cardVisuals = {
 
 const defaultVisual = {
   icon: BadgeCheck,
-  readyClass: "border-cyan-700/50 bg-blue-600/25",
+  readyClass: "border-cyan-700/50 bg-transparent hover:bg-blue-600/25",
   iconClass: "bg-cyan-400/15 text-cyan-200",
   valueClass: "text-white",
   titleClass: "text-cyan-100",
@@ -164,10 +164,10 @@ export function SummaryCards({
         return (
           <div
             key={card.title}
-            className={`rounded-xl border p-5 shadow-lg transition ${
+            className={`rounded-xl border p-5 shadow-lg transition duration-300 hover:scale-[1.02] ${
               ready
                 ? visual.readyClass
-                : "border-cyan-900/50 bg-[#0b2a45]"
+                : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45]"
             }`}
           >
             <div className="flex min-h-12 items-start justify-between gap-3">

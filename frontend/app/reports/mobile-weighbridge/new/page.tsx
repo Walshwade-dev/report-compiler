@@ -569,8 +569,8 @@ export default function NewMobileReportPage() {
       subtitle: uploadComplete ? "from uploaded register" : "awaiting register",
       icon: Scale,
       className: uploadComplete 
-        ? "border-sky-500/50 bg-sky-600/25 text-sky-100" 
-        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+        ? "border-sky-500/50 bg-transparent hover:bg-sky-600/25 text-sky-100" 
+        : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
       iconClass: uploadComplete ? "bg-sky-400/15 text-sky-200" : "bg-cyan-400/15 text-cyan-200",
       titleClass: uploadComplete ? "text-sky-100" : "text-slate-300",
       subtitleClass: uploadComplete ? "text-sky-200" : "text-slate-400",
@@ -581,8 +581,8 @@ export default function NewMobileReportPage() {
       subtitle: "warned trucks",
       icon: AlertTriangle,
       className: uploadComplete 
-        ? "border-amber-500/50 bg-amber-600/20 text-amber-100" 
-        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+        ? "border-amber-500/50 bg-transparent hover:bg-amber-600/20 text-amber-100" 
+        : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
       iconClass: uploadComplete ? "bg-amber-400/15 text-amber-200" : "bg-cyan-400/15 text-cyan-200",
       titleClass: uploadComplete ? "text-amber-100" : "text-slate-300",
       subtitleClass: uploadComplete ? "text-amber-200" : "text-slate-400",
@@ -593,8 +593,8 @@ export default function NewMobileReportPage() {
       subtitle: "weight offences",
       icon: Truck,
       className: uploadComplete 
-        ? "border-rose-500/50 bg-rose-600/20 text-rose-100" 
-        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+        ? "border-rose-500/50 bg-transparent hover:bg-rose-600/20 text-rose-100" 
+        : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
       iconClass: uploadComplete ? "bg-rose-400/15 text-rose-200" : "bg-cyan-400/15 text-cyan-200",
       titleClass: uploadComplete ? "text-rose-100" : "text-slate-300",
       subtitleClass: uploadComplete ? "text-rose-200" : "text-slate-400",
@@ -605,8 +605,8 @@ export default function NewMobileReportPage() {
       subtitle: "dimension offences",
       icon: Ruler,
       className: uploadComplete 
-        ? "border-emerald-500/50 bg-emerald-600/20 text-emerald-100" 
-        : "border-cyan-900/50 bg-[#0b2a45] text-slate-300",
+        ? "border-emerald-500/50 bg-transparent hover:bg-emerald-600/20 text-emerald-100" 
+        : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
       iconClass: uploadComplete ? "bg-emerald-400/15 text-emerald-200" : "bg-cyan-400/15 text-cyan-200",
       titleClass: uploadComplete ? "text-emerald-100" : "text-slate-300",
       subtitleClass: uploadComplete ? "text-emerald-200" : "text-slate-400",
@@ -658,7 +658,7 @@ export default function NewMobileReportPage() {
               return (
                 <article
                   key={card.title}
-                  className={`rounded-xl border p-5 shadow-lg transition duration-200 ${card.className}`}
+                  className={`rounded-xl border p-5 shadow-lg transition duration-300 hover:scale-[1.02] ${card.className}`}
                 >
                   <div className="flex min-h-12 items-start justify-between gap-3">
                     <p className={`text-sm font-bold uppercase tracking-wider ${card.titleClass}`}>

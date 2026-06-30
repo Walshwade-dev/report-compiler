@@ -62,63 +62,63 @@ export function DashboardSummaryCards() {
       value: data.hasStaticData ? data.weighed.toLocaleString() : "0",
       change: data.hasStaticData ? "All active sessions" : "No active session",
       icon: BarChart3,
-      color: "from-cyan-500/20 to-blue-500/10 border-cyan-500/30 text-cyan-300",
+      color: "bg-transparent border-cyan-500/30 text-cyan-300 hover:bg-gradient-to-br hover:from-cyan-500/20 hover:to-blue-500/10",
     },
     {
       title: "Truck Overloads (No Permit)",
       value: data.hasStaticData ? data.overloads.toLocaleString() : "0",
       change: data.hasStaticData ? "Excluded permit holders" : "No active session",
       icon: ShieldAlert,
-      color: "from-rose-500/20 to-red-500/10 border-rose-500/30 text-rose-300",
+      color: "bg-transparent border-rose-500/30 text-rose-300 hover:bg-gradient-to-br hover:from-rose-500/20 hover:to-red-500/10",
     },
     {
       title: "PSV Overloads (No Permit)",
       value: data.hasStaticData ? data.psvOverloads.toLocaleString() : "0",
       change: "Buses & passenger vehicles",
       icon: Bus,
-      color: "from-amber-500/20 to-orange-500/10 border-amber-500/30 text-amber-300",
+      color: "bg-transparent border-amber-500/30 text-amber-300 hover:bg-gradient-to-br hover:from-amber-500/20 hover:to-orange-500/10",
     },
     {
       title: "Min Gross Overload (Allowed)",
       value: data.hasStaticData ? data.minGross.toLocaleString() : "0",
       change: "Within minimal gross margin",
       icon: Scale,
-      color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-300",
+      color: "bg-transparent border-emerald-500/30 text-emerald-300 hover:bg-gradient-to-br hover:from-emerald-500/20 hover:to-teal-500/10",
     },
     {
       title: "Charged vs Redistributed",
       value: data.hasStaticData ? data.chargedRedist : "0 / 0",
       change: data.hasStaticData ? `${data.chargedRedist.split(" / ")[0]} Charged, ${data.chargedRedist.split(" / ")[1]} Redistributed` : "No active session",
       icon: Gavel,
-      color: "from-blue-500/20 to-indigo-500/10 border-blue-500/30 text-blue-300",
+      color: "bg-transparent border-blue-500/30 text-blue-300 hover:bg-gradient-to-br hover:from-blue-500/20 hover:to-indigo-500/10",
     },
     {
       title: "Reports Generated",
       value: data.hasStaticData ? data.reportsGenerated.toString() : "0",
       change: "All active sessions",
       icon: FileText,
-      color: "from-purple-500/20 to-indigo-500/10 border-purple-500/30 text-purple-300",
+      color: "bg-transparent border-purple-500/30 text-purple-300 hover:bg-gradient-to-br hover:from-purple-500/20 hover:to-indigo-500/10",
     },
     {
       title: "Mobile Weighed",
       value: data.hasMobileData ? data.mobileWeighed.toLocaleString() : "0",
       change: data.hasMobileData ? "All mobile sessions" : "No mobile session",
       icon: Scale,
-      color: "from-sky-500/20 to-cyan-500/10 border-sky-500/30 text-sky-300",
+      color: "bg-transparent border-sky-500/30 text-sky-300 hover:bg-gradient-to-br hover:from-sky-500/20 hover:to-cyan-500/10",
     },
     {
       title: "Mobile Warned",
       value: data.hasMobileData ? data.mobileWarned.toLocaleString() : "0",
       change: data.hasMobileData ? "Warned trucks" : "No mobile session",
       icon: ShieldAlert,
-      color: "from-amber-500/20 to-yellow-500/10 border-amber-500/30 text-amber-300",
+      color: "bg-transparent border-amber-500/30 text-amber-300 hover:bg-gradient-to-br hover:from-amber-500/20 hover:to-yellow-500/10",
     },
     {
       title: "Mobile Charged",
       value: data.hasMobileData ? data.mobileCharged.toLocaleString() : "0",
       change: data.hasMobileData ? "Charged trucks" : "No mobile session",
       icon: Gavel,
-      color: "from-rose-500/20 to-red-500/10 border-rose-500/30 text-rose-300",
+      color: "bg-transparent border-rose-500/30 text-rose-300 hover:bg-gradient-to-br hover:from-rose-500/20 hover:to-red-500/10",
     },
   ];
 
@@ -147,7 +147,7 @@ export function DashboardSummaryCards() {
                 return (
                   <div
                     key={`static-${i}`}
-                    className={`relative flex flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-3 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] min-h-[100px] ${card.color}`}
+                    className={`relative flex flex-col justify-between overflow-hidden rounded-xl border p-3 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] min-h-[100px] ${card.color}`}
                   >
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
@@ -189,7 +189,7 @@ export function DashboardSummaryCards() {
                 return (
                   <div
                     key={`mobile-${i}`}
-                    className={`relative flex flex-col justify-between overflow-hidden rounded-xl border bg-gradient-to-br p-4 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] min-h-[100px] ${card.color}`}
+                    className={`relative flex flex-col justify-between overflow-hidden rounded-xl border p-4 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-[1.02] min-h-[100px] ${card.color}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 leading-tight">
