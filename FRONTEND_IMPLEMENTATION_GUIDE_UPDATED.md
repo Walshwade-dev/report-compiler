@@ -172,6 +172,7 @@ Possible fields:
 - Report date
 - Station / site / location
 - Prepared by
+- Confirmed By / Approved By (Locked to "Faith Njani" and disabled for editing)
 - Optional notes
 
 Responsibilities:
@@ -444,6 +445,8 @@ Exact endpoint paths should be copied from `BACKEND_FRONTEND_INTEGRATION_GUIDE.m
 | Fetch section preview | Retrieve PNG/PDF/DOCX preview for selected section | `GET` | `getSectionPreview(sessionId, sectionNumber, format)` |
 | Build final DOCX | Generate final A4 landscape DOCX | `POST` | `buildFinalReport(sessionId)` |
 | Download final DOCX | Download completed report | `GET` | `downloadFinalReport(sessionId)` |
+| Fetch SMS dates | Retrieve unique dates having SMS summaries | `GET` | `getSmsSummaryDates()` |
+| Fetch SMS summaries | Retrieve SMS summary objects by date | `GET` | `getSmsSummariesByDate(reportDate)` |
 
 Suggested `lib/api.ts` shape:
 
@@ -482,6 +485,10 @@ export async function getSectionPreview(
 export async function buildFinalReport(sessionId: string) {}
 
 export async function downloadFinalReport(sessionId: string) {}
+
+export async function getSmsSummaryDates() {}
+
+export async function getSmsSummariesByDate(reportDate: string) {}
 ```
 
 ---
@@ -1872,3 +1879,38 @@ Progress made:
 - Mobile weighbridge workflow is now present as an application route and wired to the backend session/upload/download flow.
 - Mobile Excel generation depends on backend support for `/uploads/mobile-report` and `/download-mobile-excel-report`.
 - The next frontend pass should live-test mobile upload/download against the deployed or local backend and then tighten any response-shape mismatches.
+
+---
+
+## 22. Implementation Update — 2026-06-29 Developer Portal, SMS Summaries & Signatory Lock
+
+### Developer Ticket & Prompt Portal
+
+Implemented at route:
+```txt
+/tickets
+```
+Component: `frontend/app/tickets/page.tsx`
+
+- A dedicated page allowing users to submit system bugs/flaws or enhancement requests.
+- Inputs: Title, Category (Bug/Feature/Enhancement), Severity (Low/Medium/High/Critical), Affected Area/File, Observed Description, Expected Behavior.
+- Compiled developer prompts are generated dynamically using standard AI prompt instructions format.
+- Tickets are persisted client-side in the browser's `localStorage` (key: `dev-tickets`).
+- Provides one-click action buttons to copy the prompt to the clipboard or download it as a markdown file (`.md`).
+
+### SMS Summary Dashboard Panel
+
+Implemented in `frontend/components/dashboard/SmsSummaryPanel.tsx` and integrated on the `/analytics` page:
+- Dynamically fetches dates having generated reports from the backend (`GET /api/report-sessions/sms-summaries/dates`).
+- Fetches and displays formatted SMS summary text payloads (`GET /api/report-sessions/sms-summaries/{report_date}`) for static and mobile weighbridge sessions.
+- Displays calculated fields including total weighed, charged, warned, and impounded/prohibited.
+- Allows copying the SMS summary payload directly to the clipboard.
+
+### Locked signatory "Faith Njani"
+
+- Across the metadata form and final report templates, the signatory field `confirmed_by` is locked to **"Faith Njani"**.
+- In `ReportMetadataForm.tsx`, this field is hardcoded and disabled to prevent manual overrides.
+
+### Impounded & Prohibited Formula
+
+- The impounded and prohibited metric on the dashboards and generated documents is computed using the formula `P = Z + R`, where `Z` is the charged count and `R` is the count of cases cleared/released in court.
