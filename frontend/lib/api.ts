@@ -466,8 +466,11 @@ export async function getSmsSummaryDates(): Promise<string[]> {
   return response.json();
 }
 
-export async function getSmsSummariesByDate(reportDate: string): Promise<SmsSummaryItem[]> {
-  const response = await fetch(apiUrl(`report-sessions/sms-summaries/${reportDate}`));
+export async function getSmsSummariesByDate(reportDate: string, station?: string): Promise<SmsSummaryItem[]> {
+  const url = station
+    ? apiUrl(`report-sessions/sms-summaries/${reportDate}?station=${encodeURIComponent(station)}`)
+    : apiUrl(`report-sessions/sms-summaries/${reportDate}`);
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(response, `Failed to fetch SMS summaries for date ${reportDate}`)

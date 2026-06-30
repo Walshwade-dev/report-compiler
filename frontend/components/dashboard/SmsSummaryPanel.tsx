@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Copy, Check, Download, ChevronLeft, ChevronRight, Calendar, AlertCircle } from "lucide-react";
+import { Copy, Check, Download, ChevronLeft, ChevronRight, Calendar, AlertCircle, MapPin } from "lucide-react";
 import { getSmsSummaryDates, getSmsSummariesByDate, SmsSummaryItem } from "@/lib/api";
+import { WEIGHBRIDGE_OPTIONS } from "@/lib/constants";
 
 export function SmsSummaryPanel() {
   const [dates, setDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedStation, setSelectedStation] = useState<string>("JUJA");
   const [summaries, setSummaries] = useState<SmsSummaryItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,7 +37,7 @@ export function SmsSummaryPanel() {
     async function loadSummaries() {
       setLoading(true);
       try {
-        const data = await getSmsSummariesByDate(selectedDate);
+        const data = await getSmsSummariesByDate(selectedDate, selectedStation);
         setSummaries(data);
         setCurrentIndex(0);
       } catch (err) {
@@ -45,7 +47,7 @@ export function SmsSummaryPanel() {
       }
     }
     loadSummaries();
-  }, [selectedDate]);
+  }, [selectedDate, selectedStation]);
 
   const handlePrev = () => {
     if (summaries.length === 0) return;
@@ -102,25 +104,44 @@ export function SmsSummaryPanel() {
           <p className="text-xs text-slate-400 mt-1">Copy or download daily weighbridge updates formatted for SMS.</p>
         </div>
 
-        {/* Date Selector */}
-        <div className="flex items-center gap-2 bg-[#071827]/80 border border-cyan-900/60 rounded-lg px-3 py-1.5 self-start sm:self-auto">
-          <Calendar size={14} className="text-cyan-400" />
-          <select
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            disabled={dates.length === 0}
-            className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer disabled:opacity-50"
-          >
-            {dates.length === 0 ? (
-              <option value="">No Dates Available</option>
-            ) : (
-              dates.map((d) => (
-                <option key={d} value={d} className="bg-[#071827] text-white">
-                  {d}
+        {/* Selectors Container */}
+        <div className="flex flex-col gap-2 self-start sm:self-auto">
+          {/* Date Selector */}
+          <div className="flex items-center gap-2 bg-[#071827]/80 border border-cyan-900/60 rounded-lg px-3 py-1.5 w-full">
+            <Calendar size={14} className="text-cyan-400 shrink-0" />
+            <select
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              disabled={dates.length === 0}
+              className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer disabled:opacity-50 w-full"
+            >
+              {dates.length === 0 ? (
+                <option value="">No Dates Available</option>
+              ) : (
+                dates.map((d) => (
+                  <option key={d} value={d} className="bg-[#071827] text-white">
+                    {d}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* Weighbridge Selector */}
+          <div className="flex items-center gap-2 bg-[#071827]/80 border border-cyan-900/60 rounded-lg px-3 py-1.5 w-full">
+            <MapPin size={14} className="text-cyan-400 shrink-0" />
+            <select
+              value={selectedStation}
+              onChange={(e) => setSelectedStation(e.target.value)}
+              className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer w-full"
+            >
+              {WEIGHBRIDGE_OPTIONS.map((option) => (
+                <option key={option} value={option} className="bg-[#071827] text-white">
+                  {option}
                 </option>
-              ))
-            )}
-          </select>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
