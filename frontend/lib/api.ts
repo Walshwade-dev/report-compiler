@@ -22,6 +22,13 @@ function getApiOrigin() {
   return isLocalBrowser() ? LOCAL_API_ORIGIN : "";
 }
 
+export function isApiConnectionError(error: unknown) {
+  return (
+    error instanceof TypeError &&
+    /failed to fetch|networkerror|load failed/i.test(error.message)
+  );
+}
+
 export function apiUrl(path: string) {
   const cleanPath = path.replace(/^\/+/, "");
   const origin = getApiOrigin();

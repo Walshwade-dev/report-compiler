@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { StatusBadge } from "@/components/report-builder/StatusBadge";
 import { useReportProgress } from "@/components/report-builder/ReportProgressContext";
+import { useReportSettings } from "@/components/report-builder/ReportSettingsContext";
 import {
   createReportSession,
   getMobileExcelReportDownloadUrl,
@@ -54,6 +55,8 @@ function createInitialMobileInputs(): MobileReportInputs {
     station: "Juja mobile",
     bound: "Mobile 2",
     reportDate: "",
+    preparedBy: "",
+    approvedBy: "Faith Njani",
     totalWeighed: 0,
     dmEntry: "",
     driverEntry: "",
@@ -116,6 +119,13 @@ function TextInput({
   min,
   uppercase = true,
 }: TextInputProps) {
+  const inputTone =
+    type === "date"
+      ? `mobile-date-input [color-scheme:dark] ${
+          value ? "text-slate-100" : "text-slate-400"
+        }`
+      : "text-slate-100";
+
   return (
     <label htmlFor={id} className="block">
       <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -134,7 +144,7 @@ function TextInput({
               : event.target.value
           )
         }
-        className="mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
+        className={`mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm ${inputTone} placeholder:text-slate-400 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40`}
       />
     </label>
   );
@@ -197,6 +207,7 @@ export default function NewMobileReportPage() {
     reportId ? getMobileExcelReportDownloadUrl(reportId) : null
   );
   const { setProgress } = useReportProgress();
+  const { people } = useReportSettings();
 
   const mobileWordUrl = reportId
     ? getMobileWordReportDownloadUrl(reportId)
@@ -217,7 +228,11 @@ export default function NewMobileReportPage() {
   const chargedDimensions = summary?.charged_dimensions_trucks ?? 0;
 
   const metadataComplete = Boolean(
-    inputs.reportDate && inputs.station && inputs.bound
+    inputs.reportDate &&
+      inputs.station &&
+      inputs.bound &&
+      inputs.preparedBy &&
+      inputs.approvedBy
   );
 
   const manualInputsComplete = Boolean(
@@ -240,8 +255,12 @@ export default function NewMobileReportPage() {
 
   const manualPayload = useMemo(
     () => ({
+      prepared_by: inputs.preparedBy,
+      confirmed_by: inputs.approvedBy,
       extra: {
         mobile_report: {
+          prepared_by: inputs.preparedBy,
+          confirmed_by: inputs.approvedBy,
           route: inputs.route,
           danka_staff: [
             inputs.dmEntry,
@@ -313,6 +332,7 @@ export default function NewMobileReportPage() {
           setInputs({
             ...createInitialMobileInputs(),
             ...JSON.parse(savedDraft),
+            approvedBy: "Faith Njani",
           } as MobileReportInputs);
         } catch {
           localStorage.removeItem(MOBILE_DRAFT_KEY);
@@ -380,6 +400,8 @@ export default function NewMobileReportPage() {
       station: inputs.station,
       bound: inputs.bound,
       weighbridge_name: inputs.station,
+      prepared_by: inputs.preparedBy,
+      confirmed_by: inputs.approvedBy,
     });
 
     setReportId(response.report_id);
@@ -712,7 +734,7 @@ export default function NewMobileReportPage() {
               />
             </div>
 
-            <fieldset className="mt-5 grid gap-4 md:grid-cols-3">
+            <fieldset className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <legend className="sr-only">Backend session metadata</legend>
 
               <TextInput
@@ -739,6 +761,49 @@ export default function NewMobileReportPage() {
                 onChange={(value) => updateInput("bound", value)}
                 options={SHIFT_OPTIONS}
               />
+
+              <label htmlFor="mobile-prepared-by" className="block min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Prepared By
+                </span>
+
+                <select
+                  id="mobile-prepared-by"
+                  value={inputs.preparedBy}
+                  onChange={(event) =>
+                    updateInput("preparedBy", event.target.value)
+                  }
+                  className="mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 shadow-inner outline-none transition hover:border-cyan-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
+                >
+                  {!inputs.preparedBy && (
+                    <option value="">Select officer</option>
+                  )}
+                  {inputs.preparedBy && !people.includes(inputs.preparedBy) && (
+                    <option value={inputs.preparedBy}>
+                      {inputs.preparedBy}
+                    </option>
+                  )}
+                  {people.map((person) => (
+                    <option key={person} value={person}>
+                      {person}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label htmlFor="mobile-approved-by" className="block min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Approved By
+                </span>
+
+                <input
+                  id="mobile-approved-by"
+                  type="text"
+                  value={inputs.approvedBy}
+                  disabled
+                  className="mt-1 w-full cursor-not-allowed rounded-md border border-cyan-900/80 bg-[#071827]/80 px-3 py-2 text-sm font-semibold text-slate-400 shadow-inner outline-none ring-1 ring-white/5"
+                />
+              </label>
             </fieldset>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">

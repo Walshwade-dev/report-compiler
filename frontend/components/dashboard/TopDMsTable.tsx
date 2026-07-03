@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReportSessions } from "@/lib/api";
+import { getReportSessions, isApiConnectionError } from "@/lib/api";
 import { Trophy } from "lucide-react";
 
 type DMSTableRow = {
@@ -63,7 +63,9 @@ export function TopDMsTable() {
 
         setData(sortedData);
       } catch (err) {
-        console.error("Failed to fetch top DMs", err);
+        if (!isApiConnectionError(err)) {
+          console.error("Failed to fetch top DMs", err);
+        }
       } finally {
         if (active) setLoading(false);
       }

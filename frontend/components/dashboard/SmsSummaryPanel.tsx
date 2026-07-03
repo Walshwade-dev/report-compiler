@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Copy, Check, Download, ChevronLeft, ChevronRight, Calendar, AlertCircle, MapPin } from "lucide-react";
-import { getSmsSummaryDates, getSmsSummariesByDate, SmsSummaryItem } from "@/lib/api";
+import {
+  getSmsSummaryDates,
+  getSmsSummariesByDate,
+  isApiConnectionError,
+  SmsSummaryItem,
+} from "@/lib/api";
 import { WEIGHBRIDGE_OPTIONS } from "@/lib/constants";
 
 export function SmsSummaryPanel() {
@@ -25,7 +30,9 @@ export function SmsSummaryPanel() {
           setLoading(false);
         }
       } catch (err) {
-        console.error("Failed to load SMS summary dates:", err);
+        if (!isApiConnectionError(err)) {
+          console.error("Failed to load SMS summary dates:", err);
+        }
         setLoading(false);
       }
     }
@@ -41,7 +48,9 @@ export function SmsSummaryPanel() {
         setSummaries(data);
         setCurrentIndex(0);
       } catch (err) {
-        console.error("Failed to load SMS summaries:", err);
+        if (!isApiConnectionError(err)) {
+          console.error("Failed to load SMS summaries:", err);
+        }
       } finally {
         setLoading(false);
       }

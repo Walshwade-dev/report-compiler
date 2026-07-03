@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.mobile-date-input::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(69%) sepia(11%) saturate(529%)
+    hue-rotate(176deg) brightness(89%) contrast(87%);
+  opacity: 1;
+}

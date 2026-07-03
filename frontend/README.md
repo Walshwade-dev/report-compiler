@@ -11,6 +11,12 @@ npm run dev
 
 Open the local URL printed by the dev server.
 
+For a fixed local frontend URL, use:
+
+```bash
+npm run dev:local
+```
+
 ## Backend API
 
 API URL construction lives in:
@@ -32,6 +38,18 @@ https://report-app-px6c.onrender.com/api
 ```
 
 Set `NEXT_PUBLIC_API_BASE_URL` to override both defaults.
+
+When running the backend locally, start FastAPI from `report-app/backend`:
+
+```bash
+APP_ENV=development MPLCONFIGDIR=/tmp/matplotlib-cache .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+If port `8000` is unavailable, use another port and set the frontend override before starting Next.js:
+
+```txt
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
+```
 
 ## Build
 

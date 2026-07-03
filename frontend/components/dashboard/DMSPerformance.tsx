@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReportSessions } from "@/lib/api";
+import { getReportSessions, isApiConnectionError } from "@/lib/api";
 import { UserRound } from "lucide-react";
 
 type DMSStats = {
@@ -62,7 +62,9 @@ export function DMSPerformance() {
         setDmsData(sortedData);
         setTotalCharged(total);
       } catch (err) {
-        console.error("Failed to fetch DMS performance data", err);
+        if (!isApiConnectionError(err)) {
+          console.error("Failed to fetch DMS performance data", err);
+        }
       }
     }
     fetchData();

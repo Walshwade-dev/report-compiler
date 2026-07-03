@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { FileDown, Edit3, ArrowRight, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import Link from "next/link";
-import { resolveApiUrl, getReportSessions } from "@/lib/api";
+import { resolveApiUrl, getReportSessions, isApiConnectionError } from "@/lib/api";
 
 type ReportItem = {
   id: string;
@@ -53,7 +53,9 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
         });
         setReports(items);
       } catch (err) {
-        console.error("Failed to load sessions:", err);
+        if (!isApiConnectionError(err)) {
+          console.error("Failed to load sessions:", err);
+        }
       } finally {
         setLoading(false);
       }

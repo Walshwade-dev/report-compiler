@@ -103,6 +103,8 @@ export type MobileReportInputs = {
   station: string;
   bound: string;
   reportDate: string;
+  preparedBy: string;
+  approvedBy: string;
   totalWeighed: number;
   dmEntry: string;
   driverEntry: string;

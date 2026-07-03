@@ -44,7 +44,11 @@ function useDashboardData() {
           });
         }
       } catch (err) {
-        console.error("Failed to fetch dashboard summary cards", err);
+        const { isApiConnectionError } = await import("@/lib/api");
+
+        if (!isApiConnectionError(err)) {
+          console.error("Failed to fetch dashboard summary cards", err);
+        }
       } finally {
         if (active) {
           setIsLoading(false);

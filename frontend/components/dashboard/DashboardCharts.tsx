@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BarChart3, Scale, Gavel, CheckCircle2, TrendingUp } from "lucide-react";
-import { getAnalyticsDashboard } from "@/lib/api";
+import { getAnalyticsDashboard, isApiConnectionError } from "@/lib/api";
 
 interface ComplianceDetail {
   calledIn: number;
@@ -118,7 +118,9 @@ export function DashboardCharts() {
           setHasData(false);
         }
       } catch (err) {
-        console.error("Failed to fetch dashboard charts data", err);
+        if (!isApiConnectionError(err)) {
+          console.error("Failed to fetch dashboard charts data", err);
+        }
       }
     }
     fetchData();
