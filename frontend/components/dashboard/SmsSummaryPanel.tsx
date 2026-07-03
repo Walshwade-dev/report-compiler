@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Copy, Check, Download, ChevronLeft, ChevronRight, Calendar, AlertCircle, MapPin } from "lucide-react";
+import { Copy, Check, Download, ChevronLeft, ChevronRight, Calendar, AlertCircle, MapPin, X } from "lucide-react";
 import {
   getSmsSummaryDates,
   getSmsSummariesByDate,
@@ -18,6 +18,7 @@ export function SmsSummaryPanel() {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
+  const [modalItem, setModalItem] = useState<SmsSummaryItem | null>(null);
 
   useEffect(() => {
     async function loadDates() {
@@ -70,9 +71,9 @@ export function SmsSummaryPanel() {
     setCopied(false);
   };
 
-  const handleCopy = async () => {
-    if (summaries.length === 0) return;
-    const text = summaries[currentIndex].text;
+  const handleCopy = async (item = summaries[currentIndex]) => {
+    if (!item) return;
+    const text = item.text;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -187,15 +188,26 @@ export function SmsSummaryPanel() {
             </div>
 
             {/* SMS text card container */}
-            <div className="flex-1 relative rounded-xl border border-cyan-900/40 bg-[#071827]/90 p-4 shadow-inner overflow-y-auto max-h-[360px] custom-scrollbar">
+            <div
+              className="flex-1 relative max-h-[360px] cursor-pointer overflow-hidden rounded-xl border border-cyan-900/40 bg-[#071827]/90 p-4 shadow-inner transition-colors hover:border-cyan-500/50"
+              role="button"
+              tabIndex={0}
+              onClick={() => setModalItem(activeItem)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setModalItem(activeItem);
+                }
+              }}
+            >
               <pre className="font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-all pr-2">
                 {activeItem.text}
               </pre>
 
               {/* Action buttons embedded in card */}
-              <div className="absolute right-4 top-4 flex items-center gap-2">
+              <div className="absolute right-4 top-4 flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                 <button
-                  onClick={handleCopy}
+                  onClick={() => handleCopy()}
                   className="p-2 rounded-lg bg-[#0b2135]/80 text-cyan-400 border border-cyan-900/40 hover:border-cyan-400/50 hover:bg-cyan-950/40 hover:text-cyan-300 transition-all flex items-center gap-1.5 shadow-md"
                   title="Copy to Clipboard"
                 >
@@ -269,6 +281,51 @@ export function SmsSummaryPanel() {
           </div>
         )}
       </div>
+
+      {modalItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setModalItem(null)}
+        >
+          <div
+            className="flex max-h-[86vh] w-full max-w-2xl flex-col rounded-xl border border-cyan-800/70 bg-[#071827] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-cyan-900/50 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold uppercase tracking-wider text-cyan-200">
+                  {modalItem.title}
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Daily KPI SMS Summary
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => handleCopy(modalItem)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-900/60 bg-[#0b2135]/80 px-3 py-2 text-xs font-bold text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/50"
+                  title="Copy to Clipboard"
+                >
+                  {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                  {copied ? "Copied" : "Copy"}
+                </button>
+                <button
+                  onClick={() => setModalItem(null)}
+                  className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#0b2135]/80 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/50"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="custom-scrollbar overflow-y-auto p-4">
+              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-slate-200">
+                {modalItem.text}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

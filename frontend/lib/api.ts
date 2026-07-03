@@ -373,10 +373,30 @@ export async function getSummaryCards(
   return response.json() as Promise<SummaryCardsResponse>;
 }
 
-export async function getAnalyticsDashboard() {
-  const response = await fetch(
-    apiUrl(`report-sessions/analytics/dashboard`)
-  );
+export async function getAnalyticsDashboard(filters?: {
+  staticDate?: string;
+  mobileDate?: string;
+  mobileBound?: string;
+}) {
+  const query = new URLSearchParams();
+
+  if (filters?.staticDate) {
+    query.set("static_date", filters.staticDate);
+  }
+
+  if (filters?.mobileDate) {
+    query.set("mobile_date", filters.mobileDate);
+  }
+
+  if (filters?.mobileBound) {
+    query.set("mobile_bound", filters.mobileBound);
+  }
+
+  const path = query.size
+    ? `report-sessions/analytics/dashboard?${query.toString()}`
+    : "report-sessions/analytics/dashboard";
+
+  const response = await fetch(apiUrl(path));
 
   if (!response.ok) {
     throw new Error(
