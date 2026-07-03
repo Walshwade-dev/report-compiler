@@ -421,6 +421,39 @@ export async function getAnalyticsDetails() {
   return response.json();
 }
 
+export type DmsPerformanceRow = {
+  name: string;
+  surname: string;
+  team: string;
+  drivers: string[];
+  weighed: number;
+  charged: number;
+  chargeRate: number;
+  monthCharged: number;
+  reports: number;
+};
+
+export type DmsPerformanceResponse = {
+  rows: DmsPerformanceRow[];
+  totalCharged: number;
+  totalWeighed: number;
+  reports: number;
+};
+
+export async function getDmsPerformance() {
+  const response = await fetch(
+    apiUrl("report-sessions/analytics/dms-performance")
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to fetch DMS performance")
+    );
+  }
+
+  return response.json() as Promise<DmsPerformanceResponse>;
+}
+
 
 export async function buildFinalReport(
   reportId: string

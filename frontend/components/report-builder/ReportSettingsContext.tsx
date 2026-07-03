@@ -13,6 +13,8 @@ const ReportSettingsContext =
 const DEFAULT_PEOPLE = [
   "Fredrick Kariuki",
   "Faith Njani",
+  "Grace Njoroge",
+  "Anastasha Kenda",
 ];
 
 const OFFICER_STORAGE_KEY = "report-officer-list";
@@ -35,7 +37,7 @@ function loadStoredPeople() {
       Array.isArray(parsedPeople) &&
       parsedPeople.every((person) => typeof person === "string")
     ) {
-      return parsedPeople;
+      return [...parsedPeople, ...DEFAULT_PEOPLE.filter((person) => !parsedPeople.includes(person))];
     }
   } catch (error) {
     console.error("Failed to load report officer list:", error);

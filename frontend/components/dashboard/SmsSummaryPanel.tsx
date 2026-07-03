@@ -59,6 +59,17 @@ export function SmsSummaryPanel() {
     loadSummaries();
   }, [selectedDate, selectedStation]);
 
+  useEffect(() => {
+    if (!modalItem) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [modalItem]);
+
   const handlePrev = () => {
     if (summaries.length === 0) return;
     setCurrentIndex((prev) => (prev === 0 ? summaries.length - 1 : prev - 1));
@@ -103,7 +114,8 @@ export function SmsSummaryPanel() {
   const activeItem = summaries[currentIndex];
 
   return (
-    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md flex flex-col h-full">
+    <>
+    <div className="flex h-[560px] max-h-[560px] max-w-full flex-col overflow-hidden rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 shrink-0 border-b border-cyan-900/30 pb-4">
         <div>
@@ -189,7 +201,7 @@ export function SmsSummaryPanel() {
 
             {/* SMS text card container */}
             <div
-              className="flex-1 relative max-h-[360px] cursor-pointer overflow-hidden rounded-xl border border-cyan-900/40 bg-[#071827]/90 p-4 shadow-inner transition-colors hover:border-cyan-500/50"
+              className="relative min-h-0 flex-1 cursor-pointer overflow-x-hidden overflow-y-auto rounded-xl border border-cyan-900/40 bg-[#071827]/90 p-4 shadow-inner transition-colors hover:border-cyan-500/50 custom-scrollbar"
               role="button"
               tabIndex={0}
               onClick={() => setModalItem(activeItem)}
@@ -282,50 +294,51 @@ export function SmsSummaryPanel() {
         )}
       </div>
 
-      {modalItem && (
+    </div>
+    {modalItem && (
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+        onClick={() => setModalItem(null)}
+      >
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={() => setModalItem(null)}
+          className="flex max-h-[86vh] w-full max-w-2xl flex-col rounded-xl border border-cyan-800/70 bg-[#071827] shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
         >
-          <div
-            className="flex max-h-[86vh] w-full max-w-2xl flex-col rounded-xl border border-cyan-800/70 bg-[#071827] shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-cyan-900/50 px-4 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold uppercase tracking-wider text-cyan-200">
-                  {modalItem.title}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Daily KPI SMS Summary
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  onClick={() => handleCopy(modalItem)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-900/60 bg-[#0b2135]/80 px-3 py-2 text-xs font-bold text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/50"
-                  title="Copy to Clipboard"
-                >
-                  {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                  {copied ? "Copied" : "Copy"}
-                </button>
-                <button
-                  onClick={() => setModalItem(null)}
-                  className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#0b2135]/80 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/50"
-                  title="Close"
-                >
-                  <X size={16} />
-                </button>
-              </div>
+          <div className="flex items-center justify-between gap-3 border-b border-cyan-900/50 px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold uppercase tracking-wider text-cyan-200">
+                {modalItem.title}
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                Daily KPI SMS Summary
+              </p>
             </div>
-            <div className="custom-scrollbar overflow-y-auto p-4">
-              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-slate-200">
-                {modalItem.text}
-              </pre>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                onClick={() => handleCopy(modalItem)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-900/60 bg-[#0b2135]/80 px-3 py-2 text-xs font-bold text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/50"
+                title="Copy to Clipboard"
+              >
+                {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={() => setModalItem(null)}
+                className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#0b2135]/80 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/50"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
             </div>
           </div>
+          <div className="custom-scrollbar overflow-y-auto p-4">
+            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-slate-200">
+              {modalItem.text}
+            </pre>
+          </div>
         </div>
-      )}
-    </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReportSessions, isApiConnectionError } from "@/lib/api";
+import { getDmsPerformance, isApiConnectionError } from "@/lib/api";
 import { UserRound } from "lucide-react";
 
 type DMSStats = {
   name: string;
+  team: string;
   charged: number;
   weighed: number;
+  chargeRate: number;
   color: string;
 };
 
@@ -28,39 +30,14 @@ export function DMSPerformance() {
     let active = true;
     async function fetchData() {
       try {
-        const sessions = await getReportSessions();
+        const performance = await getDmsPerformance();
         if (!active) return;
 
-        const statsMap = new Map<string, DMSStats>();
-        let total = 0;
-
-        for (const session of sessions) {
-          const mobileReport = session.sections?.mobile_report;
-          const extra = (session.manual_inputs as { extra?: { mobile_report?: { danka_staff?: string } } })?.extra;
-          const dankaStaff = extra?.mobile_report?.danka_staff;
-
-          if (mobileReport?.summary && dankaStaff) {
-            const charged = mobileReport.summary.charged_trucks || 0;
-            const weighed = mobileReport.summary.total_trucks_weighed || 0;
-
-            const nameKey = dankaStaff.trim();
-            
-            if (charged > 0 || weighed > 0) {
-              const existing = statsMap.get(nameKey) || { name: nameKey, charged: 0, weighed: 0, color: "" };
-              existing.charged += charged;
-              existing.weighed += weighed;
-              statsMap.set(nameKey, existing);
-              total += charged;
-            }
-          }
-        }
-
-        const sortedData = Array.from(statsMap.values())
-          .sort((a, b) => b.charged - a.charged)
+        const sortedData = performance.rows
           .map((item, i) => ({ ...item, color: COLORS[i % COLORS.length] }));
 
         setDmsData(sortedData);
-        setTotalCharged(total);
+        setTotalCharged(performance.totalCharged);
       } catch (err) {
         if (!isApiConnectionError(err)) {
           console.error("Failed to fetch DMS performance data", err);
@@ -89,7 +66,7 @@ export function DMSPerformance() {
         <UserRound className="text-cyan-400" size={20} />
         <div>
           <h2 className="text-lg font-bold text-white">DMS Performance Tracker</h2>
-          <p className="text-xs text-slate-400">Mobile report charge rates per Danka Staff</p>
+          <p className="text-xs text-slate-400">Mobile report charge rates per DM team</p>
         </div>
       </div>
 
@@ -105,11 +82,12 @@ export function DMSPerformance() {
                 <div key={dms.name} className="flex items-center justify-between p-3 rounded-lg bg-[#071827]/60 border border-cyan-900/30 hover:border-cyan-500/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dms.color }} />
-                    <span className="text-sm font-semibold text-slate-200 truncate max-w-[120px] sm:max-w-[180px]" title={dms.name}>{dms.name}</span>
+                    <span className="text-sm font-semibold text-slate-200 truncate max-w-[120px] sm:max-w-[180px]" title={dms.team}>{dms.name}</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-white">{dms.charged} Charged</p>
+                    <p className="text-sm font-bold text-white">{dms.chargeRate.toFixed(1)}%</p>
                     <p className="text-xs text-slate-500">of {dms.weighed} weighed</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">{dms.charged} charged</p>
                   </div>
                 </div>
               ))}

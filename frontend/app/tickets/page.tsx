@@ -38,6 +38,9 @@ export default function TicketsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTicket, setActiveTicket] = useState<DeveloperTicket | null>(null);
   const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
+  const [developerPassword, setDeveloperPassword] = useState("");
+  const [developerUnlocked, setDeveloperUnlocked] = useState(false);
+  const [developerPasswordError, setDeveloperPasswordError] = useState("");
 
   // Load tickets on mount
   useEffect(() => {
@@ -132,6 +135,18 @@ ${ticketExpected}
     setExpectedBehavior("");
   };
 
+  const handleDeveloperUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (developerPassword === "Sinimimi8*") {
+      setDeveloperUnlocked(true);
+      setDeveloperPassword("");
+      setDeveloperPasswordError("");
+      return;
+    }
+
+    setDeveloperPasswordError("Invalid developer password.");
+  };
+
   // Delete Ticket
   const handleDelete = (id: string) => {
     const updated = tickets.filter((t) => t.id !== id);
@@ -204,10 +219,10 @@ ${ticketExpected}
                 <Cpu size={12} className="animate-pulse" /> Developer Integration Center
               </span>
               <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white">
-                Developer Ticket & Prompt Portal
+                Ticket Page
               </h1>
               <p className="mt-1 text-sm text-slate-300">
-                Submit webapp flaws and convert them instantly to standalone, agent-ready developer instructions.
+                Submit app flaws and suggestions on feature improvements.
               </p>
             </div>
           </div>
@@ -322,7 +337,7 @@ ${ticketExpected}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                 >
                   <Code2 size={16} />
-                  Generate Developer Prompt
+                  Submit Ticket
                 </button>
               </form>
             </div>
@@ -363,28 +378,32 @@ ${ticketExpected}
                       </div>
                       
                       <div className="flex items-center gap-2 sm:self-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopy(t.prompt, t.id);
-                          }}
-                          title="Copy Prompt"
-                          className="p-2 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 transition"
-                        >
-                          {copiedId === t.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(t);
-                          }}
-                          title="Download Prompt (.md)"
-                          className="p-2 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 transition"
-                        >
-                          <Download size={14} />
-                        </button>
+                        {developerUnlocked && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(t.prompt, t.id);
+                              }}
+                              title="Copy Prompt"
+                              className="p-2 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 transition"
+                            >
+                              {copiedId === t.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(t);
+                              }}
+                              title="Download Prompt (.md)"
+                              className="p-2 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 transition"
+                            >
+                              <Download size={14} />
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -404,15 +423,15 @@ ${ticketExpected}
             </div>
           </div>
 
-          {/* Prompt Preview Column */}
+          {/* Developer Prompt Access Column */}
           <div className="lg:col-span-5">
             <div className="rounded-xl border border-cyan-900/50 bg-[#0b2a45] p-5 shadow-lg h-full flex flex-col">
               <div className="flex items-center justify-between border-b border-cyan-900/50 pb-4 mb-5">
                 <div className="flex items-center gap-3">
                   <FileCheck2 className="text-cyan-400" size={20} />
-                  <h2 className="text-base font-bold text-cyan-200">AI Prompt Preview</h2>
+                  <h2 className="text-base font-bold text-cyan-200">Developer Prompt Access</h2>
                 </div>
-                {activeTicket && (
+                {developerUnlocked && activeTicket && (
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleCopy(activeTicket.prompt, activeTicket.id, true)}
@@ -432,7 +451,44 @@ ${ticketExpected}
                 )}
               </div>
 
-              {activeTicket ? (
+              {!developerUnlocked ? (
+                <form
+                  onSubmit={handleDeveloperUnlock}
+                  className="flex-1 flex flex-col items-center justify-center text-center py-20 text-slate-400 bg-[#071827]/40 rounded-lg border border-dashed border-cyan-900/30"
+                >
+                  <Code2 size={48} className="text-cyan-600 opacity-30 mb-3" />
+                  <p className="max-w-sm text-sm">
+                    AI prompt previews are restricted to the developer.
+                  </p>
+                  <div className="mt-5 w-full max-w-xs">
+                    <label htmlFor="developer-password" className="sr-only">
+                      Developer password
+                    </label>
+                    <input
+                      id="developer-password"
+                      type="password"
+                      value={developerPassword}
+                      onChange={(e) => {
+                        setDeveloperPassword(e.target.value);
+                        setDeveloperPasswordError("");
+                      }}
+                      placeholder="Developer password"
+                      className="w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
+                    />
+                    {developerPasswordError && (
+                      <p className="mt-2 text-xs font-semibold text-rose-300">
+                        {developerPasswordError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      className="mt-3 w-full rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    >
+                      Unlock Preview
+                    </button>
+                  </div>
+                </form>
+              ) : activeTicket ? (
                 <div className="flex-1 flex flex-col min-h-[300px]">
                   <div className="flex-1 bg-[#071827] rounded-lg p-4 font-mono text-xs text-slate-300 overflow-auto border border-cyan-900/50 max-h-[700px] whitespace-pre-wrap">
                     {activeTicket.prompt}
