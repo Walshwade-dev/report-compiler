@@ -110,10 +110,17 @@ export type MobileReportInputs = {
   driverEntry: string;
   policeOfficerOne: string;
   policeOfficerTwo: string;
+  shiftTwoDmEntry: string;
+  shiftTwoDriverEntry: string;
+  shiftTwoPoliceOfficerOne: string;
+  shiftTwoPoliceOfficerTwo: string;
   route: string;
   mobileVehicleReg: string;
   startMileage: string;
   stopMileage: string;
+  shiftTwoMobileVehicleReg: string;
+  shiftTwoStartMileage: string;
+  shiftTwoStopMileage: string;
   casesClearedInCourt: string;
   transgressionsCount: string;
   exemptedPermit: string;

@@ -65,10 +65,17 @@ function createInitialMobileInputs(): MobileReportInputs {
     driverEntry: "",
     policeOfficerOne: "",
     policeOfficerTwo: "",
+    shiftTwoDmEntry: "",
+    shiftTwoDriverEntry: "",
+    shiftTwoPoliceOfficerOne: "",
+    shiftTwoPoliceOfficerTwo: "",
     route: "",
     mobileVehicleReg: "",
     startMileage: "",
     stopMileage: "",
+    shiftTwoMobileVehicleReg: "",
+    shiftTwoStartMileage: "",
+    shiftTwoStopMileage: "",
     casesClearedInCourt: "0",
     transgressionsCount: "0",
     exemptedPermit: "0",
@@ -119,6 +126,10 @@ function splitSlashSeparatedNames(value: unknown) {
     .filter(Boolean);
 }
 
+function isMobileTwoBound(value: string) {
+  return /\b(2|two)\b|mobile_?2/i.test(value);
+}
+
 function mobileInputsFromSession(
   session: ReportSessionResponse,
   fallback: MobileReportInputs
@@ -126,6 +137,13 @@ function mobileInputsFromSession(
   const mobileManual = session.manual_inputs?.mobile_report || {};
   const staff = splitSlashSeparatedNames(mobileManual.danka_staff);
   const police = splitSlashSeparatedNames(mobileManual.police_officers);
+  const shifts = Array.isArray(mobileManual.shifts) ? mobileManual.shifts : [];
+  const shiftOne = shifts[0] || {};
+  const shiftTwo = shifts[1] || {};
+  const shiftOneStaff = splitSlashSeparatedNames(shiftOne.danka_staff);
+  const shiftTwoStaff = splitSlashSeparatedNames(shiftTwo.danka_staff);
+  const shiftOnePolice = splitSlashSeparatedNames(shiftOne.police_officers);
+  const shiftTwoPolice = splitSlashSeparatedNames(shiftTwo.police_officers);
   const summary = session.sections?.mobile_report?.summary;
 
   return {
@@ -144,20 +162,38 @@ function mobileInputsFromSession(
       "Faith Njani",
     totalWeighed:
       summary?.total_trucks_weighed ?? fallback.totalWeighed,
-    dmEntry: staff[0] || fallback.dmEntry,
-    driverEntry: staff[1] || fallback.driverEntry,
-    policeOfficerOne: police[0] || fallback.policeOfficerOne,
-    policeOfficerTwo: police[1] || fallback.policeOfficerTwo,
+    dmEntry: shiftOneStaff[0] || staff[0] || fallback.dmEntry,
+    driverEntry: shiftOneStaff[1] || staff[1] || fallback.driverEntry,
+    policeOfficerOne: shiftOnePolice[0] || police[0] || fallback.policeOfficerOne,
+    policeOfficerTwo: shiftOnePolice[1] || police[1] || fallback.policeOfficerTwo,
+    shiftTwoDmEntry: shiftTwoStaff[0] || fallback.shiftTwoDmEntry,
+    shiftTwoDriverEntry: shiftTwoStaff[1] || fallback.shiftTwoDriverEntry,
+    shiftTwoPoliceOfficerOne:
+      shiftTwoPolice[0] || fallback.shiftTwoPoliceOfficerOne,
+    shiftTwoPoliceOfficerTwo:
+      shiftTwoPolice[1] || fallback.shiftTwoPoliceOfficerTwo,
     route: stringFromSessionValue(mobileManual.route) || fallback.route,
     mobileVehicleReg:
+      stringFromSessionValue(shiftOne.mobile_vehicle) ||
       stringFromSessionValue(mobileManual.mobile_vehicle) ||
       fallback.mobileVehicleReg,
     startMileage:
+      stringFromSessionValue(shiftOne.mileage_start) ||
       stringFromSessionValue(mobileManual.mileage_start) ||
       fallback.startMileage,
     stopMileage:
+      stringFromSessionValue(shiftOne.mileage_end) ||
       stringFromSessionValue(mobileManual.mileage_end) ||
       fallback.stopMileage,
+    shiftTwoMobileVehicleReg:
+      stringFromSessionValue(shiftTwo.mobile_vehicle) ||
+      fallback.shiftTwoMobileVehicleReg,
+    shiftTwoStartMileage:
+      stringFromSessionValue(shiftTwo.mileage_start) ||
+      fallback.shiftTwoStartMileage,
+    shiftTwoStopMileage:
+      stringFromSessionValue(shiftTwo.mileage_end) ||
+      fallback.shiftTwoStopMileage,
     casesClearedInCourt:
       stringFromSessionValue(mobileManual.cases_cleared_in_court) ||
       fallback.casesClearedInCourt,
@@ -314,6 +350,12 @@ export default function NewMobileReportPage() {
     mileageStart !== null && mileageStop !== null
       ? Math.max(mileageStop - mileageStart, 0)
       : null;
+  const shiftTwoMileageStart = numberFromMileage(inputs.shiftTwoStartMileage);
+  const shiftTwoMileageStop = numberFromMileage(inputs.shiftTwoStopMileage);
+  const shiftTwoKilometers =
+    shiftTwoMileageStart !== null && shiftTwoMileageStop !== null
+      ? Math.max(shiftTwoMileageStop - shiftTwoMileageStart, 0)
+      : null;
 
   const totalWeighed = summary?.total_trucks_weighed ?? inputs.totalWeighed;
   const warned = summary?.warned_trucks ?? 0;
@@ -326,6 +368,16 @@ export default function NewMobileReportPage() {
       inputs.bound &&
       inputs.preparedBy &&
       inputs.approvedBy
+  );
+  const isMobileTwo = isMobileTwoBound(inputs.bound);
+  const shiftTwoComplete = Boolean(
+    inputs.shiftTwoDmEntry &&
+      inputs.shiftTwoDriverEntry &&
+      inputs.shiftTwoPoliceOfficerOne &&
+      inputs.shiftTwoPoliceOfficerTwo &&
+      inputs.shiftTwoMobileVehicleReg &&
+      inputs.shiftTwoStartMileage &&
+      inputs.shiftTwoStopMileage
   );
 
   const manualInputsComplete = Boolean(
@@ -340,7 +392,8 @@ export default function NewMobileReportPage() {
       inputs.casesClearedInCourt &&
       inputs.transgressionsCount &&
       inputs.exemptedPermit &&
-      inputs.manuallyWeighed
+      inputs.manuallyWeighed &&
+      (!isMobileTwo || shiftTwoComplete)
   );
 
   const uploadComplete =
@@ -363,8 +416,56 @@ export default function NewMobileReportPage() {
       ? "Creating backend session"
       : null;
 
-  const manualPayload = useMemo(
-    () => ({
+  const manualPayload = useMemo(() => {
+    const shiftOnePayload = {
+      label: "Shift 1",
+      start_time: "0000",
+      end_time: "0800",
+      danka_staff: [
+        inputs.dmEntry,
+        inputs.driverEntry,
+      ]
+        .filter(Boolean)
+        .join(" / "),
+      police_officers: [
+        inputs.policeOfficerOne,
+        inputs.policeOfficerTwo,
+      ]
+        .filter(Boolean)
+        .join(" / "),
+      mobile_vehicle: inputs.mobileVehicleReg,
+      mileage_start:
+        mileageStart === null ? inputs.startMileage : mileageStart,
+      mileage_end: mileageStop === null ? inputs.stopMileage : mileageStop,
+    };
+    const shiftTwoPayload = {
+      label: "Shift 2",
+      start_time: "0800",
+      end_time: "0000",
+      danka_staff: [
+        inputs.shiftTwoDmEntry,
+        inputs.shiftTwoDriverEntry,
+      ]
+        .filter(Boolean)
+        .join(" / "),
+      police_officers: [
+        inputs.shiftTwoPoliceOfficerOne,
+        inputs.shiftTwoPoliceOfficerTwo,
+      ]
+        .filter(Boolean)
+        .join(" / "),
+      mobile_vehicle: inputs.shiftTwoMobileVehicleReg,
+      mileage_start:
+        shiftTwoMileageStart === null
+          ? inputs.shiftTwoStartMileage
+          : shiftTwoMileageStart,
+      mileage_end:
+        shiftTwoMileageStop === null
+          ? inputs.shiftTwoStopMileage
+          : shiftTwoMileageStop,
+    };
+
+    return {
       prepared_by: inputs.preparedBy,
       confirmed_by: inputs.approvedBy,
       extra: {
@@ -392,11 +493,18 @@ export default function NewMobileReportPage() {
           transgressions_count: inputs.transgressionsCount,
           exempted_permit: inputs.exemptedPermit,
           manually_weighed: inputs.manuallyWeighed,
+          shifts: isMobileTwo ? [shiftOnePayload, shiftTwoPayload] : [],
         },
       },
-    }),
-    [inputs, mileageStart, mileageStop]
-  );
+    };
+  }, [
+    inputs,
+    isMobileTwo,
+    mileageStart,
+    mileageStop,
+    shiftTwoMileageStart,
+    shiftTwoMileageStop,
+  ]);
   const manualPayloadPreview = useMemo(
     () => JSON.stringify(manualPayload, null, 2),
     [manualPayload]
@@ -1206,7 +1314,9 @@ export default function NewMobileReportPage() {
 
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Danka Staff In Charge
+                  {isMobileTwo
+                    ? "Shift 1 Danka Staff (0000-0800)"
+                    : "Danka Staff In Charge"}
                 </p>
 
                 <div className="mt-2 grid gap-4 md:grid-cols-2">
@@ -1228,7 +1338,9 @@ export default function NewMobileReportPage() {
 
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Police In Charge
+                  {isMobileTwo
+                    ? "Shift 1 Police In Charge (0000-0800)"
+                    : "Police In Charge"}
                 </p>
 
                 <div className="mt-2 grid gap-4 md:grid-cols-2">
@@ -1250,7 +1362,9 @@ export default function NewMobileReportPage() {
 
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Mobile Vehicle Used
+                  {isMobileTwo
+                    ? "Shift 1 Mobile Vehicle Used (0000-0800)"
+                    : "Mobile Vehicle Used"}
                 </p>
 
                 <div className="mt-2 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1295,6 +1409,98 @@ export default function NewMobileReportPage() {
                   </div>
                 </div>
               </div>
+
+              {isMobileTwo && (
+                <div className="rounded-lg border border-cyan-900/50 bg-[#071827]/60 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-cyan-200">
+                    Shift 2 Team And Vehicle (0800-0000)
+                  </p>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <TextInput
+                      id="shift-two-dm-entry"
+                      label="DM Entry"
+                      value={inputs.shiftTwoDmEntry}
+                      onChange={(value) => updateInput("shiftTwoDmEntry", value)}
+                    />
+
+                    <TextInput
+                      id="shift-two-driver-entry"
+                      label="Driver Entry"
+                      value={inputs.shiftTwoDriverEntry}
+                      onChange={(value) =>
+                        updateInput("shiftTwoDriverEntry", value)
+                      }
+                    />
+
+                    <TextInput
+                      id="shift-two-police-officer-one"
+                      label="Police Officer 1"
+                      value={inputs.shiftTwoPoliceOfficerOne}
+                      onChange={(value) =>
+                        updateInput("shiftTwoPoliceOfficerOne", value)
+                      }
+                    />
+
+                    <TextInput
+                      id="shift-two-police-officer-two"
+                      label="Police Officer 2"
+                      value={inputs.shiftTwoPoliceOfficerTwo}
+                      onChange={(value) =>
+                        updateInput("shiftTwoPoliceOfficerTwo", value)
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <TextInput
+                      id="shift-two-mobile-vehicle-reg"
+                      label="Vehicle Registration"
+                      value={inputs.shiftTwoMobileVehicleReg}
+                      onChange={(value) =>
+                        updateInput("shiftTwoMobileVehicleReg", value)
+                      }
+                    />
+
+                    <TextInput
+                      id="shift-two-start-mileage"
+                      label="Mileage Start"
+                      type="number"
+                      min={0}
+                      uppercase={false}
+                      value={inputs.shiftTwoStartMileage}
+                      onChange={(value) =>
+                        updateInput("shiftTwoStartMileage", value)
+                      }
+                    />
+
+                    <TextInput
+                      id="shift-two-stop-mileage"
+                      label="Mileage End"
+                      type="number"
+                      min={0}
+                      uppercase={false}
+                      value={inputs.shiftTwoStopMileage}
+                      onChange={(value) =>
+                        updateInput("shiftTwoStopMileage", value)
+                      }
+                    />
+
+                    <div className="px-1 py-1">
+                      <div className="flex items-center gap-2 text-cyan-200">
+                        <Gauge aria-hidden="true" size={18} />
+                        <p className="text-xs font-bold uppercase tracking-wider">
+                          KMS
+                        </p>
+                      </div>
+
+                      <p className="mt-2 text-2xl font-black text-white">
+                        {shiftTwoKilometers ?? "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <TextInput
                 id="cases-cleared-in-court"

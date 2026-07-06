@@ -139,6 +139,16 @@ export type ReportSessionResponse = {
       transgressions_count?: string | number;
       exempted_permit?: string | number;
       manually_weighed?: string | number;
+      shifts?: {
+        label?: string;
+        start_time?: string;
+        end_time?: string;
+        danka_staff?: string;
+        police_officers?: string;
+        mobile_vehicle?: string;
+        mileage_start?: string | number;
+        mileage_end?: string | number;
+      }[];
     };
   };
 
