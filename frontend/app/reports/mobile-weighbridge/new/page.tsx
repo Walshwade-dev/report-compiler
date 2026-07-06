@@ -1315,7 +1315,7 @@ export default function NewMobileReportPage() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   {isMobileTwo
-                    ? "Shift 1 Danka Staff (0000-0800)"
+                    ? "Shift 1 Danka Staff"
                     : "Danka Staff In Charge"}
                 </p>
 
@@ -1339,7 +1339,7 @@ export default function NewMobileReportPage() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   {isMobileTwo
-                    ? "Shift 1 Police In Charge (0000-0800)"
+                    ? "Shift 1 Police In Charge"
                     : "Police In Charge"}
                 </p>
 
@@ -1363,7 +1363,7 @@ export default function NewMobileReportPage() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   {isMobileTwo
-                    ? "Shift 1 Mobile Vehicle Used (0000-0800)"
+                    ? "Shift 1 Mobile Vehicle Used"
                     : "Mobile Vehicle Used"}
                 </p>
 
@@ -1413,7 +1413,7 @@ export default function NewMobileReportPage() {
               {isMobileTwo && (
                 <div className="rounded-lg border border-cyan-900/50 bg-[#071827]/60 p-4">
                   <p className="text-xs font-bold uppercase tracking-wider text-cyan-200">
-                    Shift 2 Team And Vehicle (0800-0000)
+                    Shift 2 Team And Vehicle
                   </p>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
