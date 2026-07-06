@@ -717,12 +717,29 @@ export default function NewMobileReportPage() {
   }
 
   function mobileOutputFilename(extension: "docx" | "xlsx") {
-    const filename = `${inputs.station}_${inputs.bound}_${inputs.reportDate}_mobile_report`
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
+    const station = inputs.station
+      .toUpperCase()
+      .split(/\s+/)
+      .filter((part) => part && part !== "MOBILE")
+      .join(" ");
+    const stationName = station.includes("WEIGHBRIDGE")
+      ? station
+      : `${station || "STATION"} WEIGHBRIDGE`;
+    const reportNumber = /(?:^|\s|_)mobile_?2(?:$|\s|_)|\b2\b|\btwo\b/i.test(
+      inputs.bound
+    )
+      ? "2"
+      : "1";
+    const [year, month, day] = inputs.reportDate.split("-");
+    const datePart =
+      year && month && day ? `${day}.${month}.${year.slice(-2)}` : inputs.reportDate;
+    const filename =
+      `${stationName} MOBILE DAILY REPORT ${reportNumber} ${datePart}`
+        .replace(/[<>:"/\\|?*]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 
-    return `${filename || "mobile_report"}.${extension}`;
+    return `${filename || "MOBILE DAILY REPORT"}.${extension}`;
   }
 
   async function readErrorMessage(response: Response, fallback: string) {
