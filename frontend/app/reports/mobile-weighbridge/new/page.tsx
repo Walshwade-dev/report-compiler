@@ -16,7 +16,7 @@ import {
   Upload,
   UserRound,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { StatusBadge } from "@/components/report-builder/StatusBadge";
 import { useReportProgress } from "@/components/report-builder/ReportProgressContext";
@@ -280,6 +280,7 @@ export default function NewMobileReportPage() {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftStatus, setDraftStatus] = useState<"saved" | "saving">("saved");
   const [sessionStatus, setSessionStatus] = useState<WorkflowStatus>("idle");
+  const [autoSessionKey, setAutoSessionKey] = useState<string | null>(null);
   const [manualStatus, setManualStatus] = useState<WorkflowStatus>("idle");
   const [uploadStatus, setUploadStatus] = useState<WorkflowStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -408,6 +409,43 @@ export default function NewMobileReportPage() {
     [uploadResponse]
   );
 
+  const ensureSession = useCallback(async () => {
+    if (reportId) {
+      return reportId;
+    }
+
+    if (!metadataComplete) {
+      throw new Error("Enter report date, station, and shift first.");
+    }
+
+    setSessionStatus("busy");
+    setStatusMessage(null);
+
+    const response = await createReportSession({
+      report_date: inputs.reportDate,
+      station: inputs.station,
+      bound: inputs.bound,
+      weighbridge_name: inputs.station,
+      prepared_by: inputs.preparedBy,
+      confirmed_by: inputs.approvedBy,
+    });
+
+    setReportId(response.report_id);
+    setMobileExcelUrl(getMobileExcelReportDownloadUrl(response.report_id));
+    localStorage.setItem(MOBILE_REPORT_ID_KEY, response.report_id);
+    setSessionStatus("ready");
+
+    return response.report_id;
+  }, [
+    inputs.approvedBy,
+    inputs.bound,
+    inputs.preparedBy,
+    inputs.reportDate,
+    inputs.station,
+    metadataComplete,
+    reportId,
+  ]);
+
   useEffect(() => {
     setProgress({
       reportType: "mobile",
@@ -490,7 +528,10 @@ export default function NewMobileReportPage() {
               getMobileExcelReportDownloadUrl(savedReportId)
           );
         } catch (error) {
-          setSessionStatus("error");
+          localStorage.removeItem(MOBILE_REPORT_ID_KEY);
+          setReportId(null);
+          setMobileExcelUrl(null);
+          setSessionStatus("idle");
           console.error("Failed to restore mobile session from backend:", error);
         }
       }
@@ -511,6 +552,54 @@ export default function NewMobileReportPage() {
 
     return () => clearTimeout(timeout);
   }, [draftLoaded, inputs]);
+
+  useEffect(() => {
+    if (!draftLoaded || reportId || !metadataComplete || sessionStatus === "busy") {
+      return;
+    }
+
+    const metadataKey = [
+      inputs.reportDate,
+      inputs.station,
+      inputs.bound,
+      inputs.preparedBy,
+      inputs.approvedBy,
+    ].join("|");
+
+    if (autoSessionKey === metadataKey) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setAutoSessionKey(metadataKey);
+      ensureSession()
+        .then(() => {
+          setStatusMessage("Mobile report session created automatically.");
+        })
+        .catch((error) => {
+          setSessionStatus("error");
+          setStatusMessage(
+            error instanceof Error
+              ? error.message
+              : "Failed to create mobile report session automatically."
+          );
+        });
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [
+    autoSessionKey,
+    draftLoaded,
+    inputs.approvedBy,
+    inputs.bound,
+    inputs.preparedBy,
+    inputs.reportDate,
+    inputs.station,
+    metadataComplete,
+    reportId,
+    sessionStatus,
+    ensureSession,
+  ]);
 
   useEffect(() => {
     if (!draftLoaded || !reportId || !metadataComplete) {
@@ -553,47 +642,6 @@ export default function NewMobileReportPage() {
       ...previous,
       [field]: value,
     }));
-  }
-
-  async function ensureSession() {
-    if (reportId) {
-      return reportId;
-    }
-
-    if (!metadataComplete) {
-      throw new Error("Enter report date, station, and shift first.");
-    }
-
-    setSessionStatus("busy");
-    setStatusMessage(null);
-
-    const response = await createReportSession({
-      report_date: inputs.reportDate,
-      station: inputs.station,
-      bound: inputs.bound,
-      weighbridge_name: inputs.station,
-      prepared_by: inputs.preparedBy,
-      confirmed_by: inputs.approvedBy,
-    });
-
-    setReportId(response.report_id);
-    setMobileExcelUrl(getMobileExcelReportDownloadUrl(response.report_id));
-    localStorage.setItem(MOBILE_REPORT_ID_KEY, response.report_id);
-    setSessionStatus("ready");
-
-    return response.report_id;
-  }
-
-  async function handleCreateSession() {
-    try {
-      await ensureSession();
-      setStatusMessage("Mobile report session is ready.");
-    } catch (error) {
-      setSessionStatus("error");
-      setStatusMessage(
-        error instanceof Error ? error.message : "Failed to create session."
-      );
-    }
   }
 
   async function handleSaveManualInputs(activeReportId?: string) {
@@ -1085,18 +1133,11 @@ export default function NewMobileReportPage() {
             </fieldset>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={handleCreateSession}
-                disabled={!metadataComplete || sessionStatus === "busy"}
-                className="flex items-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <CheckCircle2 aria-hidden="true" size={16} />
-                {reportId ? "Reuse Session" : "Create Session"}
-              </button>
-
               <p className="break-all font-mono text-xs text-slate-400">
-                {reportId || "No report_id yet"}
+                {reportId ||
+                  (metadataComplete
+                    ? "Creating report_id automatically..."
+                    : "Fill report info to create report_id automatically.")}
               </p>
             </div>
           </section>
