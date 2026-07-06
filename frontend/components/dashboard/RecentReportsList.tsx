@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileDown, Edit3, ArrowRight, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { FileDown, Edit3, ArrowRight, CheckCircle2, AlertCircle, Clock, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { resolveApiUrl, getReportSessions, isApiConnectionError } from "@/lib/api";
+import { resolveApiUrl, getReportSessions, isApiConnectionError, deleteReportSession } from "@/lib/api";
 
 type ReportItem = {
   id: string;
@@ -20,6 +20,7 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -77,6 +78,35 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
     Draft: "bg-amber-500/10 text-amber-300 border-amber-500/20",
   };
 
+  async function handleDeleteReport(report: ReportItem) {
+    const confirmed = window.confirm(
+      `Delete ${report.station} ${report.bound} from ${report.date}? This removes the session, uploads, previews, and generated outputs.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingId(report.id);
+      await deleteReportSession(report.id);
+      setReports((previous) => previous.filter((item) => item.id !== report.id));
+
+      if (localStorage.getItem("active-report-id") === report.id) {
+        localStorage.removeItem("active-report-id");
+      }
+
+      if (localStorage.getItem("active-mobile-report-id") === report.id) {
+        localStorage.removeItem("active-mobile-report-id");
+      }
+    } catch (error) {
+      console.error("Failed to delete report session:", error);
+      window.alert("Failed to delete this report session.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   if (compact) {
     return (
       <div className="flex flex-col gap-3">
@@ -124,6 +154,15 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
                     Download
                   </a>
                 )}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteReport(report)}
+                  disabled={deletingId === report.id}
+                  className="inline-flex items-center justify-center rounded bg-red-950/30 px-2 py-0.5 text-[10px] font-semibold text-red-300 border border-red-900/50 hover:bg-red-500/20 hover:border-red-500/40 transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                  title="Delete workspace"
+                >
+                  {deletingId === report.id ? "Deleting" : "Delete"}
+                </button>
               </div>
             </div>
           ))
@@ -204,6 +243,15 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
                           <FileDown size={14} />
                         </a>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteReport(report)}
+                        disabled={deletingId === report.id}
+                        className="inline-flex items-center justify-center rounded-lg bg-red-950/30 p-2 text-red-300 border border-red-900/50 hover:bg-red-500/20 hover:border-red-500/40 transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Delete Workspace"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>

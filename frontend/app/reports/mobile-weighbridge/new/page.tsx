@@ -6,6 +6,7 @@ import {
   Download,
   FileSpreadsheet,
   Gauge,
+  LoaderCircle,
   RotateCcw,
   Ruler,
   Save,
@@ -26,8 +27,10 @@ import {
   getMobileWordReportDownloadUrl,
   getReportSession,
   MobileReportUploadResponse,
+  ReportSessionResponse,
   resolveApiUrl,
   updateManualInputs,
+  updateReportSessionMetadata,
   uploadMobileReportFile,
 } from "@/lib/api";
 import {
@@ -98,6 +101,76 @@ function stringFromRow(row: Record<string, unknown>, keys: string[]) {
   }
 
   return "";
+}
+
+function stringFromSessionValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value);
+}
+
+function splitSlashSeparatedNames(value: unknown) {
+  return stringFromSessionValue(value)
+    .replace(/\\/g, "/")
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function mobileInputsFromSession(
+  session: ReportSessionResponse,
+  fallback: MobileReportInputs
+): MobileReportInputs {
+  const mobileManual = session.manual_inputs?.mobile_report || {};
+  const staff = splitSlashSeparatedNames(mobileManual.danka_staff);
+  const police = splitSlashSeparatedNames(mobileManual.police_officers);
+  const summary = session.sections?.mobile_report?.summary;
+
+  return {
+    ...fallback,
+    station: session.metadata?.station || fallback.station,
+    bound: session.metadata?.bound || fallback.bound,
+    reportDate: session.metadata?.report_date || fallback.reportDate,
+    preparedBy:
+      mobileManual.prepared_by ||
+      session.metadata?.prepared_by ||
+      fallback.preparedBy,
+    approvedBy:
+      mobileManual.confirmed_by ||
+      session.metadata?.confirmed_by ||
+      fallback.approvedBy ||
+      "Faith Njani",
+    totalWeighed:
+      summary?.total_trucks_weighed ?? fallback.totalWeighed,
+    dmEntry: staff[0] || fallback.dmEntry,
+    driverEntry: staff[1] || fallback.driverEntry,
+    policeOfficerOne: police[0] || fallback.policeOfficerOne,
+    policeOfficerTwo: police[1] || fallback.policeOfficerTwo,
+    route: stringFromSessionValue(mobileManual.route) || fallback.route,
+    mobileVehicleReg:
+      stringFromSessionValue(mobileManual.mobile_vehicle) ||
+      fallback.mobileVehicleReg,
+    startMileage:
+      stringFromSessionValue(mobileManual.mileage_start) ||
+      fallback.startMileage,
+    stopMileage:
+      stringFromSessionValue(mobileManual.mileage_end) ||
+      fallback.stopMileage,
+    casesClearedInCourt:
+      stringFromSessionValue(mobileManual.cases_cleared_in_court) ||
+      fallback.casesClearedInCourt,
+    transgressionsCount:
+      stringFromSessionValue(mobileManual.transgressions_count) ||
+      fallback.transgressionsCount,
+    exemptedPermit:
+      stringFromSessionValue(mobileManual.exempted_permit) ||
+      fallback.exemptedPermit,
+    manuallyWeighed:
+      stringFromSessionValue(mobileManual.manually_weighed) ||
+      fallback.manuallyWeighed,
+  };
 }
 
 type TextInputProps = {
@@ -201,6 +274,9 @@ export default function NewMobileReportPage() {
   const [uploadStatus, setUploadStatus] = useState<WorkflowStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
+  const [downloadTarget, setDownloadTarget] = useState<
+    "word" | "excel" | null
+  >(null);
   const [uploadResponse, setUploadResponse] =
     useState<MobileReportUploadResponse | null>(null);
   const [mobileExcelUrl, setMobileExcelUrl] = useState<string | null>(
@@ -252,6 +328,19 @@ export default function NewMobileReportPage() {
 
   const uploadComplete =
     uploadResponse?.sections.mobile_report?.status === "ready";
+  const downloadBusy = downloadTarget !== null;
+  const processingMessage =
+    downloadTarget === "word"
+      ? "Building Word report for download"
+      : downloadTarget === "excel"
+      ? "Building Excel workbook for download"
+      : uploadStatus === "busy"
+      ? "Processing uploaded mobile register"
+      : manualStatus === "busy"
+      ? "Saving manual inputs"
+      : sessionStatus === "busy"
+      ? "Creating backend session"
+      : null;
 
   const manualPayload = useMemo(
     () => ({
@@ -307,7 +396,9 @@ export default function NewMobileReportPage() {
       manualInputsComplete: manualStatus === "ready",
       uploadCount: uploadComplete ? 1 : 0,
       uploadTotal: 1,
-      canBuild: Boolean(uploadComplete && mobileExcelUrl),
+      canBuild: Boolean(
+        uploadComplete && mobileExcelUrl && manualInputsComplete && !downloadBusy
+      ),
       sessionId: reportId,
       debugManualPayload: manualPayloadPreview,
       debugUploadResponse: uploadResponsePreview,
@@ -315,10 +406,12 @@ export default function NewMobileReportPage() {
   }, [
     manualPayloadPreview,
     manualStatus,
+    manualInputsComplete,
     mobileExcelUrl,
     reportId,
     setProgress,
     uploadComplete,
+    downloadBusy,
     uploadResponsePreview,
   ]);
 
@@ -326,14 +419,16 @@ export default function NewMobileReportPage() {
     Promise.resolve().then(async () => {
       const savedDraft = localStorage.getItem(MOBILE_DRAFT_KEY);
       const savedReportId = localStorage.getItem(MOBILE_REPORT_ID_KEY);
+      let restoredInputs = createInitialMobileInputs();
 
       if (savedDraft) {
         try {
-          setInputs({
+          restoredInputs = {
             ...createInitialMobileInputs(),
             ...JSON.parse(savedDraft),
             approvedBy: "Faith Njani",
-          } as MobileReportInputs);
+          } as MobileReportInputs;
+          setInputs(restoredInputs);
         } catch {
           localStorage.removeItem(MOBILE_DRAFT_KEY);
         }
@@ -346,11 +441,29 @@ export default function NewMobileReportPage() {
 
         try {
           const session = await getReportSession(savedReportId);
-          if (session.sections.mobile_report) {
-            setUploadResponse(session as MobileReportUploadResponse);
-            setUploadStatus(session.sections.mobile_report.status === "ready" ? "ready" : "error");
-          }
+          const restoredFromSession = mobileInputsFromSession(
+            session,
+            restoredInputs
+          );
+          const mobileSection = session.sections.mobile_report;
+          const mobileReady = mobileSection?.status === "ready";
+          const hasMobileManualInputs = Boolean(
+            session.manual_inputs?.mobile_report
+          );
+
+          setInputs(restoredFromSession);
+          setManualStatus(hasMobileManualInputs ? "ready" : "idle");
+          setUploadResponse(session as MobileReportUploadResponse);
+          setUploadStatus(
+            mobileReady ? "ready" : mobileSection ? "error" : "idle"
+          );
+          setSelectedFileName(mobileSection?.filename || "");
+          setMobileExcelUrl(
+            resolveApiUrl(session.mobile_excel_report?.download_url) ||
+              getMobileExcelReportDownloadUrl(savedReportId)
+          );
         } catch (error) {
+          setSessionStatus("error");
           console.error("Failed to restore mobile session from backend:", error);
         }
       }
@@ -371,6 +484,36 @@ export default function NewMobileReportPage() {
 
     return () => clearTimeout(timeout);
   }, [draftLoaded, inputs]);
+
+  useEffect(() => {
+    if (!draftLoaded || !reportId || !metadataComplete) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      updateReportSessionMetadata(reportId, {
+        report_date: inputs.reportDate,
+        station: inputs.station,
+        bound: inputs.bound,
+        weighbridge_name: inputs.station,
+        prepared_by: inputs.preparedBy,
+        confirmed_by: inputs.approvedBy,
+      }).catch((error) => {
+        console.error("Failed to persist mobile session metadata:", error);
+      });
+    }, 600);
+
+    return () => clearTimeout(timeout);
+  }, [
+    draftLoaded,
+    inputs.approvedBy,
+    inputs.bound,
+    inputs.preparedBy,
+    inputs.reportDate,
+    inputs.station,
+    metadataComplete,
+    reportId,
+  ]);
 
   function updateInput<K extends keyof MobileReportInputs>(
     field: K,
@@ -430,8 +573,15 @@ export default function NewMobileReportPage() {
 
       setManualStatus("busy");
       setStatusMessage(null);
-      await updateManualInputs(id, manualPayload);
+      const updatedSession = await updateManualInputs(id, manualPayload);
       setManualStatus("ready");
+      setUploadResponse(updatedSession as MobileReportUploadResponse);
+      setMobileExcelUrl(
+        resolveApiUrl(updatedSession.mobile_excel_report?.download_url) ||
+          (updatedSession.sections.mobile_report?.status === "ready"
+            ? getMobileExcelReportDownloadUrl(id)
+            : null)
+      );
       setStatusMessage("Manual mobile report fields saved.");
 
       return id;
@@ -487,49 +637,20 @@ export default function NewMobileReportPage() {
     }
   }
 
-  async function handleDownloadMobileExcel() {
-    if (!mobileExcelUrl) {
-      return;
-    }
-
-    const filename = `${inputs.station}_${inputs.bound}_${inputs.reportDate}_mobile_report.xlsx`
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-
-    try {
-      const response = await fetch(mobileExcelUrl);
-
-      if (!response.ok) {
-        throw new Error("Failed to download mobile Excel report.");
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(
-        new Blob([blob], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        })
-      );
-      const link = document.createElement("a");
-
-      link.href = objectUrl;
-      link.download = `${filename || "mobile_report"}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-    } catch (error) {
-      setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "Failed to download mobile Excel report."
-      );
-      window.open(mobileExcelUrl, "_blank", "noreferrer");
-    }
-  }
-
-  async function handleDownloadMobileWord() {
-    if (!mobileWordUrl) {
+  async function downloadGeneratedFile({
+    url,
+    target,
+    extension,
+    mediaType,
+    failureMessage,
+  }: {
+    url: string | null;
+    target: "word" | "excel";
+    extension: "docx" | "xlsx";
+    mediaType: string;
+    failureMessage: string;
+  }) {
+    if (!url || downloadBusy) {
       return;
     }
 
@@ -539,34 +660,76 @@ export default function NewMobileReportPage() {
       .replace(/^_+|_+$/g, "");
 
     try {
-      const response = await fetch(mobileWordUrl);
+      setDownloadTarget(target);
+      setStatusMessage(
+        target === "word"
+          ? "Building the Word report. The download will start when it is ready."
+          : "Building the Excel workbook. The download will start when it is ready."
+      );
+
+      if (reportId && manualInputsComplete) {
+        await handleSaveManualInputs(reportId);
+        setStatusMessage(
+          target === "word"
+            ? "Building the Word report. The download will start when it is ready."
+            : "Building the Excel workbook. The download will start when it is ready."
+        );
+      }
+
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error("Failed to download mobile Word report.");
+        throw new Error(failureMessage);
       }
 
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(
         new Blob([blob], {
-          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          type: mediaType,
         })
       );
       const link = document.createElement("a");
 
       link.href = objectUrl;
-      link.download = `${filename || "mobile_report"}.docx`;
+      link.download = `${filename || "mobile_report"}.${extension}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(objectUrl);
+      setStatusMessage(
+        target === "word"
+          ? "Word report is ready and the download has started."
+          : "Excel workbook is ready and the download has started."
+      );
     } catch (error) {
       setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "Failed to download mobile Word report."
+        error instanceof Error ? error.message : failureMessage
       );
-      window.open(mobileWordUrl, "_blank", "noreferrer");
+    } finally {
+      setDownloadTarget(null);
     }
+  }
+
+  async function handleDownloadMobileExcel() {
+    await downloadGeneratedFile({
+      url: mobileExcelUrl,
+      target: "excel",
+      extension: "xlsx",
+      mediaType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      failureMessage: "Failed to download mobile Excel report.",
+    });
+  }
+
+  async function handleDownloadMobileWord() {
+    await downloadGeneratedFile({
+      url: mobileWordUrl,
+      target: "word",
+      extension: "docx",
+      mediaType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      failureMessage: "Failed to download mobile Word report.",
+    });
   }
 
   function resetDraft() {
@@ -580,6 +743,7 @@ export default function NewMobileReportPage() {
     setUploadStatus("idle");
     setUploadResponse(null);
     setMobileExcelUrl(null);
+    setDownloadTarget(null);
     setSelectedFileName("");
     setStatusMessage(null);
   }
@@ -588,50 +752,70 @@ export default function NewMobileReportPage() {
     {
       title: "Total Weighed",
       value: totalWeighed,
-      subtitle: uploadComplete ? "from uploaded register" : "awaiting register",
+      subtitle: processingMessage
+        ? processingMessage
+        : uploadComplete
+        ? "from uploaded register"
+        : "awaiting register",
       icon: Scale,
-      className: uploadComplete 
+      className: processingMessage
+        ? "border-cyan-400/60 bg-transparent text-cyan-100"
+        : uploadComplete 
         ? "border-sky-500/50 bg-transparent hover:bg-sky-600/25 text-sky-100" 
         : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
-      iconClass: uploadComplete ? "bg-sky-400/15 text-sky-200" : "bg-cyan-400/15 text-cyan-200",
-      titleClass: uploadComplete ? "text-sky-100" : "text-slate-300",
-      subtitleClass: uploadComplete ? "text-sky-200" : "text-slate-400",
+      iconClass: processingMessage
+        ? "bg-cyan-400/15 text-cyan-100"
+        : uploadComplete ? "bg-sky-400/15 text-sky-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: processingMessage ? "text-cyan-100" : uploadComplete ? "text-sky-100" : "text-slate-300",
+      subtitleClass: processingMessage ? "text-cyan-200" : uploadComplete ? "text-sky-200" : "text-slate-400",
     },
     {
       title: "Warned",
       value: warned,
-      subtitle: "warned trucks",
+      subtitle: processingMessage ? "updating KPI source data" : "warned trucks",
       icon: AlertTriangle,
-      className: uploadComplete 
+      className: processingMessage
+        ? "border-cyan-400/60 bg-transparent text-cyan-100"
+        : uploadComplete 
         ? "border-amber-500/50 bg-transparent hover:bg-amber-600/20 text-amber-100" 
         : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
-      iconClass: uploadComplete ? "bg-amber-400/15 text-amber-200" : "bg-cyan-400/15 text-cyan-200",
-      titleClass: uploadComplete ? "text-amber-100" : "text-slate-300",
-      subtitleClass: uploadComplete ? "text-amber-200" : "text-slate-400",
+      iconClass: processingMessage
+        ? "bg-cyan-400/15 text-cyan-100"
+        : uploadComplete ? "bg-amber-400/15 text-amber-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: processingMessage ? "text-cyan-100" : uploadComplete ? "text-amber-100" : "text-slate-300",
+      subtitleClass: processingMessage ? "text-cyan-200" : uploadComplete ? "text-amber-200" : "text-slate-400",
     },
     {
       title: "Charged GVW/Axle",
       value: chargedGvwAxle,
-      subtitle: "weight offences",
+      subtitle: processingMessage ? "updating KPI source data" : "weight offences",
       icon: Truck,
-      className: uploadComplete 
+      className: processingMessage
+        ? "border-cyan-400/60 bg-transparent text-cyan-100"
+        : uploadComplete 
         ? "border-rose-500/50 bg-transparent hover:bg-rose-600/20 text-rose-100" 
         : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
-      iconClass: uploadComplete ? "bg-rose-400/15 text-rose-200" : "bg-cyan-400/15 text-cyan-200",
-      titleClass: uploadComplete ? "text-rose-100" : "text-slate-300",
-      subtitleClass: uploadComplete ? "text-rose-200" : "text-slate-400",
+      iconClass: processingMessage
+        ? "bg-cyan-400/15 text-cyan-100"
+        : uploadComplete ? "bg-rose-400/15 text-rose-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: processingMessage ? "text-cyan-100" : uploadComplete ? "text-rose-100" : "text-slate-300",
+      subtitleClass: processingMessage ? "text-cyan-200" : uploadComplete ? "text-rose-200" : "text-slate-400",
     },
     {
       title: "Charged Dimensions",
       value: chargedDimensions,
-      subtitle: "dimension offences",
+      subtitle: processingMessage ? "updating KPI source data" : "dimension offences",
       icon: Ruler,
-      className: uploadComplete 
+      className: processingMessage
+        ? "border-cyan-400/60 bg-transparent text-cyan-100"
+        : uploadComplete 
         ? "border-emerald-500/50 bg-transparent hover:bg-emerald-600/20 text-emerald-100" 
         : "border-cyan-900/50 bg-transparent hover:bg-[#0b2a45] text-slate-300",
-      iconClass: uploadComplete ? "bg-emerald-400/15 text-emerald-200" : "bg-cyan-400/15 text-cyan-200",
-      titleClass: uploadComplete ? "text-emerald-100" : "text-slate-300",
-      subtitleClass: uploadComplete ? "text-emerald-200" : "text-slate-400",
+      iconClass: processingMessage
+        ? "bg-cyan-400/15 text-cyan-100"
+        : uploadComplete ? "bg-emerald-400/15 text-emerald-200" : "bg-cyan-400/15 text-cyan-200",
+      titleClass: processingMessage ? "text-cyan-100" : uploadComplete ? "text-emerald-100" : "text-slate-300",
+      subtitleClass: processingMessage ? "text-cyan-200" : uploadComplete ? "text-emerald-200" : "text-slate-400",
     },
   ];
 
@@ -692,9 +876,19 @@ export default function NewMobileReportPage() {
                     </span>
                   </div>
 
-                  <p className="mt-5 text-4xl font-black text-white">
-                    {uploadComplete ? card.value : "—"}
-                  </p>
+                  <div className="mt-5 flex h-12 items-center">
+                    {processingMessage ? (
+                      <LoaderCircle
+                        aria-hidden="true"
+                        className="animate-spin text-cyan-200"
+                        size={34}
+                      />
+                    ) : (
+                      <p className="text-4xl font-black text-white">
+                        {uploadComplete ? card.value : "—"}
+                      </p>
+                    )}
+                  </div>
 
                   <p className={`mt-2 text-base font-semibold ${card.subtitleClass}`}>{card.subtitle}</p>
                 </article>
@@ -1191,25 +1385,65 @@ export default function NewMobileReportPage() {
             </p>
           )}
 
+          {processingMessage && (
+            <div
+              className="mt-4 flex items-start gap-3 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-3 text-sm text-cyan-100"
+              aria-live="polite"
+            >
+              <LoaderCircle
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 animate-spin"
+                size={18}
+              />
+              <p>{processingMessage}. Please keep this tab open.</p>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleDownloadMobileWord}
-            disabled={!uploadComplete || !mobileWordUrl}
+            disabled={
+              !uploadComplete ||
+              !manualInputsComplete ||
+              !mobileWordUrl ||
+              downloadBusy
+            }
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Download aria-hidden="true" size={16} />
-            Download Mobile Word
+            {downloadTarget === "word" ? (
+              <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+            ) : (
+              <Download aria-hidden="true" size={16} />
+            )}
+            {downloadTarget === "word" ? "Building Word" : "Download Mobile Word"}
           </button>
 
           <button
             type="button"
             onClick={handleDownloadMobileExcel}
-            disabled={!uploadComplete || !mobileExcelUrl}
+            disabled={
+              !uploadComplete ||
+              !manualInputsComplete ||
+              !mobileExcelUrl ||
+              downloadBusy
+            }
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Download aria-hidden="true" size={16} />
-            Download Mobile Excel
+            {downloadTarget === "excel" ? (
+              <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+            ) : (
+              <Download aria-hidden="true" size={16} />
+            )}
+            {downloadTarget === "excel"
+              ? "Building Excel"
+              : "Download Mobile Excel"}
           </button>
+
+          {!manualInputsComplete && (
+            <p className="mt-3 text-xs text-slate-400">
+              Complete and save the manual mobile fields before downloading.
+            </p>
+          )}
         </aside>
       </div>
     </>

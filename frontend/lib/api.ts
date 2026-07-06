@@ -89,9 +89,12 @@ export type CreateReportSessionPayload = {
 };
 
 export type UpdateReportSessionMetadataPayload = {
-  station: string;
-  bound: string;
-  weighbridge_name: string;
+  report_date?: string;
+  station?: string;
+  bound?: string;
+  weighbridge_name?: string;
+  prepared_by?: string;
+  confirmed_by?: string;
 };
 
 export type ReportSessionResponse = {
@@ -123,6 +126,20 @@ export type ReportSessionResponse = {
       vehicles_3500_to_7000_excluding_buses?: number;
       vehicles_gte_7000_excluding_buses?: number;
     }[];
+    mobile_report?: {
+      prepared_by?: string;
+      confirmed_by?: string;
+      route?: string;
+      danka_staff?: string;
+      police_officers?: string;
+      mobile_vehicle?: string;
+      mileage_start?: string | number;
+      mileage_end?: string | number;
+      cases_cleared_in_court?: string | number;
+      transgressions_count?: string | number;
+      exempted_permit?: string | number;
+      manually_weighed?: string | number;
+    };
   };
 
   sections: Record<
@@ -150,6 +167,11 @@ export type ReportSessionResponse = {
   };
 
   mobile_excel_report?: {
+    status?: string;
+    download_url?: string | null;
+  };
+
+  mobile_word_report?: {
     status?: string;
     download_url?: string | null;
   };
@@ -331,6 +353,23 @@ export async function getReportSession(
   }
 
   return response.json() as Promise<ReportSessionResponse>;
+}
+
+export async function deleteReportSession(reportId: string) {
+  const response = await fetch(
+    apiUrl(`report-sessions/${reportId}`),
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to delete report session")
+    );
+  }
+
+  return response.json() as Promise<{ status: string; report_id: string }>;
 }
 
 export async function updateReportSessionMetadata(
