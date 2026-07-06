@@ -25,6 +25,9 @@ export function ReportMetadataForm({
     });
   }, []);
 
+  const dateInputClass =
+    "mobile-date-input [color-scheme:dark] rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none";
+
   // Server and initial client render show the simplified version
   if (!mounted) {
     return (
@@ -36,7 +39,7 @@ export function ReportMetadataForm({
         <div className="mt-4 grid grid-cols-3 gap-3">
           <input
             type="date"
-            className="rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
+            className={dateInputClass}
             placeholder="Date"
             value={metadata.date}
             onChange={(e) =>
@@ -83,7 +86,7 @@ export function ReportMetadataForm({
       <div className="mt-4 grid grid-cols-3 gap-3">
         <input
           type="date"
-          className="rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
+          className={dateInputClass}
           placeholder="Date"
           value={metadata.date}
           onChange={(e) =>

@@ -183,6 +183,16 @@ type TextInputProps = {
   uppercase?: boolean;
 };
 
+type BuiltMobileFile = {
+  blob: Blob;
+  filename: string;
+};
+
+type BuiltMobileOutputs = {
+  word: BuiltMobileFile;
+  excel: BuiltMobileFile;
+};
+
 function TextInput({
   id,
   label,
@@ -277,6 +287,12 @@ export default function NewMobileReportPage() {
   const [downloadTarget, setDownloadTarget] = useState<
     "word" | "excel" | null
   >(null);
+  const [buildStatus, setBuildStatus] = useState<
+    "idle" | "building" | "ready" | "error"
+  >("idle");
+  const [builtOutputs, setBuiltOutputs] = useState<BuiltMobileOutputs | null>(
+    null
+  );
   const [uploadResponse, setUploadResponse] =
     useState<MobileReportUploadResponse | null>(null);
   const [mobileExcelUrl, setMobileExcelUrl] = useState<string | null>(
@@ -328,12 +344,16 @@ export default function NewMobileReportPage() {
 
   const uploadComplete =
     uploadResponse?.sections.mobile_report?.status === "ready";
+  const reportsBuilt = buildStatus === "ready" && builtOutputs !== null;
+  const buildBusy = buildStatus === "building";
   const downloadBusy = downloadTarget !== null;
   const processingMessage =
-    downloadTarget === "word"
-      ? "Building Word report for download"
+    buildBusy
+      ? "Building mobile Word and Excel reports"
+      : downloadTarget === "word"
+      ? "Preparing Word report download"
       : downloadTarget === "excel"
-      ? "Building Excel workbook for download"
+      ? "Preparing Excel workbook download"
       : uploadStatus === "busy"
       ? "Processing uploaded mobile register"
       : manualStatus === "busy"
@@ -397,7 +417,12 @@ export default function NewMobileReportPage() {
       uploadCount: uploadComplete ? 1 : 0,
       uploadTotal: 1,
       canBuild: Boolean(
-        uploadComplete && mobileExcelUrl && manualInputsComplete && !downloadBusy
+        uploadComplete &&
+          mobileExcelUrl &&
+          mobileWordUrl &&
+          manualInputsComplete &&
+          !buildBusy &&
+          !downloadBusy
       ),
       sessionId: reportId,
       debugManualPayload: manualPayloadPreview,
@@ -407,7 +432,9 @@ export default function NewMobileReportPage() {
     manualPayloadPreview,
     manualStatus,
     manualInputsComplete,
+    buildBusy,
     mobileExcelUrl,
+    mobileWordUrl,
     reportId,
     setProgress,
     uploadComplete,
@@ -520,6 +547,8 @@ export default function NewMobileReportPage() {
     value: MobileReportInputs[K]
   ) {
     setDraftStatus("saving");
+    setBuiltOutputs(null);
+    setBuildStatus((previous) => (previous === "building" ? previous : "idle"));
     setInputs((previous) => ({
       ...previous,
       [field]: value,
@@ -610,6 +639,8 @@ export default function NewMobileReportPage() {
 
       setUploadStatus("busy");
       setStatusMessage(null);
+      setBuiltOutputs(null);
+      setBuildStatus("idle");
 
       const response = await uploadMobileReportFile(id, file);
       setUploadResponse(response);
@@ -637,99 +668,150 @@ export default function NewMobileReportPage() {
     }
   }
 
-  async function downloadGeneratedFile({
-    url,
-    target,
-    extension,
-    mediaType,
-    failureMessage,
-  }: {
-    url: string | null;
-    target: "word" | "excel";
-    extension: "docx" | "xlsx";
-    mediaType: string;
-    failureMessage: string;
-  }) {
-    if (!url || downloadBusy) {
-      return;
-    }
-
+  function mobileOutputFilename(extension: "docx" | "xlsx") {
     const filename = `${inputs.station}_${inputs.bound}_${inputs.reportDate}_mobile_report`
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "_")
       .replace(/^_+|_+$/g, "");
 
+    return `${filename || "mobile_report"}.${extension}`;
+  }
+
+  async function readErrorMessage(response: Response, fallback: string) {
     try {
-      setDownloadTarget(target);
-      setStatusMessage(
-        target === "word"
-          ? "Building the Word report. The download will start when it is ready."
-          : "Building the Excel workbook. The download will start when it is ready."
-      );
+      const body = await response.json();
+      const detail = body?.detail;
 
-      if (reportId && manualInputsComplete) {
-        await handleSaveManualInputs(reportId);
-        setStatusMessage(
-          target === "word"
-            ? "Building the Word report. The download will start when it is ready."
-            : "Building the Excel workbook. The download will start when it is ready."
-        );
+      if (typeof detail === "string") {
+        return detail;
       }
 
-      const response = await fetch(url);
+      if (typeof detail?.message === "string") {
+        return detail.message;
+      }
+    } catch {
+      // Some build failures may return an empty or non-JSON response.
+    }
 
-      if (!response.ok) {
-        throw new Error(failureMessage);
+    return fallback;
+  }
+
+  async function fetchBuiltMobileFile({
+    url,
+    filename,
+    mediaType,
+    failureMessage,
+  }: {
+    url: string;
+    filename: string;
+    mediaType: string;
+    failureMessage: string;
+  }): Promise<BuiltMobileFile> {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response, failureMessage));
+    }
+
+    const blob = await response.blob();
+
+    return {
+      filename,
+      blob: new Blob([blob], { type: mediaType }),
+    };
+  }
+
+  function saveBuiltMobileFile(file: BuiltMobileFile) {
+    const objectUrl = URL.createObjectURL(file.blob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = file.filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  }
+
+  async function handleBuildMobileReports() {
+    if (
+      !uploadComplete ||
+      !manualInputsComplete ||
+      !mobileExcelUrl ||
+      !mobileWordUrl ||
+      buildBusy
+    ) {
+      return;
+    }
+
+    try {
+      setBuildStatus("building");
+      setBuiltOutputs(null);
+      setStatusMessage("Building mobile Word and Excel reports.");
+
+      const activeReportId = await handleSaveManualInputs(reportId || undefined);
+      const excelUrl = mobileExcelUrl || getMobileExcelReportDownloadUrl(activeReportId);
+      const wordUrl = mobileWordUrl || getMobileWordReportDownloadUrl(activeReportId);
+
+      if (!wordUrl || !excelUrl) {
+        throw new Error("Mobile report download links are not ready.");
       }
 
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(
-        new Blob([blob], {
-          type: mediaType,
-        })
-      );
-      const link = document.createElement("a");
+      setStatusMessage("Building mobile Word and Excel reports.");
 
-      link.href = objectUrl;
-      link.download = `${filename || "mobile_report"}.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-      setStatusMessage(
-        target === "word"
-          ? "Word report is ready and the download has started."
-          : "Excel workbook is ready and the download has started."
-      );
+      const [word, excel] = await Promise.all([
+        fetchBuiltMobileFile({
+          url: wordUrl,
+          filename: mobileOutputFilename("docx"),
+          mediaType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          failureMessage: "Failed to build mobile Word report.",
+        }),
+        fetchBuiltMobileFile({
+          url: excelUrl,
+          filename: mobileOutputFilename("xlsx"),
+          mediaType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          failureMessage: "Failed to build mobile Excel workbook.",
+        }),
+      ]);
+
+      setBuiltOutputs({ word, excel });
+      setBuildStatus("ready");
+      setStatusMessage("Reports built successfully. Downloads are now enabled.");
     } catch (error) {
+      setBuildStatus("error");
+      setBuiltOutputs(null);
       setStatusMessage(
-        error instanceof Error ? error.message : failureMessage
+        error instanceof Error
+          ? error.message
+          : "Failed to build mobile report outputs."
       );
-    } finally {
-      setDownloadTarget(null);
     }
   }
 
-  async function handleDownloadMobileExcel() {
-    await downloadGeneratedFile({
-      url: mobileExcelUrl,
-      target: "excel",
-      extension: "xlsx",
-      mediaType:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      failureMessage: "Failed to download mobile Excel report.",
-    });
+  function handleDownloadMobileExcel() {
+    if (!reportsBuilt) {
+      setStatusMessage("Build the mobile reports before downloading.");
+      return;
+    }
+
+    setDownloadTarget("excel");
+    saveBuiltMobileFile(builtOutputs.excel);
+    setDownloadTarget(null);
+    setStatusMessage("Excel workbook download has started.");
   }
 
-  async function handleDownloadMobileWord() {
-    await downloadGeneratedFile({
-      url: mobileWordUrl,
-      target: "word",
-      extension: "docx",
-      mediaType:
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      failureMessage: "Failed to download mobile Word report.",
-    });
+  function handleDownloadMobileWord() {
+    if (!reportsBuilt) {
+      setStatusMessage("Build the mobile reports before downloading.");
+      return;
+    }
+
+    setDownloadTarget("word");
+    saveBuiltMobileFile(builtOutputs.word);
+    setDownloadTarget(null);
+    setStatusMessage("Word report download has started.");
   }
 
   function resetDraft() {
@@ -744,6 +826,8 @@ export default function NewMobileReportPage() {
     setUploadResponse(null);
     setMobileExcelUrl(null);
     setDownloadTarget(null);
+    setBuildStatus("idle");
+    setBuiltOutputs(null);
     setSelectedFileName("");
     setStatusMessage(null);
   }
@@ -1399,16 +1483,50 @@ export default function NewMobileReportPage() {
             </div>
           )}
 
+          {buildStatus === "ready" && (
+            <div
+              className="mt-4 flex items-start gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100"
+              aria-live="polite"
+            >
+              <CheckCircle2
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 text-emerald-200"
+                size={18}
+              />
+              <p>Reports built successfully. You can download the Word and Excel files.</p>
+            </div>
+          )}
+
           <button
             type="button"
-            onClick={handleDownloadMobileWord}
+            onClick={handleBuildMobileReports}
             disabled={
               !uploadComplete ||
               !manualInputsComplete ||
               !mobileWordUrl ||
+              !mobileExcelUrl ||
+              buildBusy ||
               downloadBusy
             }
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400 bg-transparent px-4 py-3 text-sm font-bold text-amber-300 transition hover:bg-amber-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {buildBusy ? (
+              <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+            ) : (
+              <FileSpreadsheet aria-hidden="true" size={16} />
+            )}
+            {buildBusy ? "Building Reports" : "Build Reports"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadMobileWord}
+            disabled={
+              !reportsBuilt ||
+              downloadBusy ||
+              buildBusy
+            }
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {downloadTarget === "word" ? (
               <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
@@ -1422,10 +1540,9 @@ export default function NewMobileReportPage() {
             type="button"
             onClick={handleDownloadMobileExcel}
             disabled={
-              !uploadComplete ||
-              !manualInputsComplete ||
-              !mobileExcelUrl ||
-              downloadBusy
+              !reportsBuilt ||
+              downloadBusy ||
+              buildBusy
             }
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -1441,7 +1558,13 @@ export default function NewMobileReportPage() {
 
           {!manualInputsComplete && (
             <p className="mt-3 text-xs text-slate-400">
-              Complete and save the manual mobile fields before downloading.
+              Complete the manual mobile fields before building outputs.
+            </p>
+          )}
+
+          {manualInputsComplete && uploadComplete && !reportsBuilt && (
+            <p className="mt-3 text-xs text-slate-400">
+              Build the reports to enable downloads.
             </p>
           )}
         </aside>
