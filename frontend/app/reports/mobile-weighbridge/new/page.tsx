@@ -1150,11 +1150,16 @@ export default function NewMobileReportPage() {
             </fieldset>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <p className="break-all font-mono text-xs text-slate-400">
-                {reportId ||
-                  (metadataComplete
-                    ? "Creating report_id automatically..."
-                    : "Fill report info to create report_id automatically.")}
+              <p className="text-xs font-semibold text-slate-400">
+                {reportId
+                  ? "Session started"
+                  : sessionStatus === "busy"
+                  ? "Creating session automatically..."
+                  : sessionStatus === "error"
+                  ? "Session could not be created. Update the report info to try again."
+                  : metadataComplete
+                  ? "Creating session automatically..."
+                  : "Fill report info to start session automatically."}
               </p>
             </div>
           </section>
