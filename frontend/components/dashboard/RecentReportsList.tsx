@@ -16,7 +16,13 @@ type ReportItem = {
   editUrl: string;
 };
 
-export function RecentReportsList({ compact = false }: { compact?: boolean }) {
+export function RecentReportsList({
+  adminPassword,
+  compact = false,
+}: {
+  adminPassword: string;
+  compact?: boolean;
+}) {
   const [mounted, setMounted] = useState(false);
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +35,7 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
 
     async function loadSessions() {
       try {
-        const sessions = await getReportSessions();
+        const sessions = await getReportSessions(adminPassword);
         const items: ReportItem[] = sessions.map(session => {
           const hasDailyHour = "daily_hour" in session.sections && session.sections.daily_hour.status === "ready";
           const hasMobile = "mobile_report" in session.sections && session.sections.mobile_report.status === "ready";
@@ -64,7 +70,7 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
 
     loadSessions();
     return () => clearTimeout(timer);
-  }, []);
+  }, [adminPassword]);
 
   const statusIcons = {
     Completed: <CheckCircle2 size={14} className="text-emerald-400" />,
@@ -89,7 +95,7 @@ export function RecentReportsList({ compact = false }: { compact?: boolean }) {
 
     try {
       setDeletingId(report.id);
-      await deleteReportSession(report.id);
+      await deleteReportSession(report.id, adminPassword);
       setReports((previous) => previous.filter((item) => item.id !== report.id));
 
       if (localStorage.getItem("active-report-id") === report.id) {

@@ -39,6 +39,30 @@ https://report-app-px6c.onrender.com/api
 
 Set `NEXT_PUBLIC_API_BASE_URL` to override both defaults.
 
+## Admin Console
+
+Administrative report history and deletion controls live at:
+
+```txt
+/admin
+```
+
+The admin page asks for the backend `ADMIN_PASSWORD`. The password is sent only
+as an `X-Admin-Password` request header when calling protected backend routes.
+It is kept in browser session storage for the current tab session and is not
+compiled into the frontend bundle.
+
+Protected backend actions:
+
+```txt
+GET /api/report-sessions
+DELETE /api/report-sessions/:report_id
+```
+
+Set `ADMIN_PASSWORD` on the Render backend service before deploying the
+admin-gated backend. Ordinary report creation, uploads, previews, downloads,
+SMS summaries, and dashboard analytics do not require the admin password.
+
 When running the backend locally, start FastAPI from `report-app/backend`:
 
 ```bash

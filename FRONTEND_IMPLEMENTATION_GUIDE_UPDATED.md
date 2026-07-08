@@ -8,7 +8,8 @@ The frontend should allow a user to create a report session, provide all require
 
 The FastAPI backend is already frontend-ready and supports:
 
-- Filesystem-backed report sessions
+- PostgreSQL-backed report metadata for dashboard/history persistence
+- Filesystem-backed uploads, processed data, previews, and generated outputs
 - Daily Hour CSV/XLSX uploads
 - Wideload CSV/XLSX uploads
 - Impounded/Prohibited CSV/XLSX uploads
@@ -19,6 +20,8 @@ The FastAPI backend is already frontend-ready and supports:
 - Sections 1–7 rendering into the final DOCX
 - Final A4 landscape DOCX generation
 - Final DOCX download
+- Password-gated report history and deletion via `X-Admin-Password`
+- Production persistence health checks for PostgreSQL and Render disk storage
 - Upload-through-build workflow tests
 
 The frontend should be built in stages, starting with this implementation guide before writing code.
@@ -82,6 +85,8 @@ Recommended usage:
 frontend/
 ├── app/
 │   ├── page.tsx
+│   ├── admin/
+│   │   └── page.tsx
 │   ├── reports/
 │   │   └── new/
 │   │       └── page.tsx
@@ -116,6 +121,17 @@ Primary route:
 ```
 
 This page should contain the full report builder workflow.
+
+Admin route:
+
+```txt
+/admin
+```
+
+This page prompts for the backend `ADMIN_PASSWORD`, stores it only in browser
+session storage for the current tab, and sends it as `X-Admin-Password` when
+listing report history or deleting a report workspace. Report history and
+delete controls should not appear in ordinary user settings.
 
 ### Preferred Layout
 

@@ -339,8 +339,16 @@ export async function updateManualInputs(
   return response.json();
 }
 
-export async function getReportSessions() {
-  const response = await fetch(apiUrl("report-sessions"));
+function adminHeaders(adminPassword: string) {
+  return {
+    "X-Admin-Password": adminPassword,
+  };
+}
+
+export async function getReportSessions(adminPassword: string) {
+  const response = await fetch(apiUrl("report-sessions"), {
+    headers: adminHeaders(adminPassword),
+  });
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(response, "Failed to fetch report sessions")
@@ -365,11 +373,12 @@ export async function getReportSession(
   return response.json() as Promise<ReportSessionResponse>;
 }
 
-export async function deleteReportSession(reportId: string) {
+export async function deleteReportSession(reportId: string, adminPassword: string) {
   const response = await fetch(
     apiUrl(`report-sessions/${reportId}`),
     {
       method: "DELETE",
+      headers: adminHeaders(adminPassword),
     }
   );
 

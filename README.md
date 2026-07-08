@@ -4,6 +4,10 @@ Frontend report-builder for the Daily Report Automation system.
 
 The app lets users create a report workspace, enter report metadata, upload required CSV/XLSX files, save manual inputs, preview generated report sections, build the final DOCX report, and download it.
 
+Administrative report history and deletion controls are isolated in the
+password-gated `/admin` page. Normal users can create and continue report
+workspaces without access to history/deletion controls.
+
 ## Project Layout
 
 ```txt
@@ -32,6 +36,12 @@ Backend health check:
 
 ```txt
 https://report-app-px6c.onrender.com/health
+```
+
+Backend persistence health check:
+
+```txt
+https://report-app-px6c.onrender.com/health/persistence
 ```
 
 ## Local Development
@@ -73,6 +83,31 @@ https://report-app-px6c.onrender.com/api/...
 ```
 
 This avoids frontend browser CORS issues.
+
+## Admin Controls
+
+The admin console is available at:
+
+```txt
+https://dnkreport.netlify.app/admin
+```
+
+It prompts for the backend `ADMIN_PASSWORD` and then displays report history
+and delete controls. The frontend sends that password as:
+
+```txt
+X-Admin-Password: <password>
+```
+
+Protected backend routes:
+
+```txt
+GET /api/report-sessions
+DELETE /api/report-sessions/:report_id
+```
+
+Set `ADMIN_PASSWORD` in the Render backend environment. Do not add it to the
+frontend environment or commit it to the repository.
 
 ## Deploying On Netlify
 
