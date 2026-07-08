@@ -1,13 +1,37 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Lock, LogOut, ShieldCheck } from "lucide-react";
+import {
+  Check,
+  Code2,
+  Copy,
+  Database,
+  Download,
+  FileCheck2,
+  Lock,
+  LogOut,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 
 import ReportsLayout from "@/app/reports/layout";
 import { RecentReportsList } from "@/components/dashboard/RecentReportsList";
+import { useReportProgress } from "@/components/report-builder/ReportProgressContext";
 import { getReportSessions } from "@/lib/api";
 
 const ADMIN_PASSWORD_STORAGE_KEY = "dnk-admin-password";
+
+type DeveloperTicket = {
+  id: string;
+  title: string;
+  category: "Bug" | "Feature" | "Enhancement";
+  severity: "Low" | "Medium" | "High" | "Critical";
+  affectedArea: string;
+  description: string;
+  expectedBehavior: string;
+  submittedAt: string;
+  prompt: string;
+};
 
 export default function AdminPage() {
   const [password, setPassword] = useState("");
@@ -116,9 +140,238 @@ export default function AdminPage() {
             )}
           </form>
         ) : (
-          <RecentReportsList adminPassword={adminPassword} />
+          <AdminUnlockedContent adminPassword={adminPassword} />
         )}
       </div>
     </ReportsLayout>
+  );
+}
+
+function AdminUnlockedContent({ adminPassword }: { adminPassword: string }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <SystemStatusPanel />
+        <SessionDetailsPanel />
+      </div>
+
+      <DeveloperPromptAccessPanel />
+
+      <RecentReportsList adminPassword={adminPassword} />
+    </div>
+  );
+}
+
+function SystemStatusPanel() {
+  return (
+    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/80 p-5 shadow-xl">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-bold text-cyan-200">System Status</h2>
+          <p className="mt-1 text-xs text-slate-400">
+            Operational controls and persistence surfaces.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300 border border-cyan-500/20">
+          <Zap size={12} className="animate-pulse" /> Online
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <div className="flex items-center justify-between rounded-lg bg-[#071827]/80 p-3 border border-cyan-950">
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={18} className="text-emerald-400" />
+            <div>
+              <p className="text-sm font-semibold text-white">API Gateway</p>
+              <p className="text-xs text-slate-400">FastAPI backend online</p>
+            </div>
+          </div>
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg bg-[#071827]/80 p-3 border border-cyan-950">
+          <div className="flex items-center gap-3">
+            <Database size={18} className="text-cyan-400" />
+            <div>
+              <p className="text-sm font-semibold text-white">PostgreSQL Metadata</p>
+              <p className="text-xs text-slate-400">Report history and dashboard persistence</p>
+            </div>
+          </div>
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg bg-[#071827]/80 p-3 border border-cyan-950">
+          <div className="flex items-center gap-3">
+            <FileCheck2 size={18} className="text-cyan-400" />
+            <div>
+              <p className="text-sm font-semibold text-white">Persistent Report Storage</p>
+              <p className="text-xs text-slate-400">Uploads, previews, processed data, and outputs</p>
+            </div>
+          </div>
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionDetailsPanel() {
+  const { debugManualPayload, debugUploadResponse, sessionId } = useReportProgress();
+
+  return (
+    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/80 p-5 shadow-xl">
+      <h2 className="text-base font-bold text-cyan-200">Session Details</h2>
+      <p className="mt-1 text-xs text-slate-400">
+        Technical workspace and payload details for troubleshooting.
+      </p>
+
+      <p className="mt-4 break-all rounded-lg border border-cyan-900/50 bg-[#071827] px-3 py-2 font-mono text-xs text-slate-300">
+        {sessionId || "No active report workspace"}
+      </p>
+
+      {debugManualPayload && (
+        <label htmlFor="admin-manual-payload" className="mt-4 block">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Manual PATCH Payload
+          </span>
+          <textarea
+            id="admin-manual-payload"
+            readOnly
+            value={debugManualPayload}
+            rows={7}
+            className="mt-2 w-full resize-none rounded-md border border-cyan-900/60 bg-[#071827] px-3 py-2 font-mono text-xs text-slate-300 outline-none"
+          />
+        </label>
+      )}
+
+      {debugUploadResponse && (
+        <label htmlFor="admin-upload-response" className="mt-4 block">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Upload JSON Response
+          </span>
+          <textarea
+            id="admin-upload-response"
+            readOnly
+            value={debugUploadResponse}
+            rows={8}
+            className="mt-2 w-full resize-none rounded-md border border-cyan-900/60 bg-[#071827] px-3 py-2 font-mono text-xs text-slate-300 outline-none"
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function DeveloperPromptAccessPanel() {
+  const [tickets, setTickets] = useState<DeveloperTicket[]>([]);
+  const [activeTicketId, setActiveTicketId] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("dev-tickets");
+    if (!saved) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(saved) as DeveloperTicket[];
+      setTickets(parsed);
+      setActiveTicketId(parsed[0]?.id || "");
+    } catch (error) {
+      console.error("Failed to parse tickets", error);
+    }
+  }, []);
+
+  const activeTicket = tickets.find((ticket) => ticket.id === activeTicketId) || null;
+
+  function handleCopyPrompt() {
+    if (!activeTicket) {
+      return;
+    }
+
+    navigator.clipboard.writeText(activeTicket.prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleDownloadPrompt() {
+    if (!activeTicket) {
+      return;
+    }
+
+    const blob = new Blob([activeTicket.prompt], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${activeTicket.id}_developer_prompt.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/80 p-5 shadow-xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-bold text-cyan-200">Developer Prompt Access</h2>
+          <p className="mt-1 text-xs text-slate-400">
+            Ticket-generated AI developer prompts are visible only in admin controls.
+          </p>
+        </div>
+
+        {activeTicket && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCopyPrompt}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-400 px-3 py-2 text-xs font-extrabold text-slate-950 hover:bg-cyan-300"
+            >
+              {copied ? <Check aria-hidden="true" size={14} /> : <Copy aria-hidden="true" size={14} />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadPrompt}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-800 px-3 py-2 text-xs font-bold text-cyan-200 hover:bg-cyan-500/10"
+            >
+              <Download aria-hidden="true" size={14} />
+              Download
+            </button>
+          </div>
+        )}
+      </div>
+
+      {tickets.length === 0 ? (
+        <div className="mt-4 rounded-lg border border-dashed border-cyan-900/40 bg-[#071827]/60 p-8 text-center text-sm text-slate-400">
+          No developer tickets have been submitted in this browser.
+        </div>
+      ) : (
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+            {tickets.map((ticket) => (
+              <button
+                key={ticket.id}
+                type="button"
+                onClick={() => setActiveTicketId(ticket.id)}
+                className={`w-full rounded-lg border p-3 text-left transition ${
+                  activeTicketId === ticket.id
+                    ? "border-cyan-400 bg-cyan-950/40"
+                    : "border-cyan-900/40 bg-[#071827]/60 hover:border-cyan-700"
+                }`}
+              >
+                <p className="font-mono text-[10px] font-bold text-slate-400">{ticket.id}</p>
+                <p className="mt-1 text-sm font-semibold text-white">{ticket.title}</p>
+                <p className="mt-1 text-xs text-slate-500">{ticket.submittedAt}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-[320px] max-h-[560px] overflow-auto rounded-lg border border-cyan-900/50 bg-[#071827] p-4 font-mono text-xs whitespace-pre-wrap text-slate-300">
+            {activeTicket?.prompt || "Select a ticket to view its developer prompt."}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -93,7 +93,8 @@ https://dnkreport.netlify.app/admin
 ```
 
 It prompts for the backend `ADMIN_PASSWORD` and then displays report history
-and delete controls. The frontend sends that password as:
+and delete controls, system status, session/debug details, and developer prompt
+access for submitted tickets. The frontend sends that password as:
 
 ```txt
 X-Admin-Password: <password>
@@ -108,6 +109,9 @@ DELETE /api/report-sessions/:report_id
 
 Set `ADMIN_PASSWORD` in the Render backend environment. Do not add it to the
 frontend environment or commit it to the repository.
+
+Normal user settings intentionally do not show report history, delete controls,
+system/session diagnostics, or developer prompts.
 
 ## Deploying On Netlify
 

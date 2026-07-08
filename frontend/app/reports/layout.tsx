@@ -1,14 +1,13 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import { FileText, Settings, Truck, ShieldCheck, Database, Zap } from "lucide-react";
+import { FileText, Settings, Truck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { ReportSidebar } from "@/components/report-builder/ReportSidebar";
 import {
   ReportProgressProvider,
-  useReportProgress,
 } from "@/components/report-builder/ReportProgressContext";
 import {
   ReportSettingsProvider,
@@ -36,8 +35,6 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
   const pathname = usePathname();
 
   const { people, addPerson } = useReportSettings();
-  const { debugManualPayload, debugUploadResponse, sessionId } =
-    useReportProgress();
 
   return (
     <main className="min-h-screen bg-[#071827] text-slate-100">
@@ -126,44 +123,6 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
             </div>
 
             <div className="mt-6 space-y-4">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300 border border-cyan-500/20">
-                <Zap size={12} className="animate-pulse" /> System Operational
-              </div>
-
-              <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
-                <p className="text-sm font-bold text-cyan-200 mb-3">
-                  System Status
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-lg bg-[#0b2135]/60 p-2.5 border border-cyan-950">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck size={16} className="text-emerald-400" />
-                      <div>
-                        <p className="text-xs font-semibold text-white">API Gateway</p>
-                        <p className="text-[9px] text-slate-400">FastAPI backend online</p>
-                      </div>
-                    </div>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-lg bg-[#0b2135]/60 p-2.5 border border-cyan-950">
-                    <div className="flex items-center gap-2">
-                      <Database size={16} className="text-cyan-400" />
-                      <div>
-                        <p className="text-xs font-semibold text-white">Temporary Cache</p>
-                        <p className="text-[9px] text-slate-400">In-memory Store active</p>
-                      </div>
-                    </div>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                  </div>
-                </div>
-                <div className="mt-3 pt-2 border-t border-cyan-900/30">
-                  <p className="text-[9px] text-slate-500 text-center">
-                    Antigravity Compiler Engine v1.1.0
-                  </p>
-                </div>
-              </div>
-
               <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
                 <p className="text-sm font-bold text-cyan-200 mb-3">
                   Admin Controls
@@ -209,64 +168,6 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
                   ))}
                 </div>
               </div>
-
-              <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
-                <p className="text-sm font-bold text-cyan-200">
-                  Session Details
-                </p>
-
-                <p className="mt-2 text-xs text-slate-500">
-                  Technical report workspace reference.
-                </p>
-
-                <p className="mt-3 break-all rounded-lg border border-cyan-900/50 bg-[#0b2135] px-3 py-2 font-mono text-xs text-slate-300">
-                  {sessionId || "No active report workspace"}
-                </p>
-              </div>
-
-              {(debugManualPayload || debugUploadResponse) && (
-                <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
-                  <p className="text-sm font-bold text-cyan-200">
-                    Technical Payloads
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Backend request and response details for troubleshooting.
-                  </p>
-
-                  {debugManualPayload && (
-                    <label htmlFor="settings-manual-payload" className="mt-4 block">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                        Manual PATCH Payload
-                      </span>
-
-                      <textarea
-                        id="settings-manual-payload"
-                        readOnly
-                        value={debugManualPayload}
-                        rows={10}
-                        className="mt-2 w-full resize-none rounded-md border border-cyan-900/60 bg-[#0b2135] px-3 py-2 font-mono text-xs text-slate-300 outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
-                      />
-                    </label>
-                  )}
-
-                  {debugUploadResponse && (
-                    <label htmlFor="settings-upload-response" className="mt-4 block">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                        Upload JSON Response
-                      </span>
-
-                      <textarea
-                        id="settings-upload-response"
-                        readOnly
-                        value={debugUploadResponse}
-                        rows={12}
-                        className="mt-2 w-full resize-none rounded-md border border-cyan-900/60 bg-[#0b2135] px-3 py-2 font-mono text-xs text-slate-300 outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
-                      />
-                    </label>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

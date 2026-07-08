@@ -131,7 +131,9 @@ Admin route:
 This page prompts for the backend `ADMIN_PASSWORD`, stores it only in browser
 session storage for the current tab, and sends it as `X-Admin-Password` when
 listing report history or deleting a report workspace. Report history and
-delete controls should not appear in ordinary user settings.
+delete controls should not appear in ordinary user settings. System status,
+session/debug details, and developer prompt access for submitted tickets also
+belong in this admin route, not in ordinary settings or the public tickets page.
 
 ### Preferred Layout
 

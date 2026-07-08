@@ -52,6 +52,14 @@ as an `X-Admin-Password` request header when calling protected backend routes.
 It is kept in browser session storage for the current tab session and is not
 compiled into the frontend bundle.
 
+Admin-only UI includes:
+
+- Report history
+- Report deletion
+- System status
+- Session/debug payload details
+- Developer prompt access for submitted tickets
+
 Protected backend actions:
 
 ```txt

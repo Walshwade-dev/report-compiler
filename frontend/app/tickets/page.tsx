@@ -5,13 +5,9 @@ import ReportsLayout from "../reports/layout";
 import {
   Ticket,
   PlusCircle,
-  Copy,
-  Check,
-  Download,
   Trash2,
   Code2,
   Cpu,
-  FileCheck2,
 } from "lucide-react";
 
 interface DeveloperTicket {
@@ -35,12 +31,6 @@ export default function TicketsPage() {
   const [description, setDescription] = useState("");
   const [expectedBehavior, setExpectedBehavior] = useState("");
   
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [activeTicket, setActiveTicket] = useState<DeveloperTicket | null>(null);
-  const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
-  const [developerPassword, setDeveloperPassword] = useState("");
-  const [developerUnlocked, setDeveloperUnlocked] = useState(false);
-  const [developerPasswordError, setDeveloperPasswordError] = useState("");
 
   // Load tickets on mount
   useEffect(() => {
@@ -126,7 +116,6 @@ ${ticketExpected}
 
     const updated = [newTicket, ...tickets];
     saveTickets(updated);
-    setActiveTicket(newTicket);
 
     // Reset Form
     setTitle("");
@@ -135,50 +124,10 @@ ${ticketExpected}
     setExpectedBehavior("");
   };
 
-  const handleDeveloperUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (developerPassword === "Sinimimi8*") {
-      setDeveloperUnlocked(true);
-      setDeveloperPassword("");
-      setDeveloperPasswordError("");
-      return;
-    }
-
-    setDeveloperPasswordError("Invalid developer password.");
-  };
-
   // Delete Ticket
   const handleDelete = (id: string) => {
     const updated = tickets.filter((t) => t.id !== id);
     saveTickets(updated);
-    if (activeTicket?.id === id) {
-      setActiveTicket(null);
-    }
-  };
-
-  // Copy to clipboard
-  const handleCopy = (text: string, id: string, isPrompt = false) => {
-    navigator.clipboard.writeText(text);
-    if (isPrompt) {
-      setIsCopiedPrompt(true);
-      setTimeout(() => setIsCopiedPrompt(false), 2000);
-    } else {
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
-    }
-  };
-
-  // Download Markdown file
-  const handleDownload = (ticket: DeveloperTicket) => {
-    const blob = new Blob([ticket.prompt], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${ticket.id}_developer_prompt.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   // Category classes helper
@@ -230,7 +179,7 @@ ${ticketExpected}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Form Column */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-12 space-y-6">
             <div className="rounded-xl border border-cyan-900/50 bg-[#0b2a45] p-5 shadow-lg">
               <div className="flex items-center gap-3 border-b border-cyan-900/50 pb-4 mb-5">
                 <PlusCircle className="text-cyan-400" size={20} />
@@ -356,12 +305,7 @@ ${ticketExpected}
                   {tickets.map((t) => (
                     <div
                       key={t.id}
-                      onClick={() => setActiveTicket(t)}
-                      className={`p-4 rounded-lg border transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                        activeTicket?.id === t.id
-                          ? "bg-cyan-950/40 border-cyan-400"
-                          : "bg-[#071827]/60 border-cyan-900/40 hover:border-cyan-800"
-                      }`}
+                      className="p-4 rounded-lg border border-cyan-900/40 bg-[#071827]/60 transition hover:border-cyan-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -378,38 +322,9 @@ ${ticketExpected}
                       </div>
                       
                       <div className="flex items-center gap-2 sm:self-center">
-                        {developerUnlocked && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopy(t.prompt, t.id);
-                              }}
-                              title="Copy Prompt"
-                              className="p-2 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 transition"
-                            >
-                              {copiedId === t.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(t);
-                              }}
-                              title="Download Prompt (.md)"
-                              className="p-2 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 transition"
-                            >
-                              <Download size={14} />
-                            </button>
-                          </>
-                        )}
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(t.id);
-                          }}
+                          onClick={() => handleDelete(t.id)}
                           title="Delete Ticket"
                           className="p-2 rounded bg-rose-950 hover:bg-rose-900 text-rose-300 transition"
                         >
@@ -418,86 +333,6 @@ ${ticketExpected}
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Developer Prompt Access Column */}
-          <div className="lg:col-span-5">
-            <div className="rounded-xl border border-cyan-900/50 bg-[#0b2a45] p-5 shadow-lg h-full flex flex-col">
-              <div className="flex items-center justify-between border-b border-cyan-900/50 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <FileCheck2 className="text-cyan-400" size={20} />
-                  <h2 className="text-base font-bold text-cyan-200">Developer Prompt Access</h2>
-                </div>
-                {developerUnlocked && activeTicket && (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => handleCopy(activeTicket.prompt, activeTicket.id, true)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-cyan-500 text-slate-950 text-xs font-bold transition hover:bg-cyan-300"
-                    >
-                      {isCopiedPrompt ? <Check size={12} /> : <Copy size={12} />}
-                      {isCopiedPrompt ? "Copied!" : "Copy"}
-                    </button>
-                    <button
-                      onClick={() => handleDownload(activeTicket)}
-                      className="p-1 rounded bg-cyan-950 text-cyan-300 hover:bg-cyan-900 transition"
-                      title="Download Markdown"
-                    >
-                      <Download size={14} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {!developerUnlocked ? (
-                <form
-                  onSubmit={handleDeveloperUnlock}
-                  className="flex-1 flex flex-col items-center justify-center text-center py-20 text-slate-400 bg-[#071827]/40 rounded-lg border border-dashed border-cyan-900/30"
-                >
-                  <Code2 size={48} className="text-cyan-600 opacity-30 mb-3" />
-                  <p className="max-w-sm text-sm">
-                    AI prompt previews are restricted to the developer.
-                  </p>
-                  <div className="mt-5 w-full max-w-xs">
-                    <label htmlFor="developer-password" className="sr-only">
-                      Developer password
-                    </label>
-                    <input
-                      id="developer-password"
-                      type="password"
-                      value={developerPassword}
-                      onChange={(e) => {
-                        setDeveloperPassword(e.target.value);
-                        setDeveloperPasswordError("");
-                      }}
-                      placeholder="Developer password"
-                      className="w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
-                    />
-                    {developerPasswordError && (
-                      <p className="mt-2 text-xs font-semibold text-rose-300">
-                        {developerPasswordError}
-                      </p>
-                    )}
-                    <button
-                      type="submit"
-                      className="mt-3 w-full rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-                    >
-                      Unlock Preview
-                    </button>
-                  </div>
-                </form>
-              ) : activeTicket ? (
-                <div className="flex-1 flex flex-col min-h-[300px]">
-                  <div className="flex-1 bg-[#071827] rounded-lg p-4 font-mono text-xs text-slate-300 overflow-auto border border-cyan-900/50 max-h-[700px] whitespace-pre-wrap">
-                    {activeTicket.prompt}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center py-20 text-slate-400 bg-[#071827]/40 rounded-lg border border-dashed border-cyan-900/30">
-                  <Code2 size={48} className="text-cyan-600 opacity-30 mb-3" />
-                  <p className="text-sm">Submit a ticket or select a ticket from your history to view its AI Developer Prompt here.</p>
                 </div>
               )}
             </div>
