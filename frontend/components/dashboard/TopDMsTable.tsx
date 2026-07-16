@@ -98,24 +98,28 @@ export function TopDMsTable() {
     <>
       <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md h-[560px] max-h-[560px] flex flex-col">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-cyan-950 pb-4 mb-6 shrink-0">
+        <div className="border-b border-cyan-950 pb-4 mb-4 shrink-0 space-y-3">
+          {/* Row 1: Title & Icon */}
           <div className="flex items-center gap-2">
             <Trophy className="text-amber-400" size={20} />
-            <div>
-              <h2 className="text-lg font-bold text-white">DMs Performance Table</h2>
-              <p className="text-xs text-slate-400">Charge records by DM-led mobile team</p>
-            </div>
+            <h2 className="text-lg font-bold text-white">DMs Performance Table</h2>
           </div>
+          
+          {/* Row 2: Description */}
+          <p className="text-xs text-slate-400">
+            Charge records by DM-led mobile team
+          </p>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          {/* Row 3: Action Controls */}
+          <div className="flex items-center justify-between gap-2 bg-[#071827]/40 p-2 rounded-lg border border-cyan-900/30">
             {/* Date Selector */}
-            <div className="flex items-center gap-2 bg-[#071827]/80 border border-cyan-900/60 rounded-lg px-2.5 py-1.5">
+            <div className="flex items-center gap-2 bg-[#071827]/80 border border-cyan-900/60 rounded-lg px-2.5 py-1.5 flex-1 min-w-0">
               <Calendar className="text-cyan-400 shrink-0" size={13} />
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-[10px] font-bold text-white outline-none cursor-pointer [color-scheme:dark] w-24"
+                className="bg-transparent text-[10px] font-bold text-white outline-none cursor-pointer [color-scheme:dark] w-full"
               />
             </div>
 
@@ -123,7 +127,7 @@ export function TopDMsTable() {
             <button
               onClick={() => setIsModalOpen(true)}
               disabled={data.length === 0}
-              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40 shrink-0"
               title="Expand View"
             >
               <Eye size={15} />
@@ -133,7 +137,7 @@ export function TopDMsTable() {
             <button
               onClick={handleDownload}
               disabled={data.length === 0}
-              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40 shrink-0"
               title="Download CSV"
             >
               <Download size={15} />
