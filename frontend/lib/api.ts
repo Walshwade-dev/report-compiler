@@ -498,10 +498,16 @@ export type DmsPerformanceResponse = {
   reports: number;
 };
 
-export async function getDmsPerformance() {
-  const response = await fetch(
-    apiUrl("report-sessions/analytics/dms-performance")
-  );
+export async function getDmsPerformance(date?: string) {
+  const query = new URLSearchParams();
+  if (date) {
+    query.set("date", date);
+  }
+  const urlPath = query.size 
+    ? `report-sessions/analytics/dms-performance?${query.toString()}` 
+    : "report-sessions/analytics/dms-performance";
+
+  const response = await fetch(apiUrl(urlPath));
 
   if (!response.ok) {
     throw new Error(

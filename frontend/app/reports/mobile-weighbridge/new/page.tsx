@@ -1565,7 +1565,6 @@ export default function NewMobileReportPage() {
                 onClick={() => handleSaveManualInputs()}
                 disabled={
                   !metadataComplete ||
-                  !manualInputsComplete ||
                   manualStatus === "busy"
                 }
                 className="flex items-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"

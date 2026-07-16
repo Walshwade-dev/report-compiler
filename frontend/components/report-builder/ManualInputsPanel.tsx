@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   FileSpreadsheet,
   FileText,
+  Save,
 } from "lucide-react";
 
 import {
@@ -24,6 +25,7 @@ type ManualInputsPanelProps = {
   buildError: string | null;
   finalReportDownloadUrl: string | null;
   excelReportDownloadUrl: string | null;
+  onSaveManualInputs?: () => void;
 };
 
 const emptyDailyTransgression = {
@@ -64,6 +66,7 @@ export function ManualInputsPanel({
   buildError,
   finalReportDownloadUrl,
   excelReportDownloadUrl,
+  onSaveManualInputs,
 }: ManualInputsPanelProps) {
   const [transgressionModalOpen, setTransgressionModalOpen] =
     useState(false);
@@ -195,6 +198,17 @@ export function ManualInputsPanel({
           >
             Manage Transgression Details
           </button>
+
+          {onSaveManualInputs && (
+            <button
+              onClick={onSaveManualInputs}
+              disabled={manualSaveStatus === "saving"}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-600/30 border border-cyan-500/50 px-4 py-3 text-sm font-bold text-cyan-200 hover:bg-cyan-600/50 disabled:opacity-50"
+            >
+              <Save aria-hidden="true" size={16} />
+              {manualSaveStatus === "saving" ? "Saving..." : "Save Manual Inputs"}
+            </button>
+          )}
 
           <div className="mt-5 space-y-4">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">

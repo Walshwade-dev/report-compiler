@@ -32,6 +32,7 @@ export default function NewReportPage() {
     excelReportDownloadUrl,
     manualSaveStatus,
     handleCreateSession,
+    handleSaveManualInputs,
     handleBuildReport,
     handleResetReport,
     metadataComplete,
@@ -178,6 +179,7 @@ export default function NewReportPage() {
             buildError={buildError}
             finalReportDownloadUrl={finalReportDownloadUrl}
             excelReportDownloadUrl={excelReportDownloadUrl}
+            onSaveManualInputs={handleSaveManualInputs}
           />
         </div>
       </div>
