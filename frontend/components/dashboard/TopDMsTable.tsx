@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getDmsPerformance, isApiConnectionError } from "@/lib/api";
-import { Download, Trophy, Calendar, X, Eye } from "lucide-react";
+import { Download, Trophy, X, Eye, Maximize2 } from "lucide-react";
 
 type DMSTableRow = {
   name: string;
@@ -15,15 +15,13 @@ type DMSTableRow = {
   monthCharged: number;
 };
 
-export function TopDMsTable() {
+export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
   const [data, setData] = useState<DMSTableRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
+    if (!selectedDate) return;
     let active = true;
     async function fetchData() {
       setLoading(true);
@@ -96,57 +94,51 @@ export function TopDMsTable() {
 
   return (
     <>
-      <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-6 shadow-xl backdrop-blur-md h-[560px] max-h-[560px] flex flex-col">
+      <div
+        onClick={() => data.length > 0 && setIsModalOpen(true)}
+        className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-xl backdrop-blur-md h-[480px] flex flex-col cursor-pointer transition-all duration-300 hover:border-cyan-500/40 hover:scale-[1.005] hover:bg-[#0b2135]/80 relative group"
+      >
         {/* Header */}
-        <div className="border-b border-cyan-950 pb-4 mb-4 shrink-0 space-y-3">
-          {/* Row 1: Title & Icon */}
-          <div className="flex items-center gap-2">
-            <Trophy className="text-amber-400" size={20} />
-            <h2 className="text-lg font-bold text-white">DMs Performance Table</h2>
-          </div>
-          
-          {/* Row 2: Description */}
-          <p className="text-xs text-slate-400">
-            Charge records by DM-led mobile team
-          </p>
-
-          {/* Row 3: Action Controls */}
-          <div className="flex items-center justify-between gap-2 bg-[#071827]/40 p-2 rounded-lg border border-cyan-900/30">
-            {/* Date Selector */}
-            <div className="flex items-center gap-2 bg-[#071827]/80 border border-cyan-900/60 rounded-lg px-2.5 py-1.5 flex-1 min-w-0">
-              <Calendar className="text-cyan-400 shrink-0" size={13} />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-[10px] font-bold text-white outline-none cursor-pointer [color-scheme:dark] w-full"
-              />
+        <div className="border-b border-cyan-950 pb-3 mb-3 shrink-0 flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="text-amber-400 shrink-0" size={16} />
+              <h2 className="text-sm font-bold uppercase tracking-wider text-white">DMs Performance Table</h2>
             </div>
+            <p className="text-[10px] text-slate-400">
+              Charge records by DM-led mobile team for {selectedDate}
+            </p>
+          </div>
 
+          <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
             {/* View Full Button */}
             <button
               onClick={() => setIsModalOpen(true)}
               disabled={data.length === 0}
-              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40 shrink-0"
+              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-1.5 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40"
               title="Expand View"
             >
-              <Eye size={15} />
+              <Eye size={13} />
             </button>
 
             {/* Download Button */}
             <button
               onClick={handleDownload}
               disabled={data.length === 0}
-              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-2 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40 shrink-0"
+              className="inline-flex items-center justify-center rounded-lg border border-cyan-900/60 bg-[#071827]/70 p-1.5 text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-950/40 disabled:cursor-not-allowed disabled:opacity-40"
               title="Download CSV"
             >
-              <Download size={15} />
+              <Download size={13} />
             </button>
+
+            <div className="text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity ml-1">
+              <Maximize2 size={14} />
+            </div>
           </div>
         </div>
 
         {/* Scrollable Table Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="relative w-8 h-8">
@@ -156,32 +148,31 @@ export function TopDMsTable() {
             </div>
           ) : data.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <span className="text-slate-500 text-sm">No data available</span>
+              <span className="text-slate-500 text-xs">No data available</span>
             </div>
           ) : (
             <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="text-xs text-cyan-200 uppercase tracking-wider bg-cyan-950/20 sticky top-0 backdrop-blur-sm z-10">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="text-[10px] text-cyan-200 uppercase tracking-wider bg-cyan-950/20 sticky top-0 backdrop-blur-sm z-10">
                   <tr>
-                    <th className="px-3 py-3 font-semibold rounded-tl-lg">DM Name</th>
-                    <th className="px-3 py-3 font-semibold">Team</th>
-                    <th className="px-3 py-3 font-semibold text-right">Weighed</th>
-                    <th className="px-3 py-3 font-semibold text-right">Charged</th>
-                    <th className="px-3 py-3 font-semibold text-right">Rate</th>
-                    <th className="px-3 py-3 font-semibold text-right rounded-tr-lg whitespace-nowrap">Month Charged</th>
+                    <th className="px-2 py-2 font-semibold rounded-tl-lg">DM Name</th>
+                    <th className="px-2 py-2 font-semibold">Team</th>
+                    <th className="px-2 py-2 font-semibold text-right">Weighed</th>
+                    <th className="px-2 py-2 font-semibold text-right">Charged</th>
+                    <th className="px-2 py-2 font-semibold text-right">Rate</th>
+                    <th className="px-2 py-2 font-semibold text-right rounded-tr-lg whitespace-nowrap">Month Charged</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cyan-900/30">
                   {data.map((row, i) => (
                     <tr
                       key={row.name}
-                      onClick={() => setIsModalOpen(true)}
-                      className="hover:bg-[#071827]/60 transition-colors cursor-pointer"
+                      className="hover:bg-[#071827]/40 transition-colors"
                     >
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
                           <span
-                            className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${
+                            className={`flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${
                               i === 0
                                 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                                 : i === 1
@@ -193,20 +184,20 @@ export function TopDMsTable() {
                           >
                             {i + 1}
                           </span>
-                          <span className="font-semibold text-white" title={row.name}>
+                          <span className="font-semibold text-white truncate max-w-[80px]" title={row.name}>
                             {row.name}
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-3 font-medium text-slate-400">
-                        <span className="block max-w-[140px] truncate" title={row.team}>
+                      <td className="px-2 py-2 font-medium text-slate-450">
+                        <span className="block max-w-[80px] truncate" title={row.team}>
                           {row.team}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-right font-medium">{row.weighed.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right font-bold text-cyan-400">{row.charged.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-right font-bold text-white">{row.chargeRate.toFixed(1)}%</td>
-                      <td className="px-3 py-3 text-right font-medium text-emerald-400">
+                      <td className="px-2 py-2 text-right font-medium">{row.weighed.toLocaleString()}</td>
+                      <td className="px-2 py-2 text-right font-bold text-cyan-400">{row.charged.toLocaleString()}</td>
+                      <td className="px-2 py-2 text-right font-bold text-white">{row.chargeRate.toFixed(1)}%</td>
+                      <td className="px-2 py-2 text-right font-medium text-emerald-400">
                         {row.monthCharged.toLocaleString()}
                       </td>
                     </tr>
@@ -235,7 +226,7 @@ export function TopDMsTable() {
                 <div>
                   <h3 className="text-lg font-bold text-white">Full DMS Performance Leaderboard</h3>
                   <p className="text-xs text-slate-400">
-                    Detailed statistics for all participating DMS teams up to {selectedDate}
+                    Detailed statistics for all participating DMS teams for {selectedDate}
                   </p>
                 </div>
               </div>
