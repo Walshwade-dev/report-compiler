@@ -84,7 +84,7 @@ export default function AdminPage() {
                 Admin Console
               </h1>
               <p className="mt-1 text-sm text-slate-400">
-                Report history and workspace deletion controls.
+                Report and workspace history.
               </p>
             </div>
 
