@@ -373,7 +373,23 @@ export default function NewMobileReportPage() {
     ? getMobileWordReportDownloadUrl(reportId)
     : null;
   const summary = uploadResponse?.sections.mobile_report?.summary;
-  const normalizedRows = uploadResponse?.mobile_report?.data || [];
+  const rawNormalizedRows = uploadResponse?.mobile_report?.data || [];
+  const localDimensionRows = (inputs.dimension_charges || []).map((charge: any) => ({
+    date_time: charge.date_time,
+    registration: charge.registration,
+    transporter: charge.transporter,
+    axle: charge.axle,
+    cargo: charge.cargo,
+    gvw_kg: 0,
+    gvw_difference_kg: charge.gvw_excess ? parseInt(charge.gvw_excess) || 0 : 0,
+    excess_kg: charge.axle_excess ? parseInt(charge.axle_excess) || 0 : 0,
+    remarks: "CHARGED (DIMENSIONS)",
+    is_weighed: true,
+    is_gvw_axle_charge: false,
+    is_dimension_charge: true,
+  }));
+  const baseCsvRows = rawNormalizedRows.filter((row: any) => !row.is_dimension_charge);
+  const normalizedRows = [...baseCsvRows, ...localDimensionRows];
 
   const mileageStart = numberFromMileage(inputs.startMileage);
   const mileageStop = numberFromMileage(inputs.stopMileage);
@@ -388,10 +404,10 @@ export default function NewMobileReportPage() {
       ? Math.max(shiftTwoMileageStop - shiftTwoMileageStart, 0)
       : null;
 
-  const totalWeighed = summary?.total_trucks_weighed ?? inputs.totalWeighed;
-  const warned = summary?.warned_trucks ?? 0;
-  const chargedGvwAxle = summary?.charged_gvw_axle_trucks ?? 0;
-  const chargedDimensions = summary?.charged_dimensions_trucks ?? 0;
+  const totalWeighed = uploadResponse ? normalizedRows.filter((row: any) => row.is_weighed).length : (inputs.totalWeighed || 0);
+  const warned = normalizedRows.filter((row: any) => row.remarks?.trim().toUpperCase() === "WARNED").length;
+  const chargedGvwAxle = normalizedRows.filter((row: any) => row.is_gvw_axle_charge).length;
+  const chargedDimensions = normalizedRows.filter((row: any) => row.is_dimension_charge).length;
 
   const metadataComplete = Boolean(
     inputs.reportDate &&
@@ -892,12 +908,24 @@ export default function NewMobileReportPage() {
       alert("Registration is required.");
       return;
     }
-    let dateTimeVal = newDimCharge.date_time;
+    let dateTimeVal = (newDimCharge.date_time || "").trim();
     if (!dateTimeVal) {
-      const today = inputs.reportDate || new Date().toISOString().split("T")[0];
-      const now = new Date();
-      const timeStr = now.toTimeString().split(" ")[0];
-      dateTimeVal = `${today} ${timeStr}`;
+      alert("Time (HH:MM) is required to show the charge on the graph.");
+      return;
+    }
+
+    const timeRegex = /^([0-9]|0[0-9]|1[0-9]|2[0-3]):([0-5][0-9])$/;
+    if (timeRegex.test(dateTimeVal)) {
+      const reportDate = inputs.reportDate || new Date().toISOString().split("T")[0];
+      if (dateTimeVal.length === 4) {
+        dateTimeVal = "0" + dateTimeVal;
+      }
+      dateTimeVal = `${reportDate} ${dateTimeVal}:00`;
+    } else {
+      if (!dateTimeVal.includes(":")) {
+        alert("Please enter a valid time (e.g. 14:30) or date and time (e.g. YYYY-MM-DD 14:30).");
+        return;
+      }
     }
 
     const newCharge = {
@@ -1819,8 +1847,8 @@ export default function NewMobileReportPage() {
                   />
                   <TextInput
                     id="dim-date-time"
-                    label="Date/Time Override (optional)"
-                    placeholder="e.g. YYYY-MM-DD HH:MM"
+                    label="Time (HH:MM) *"
+                    placeholder="e.g. 14:30"
                     value={newDimCharge.date_time}
                     onChange={(val) => setNewDimCharge(prev => ({ ...prev, date_time: val }))}
                   />
