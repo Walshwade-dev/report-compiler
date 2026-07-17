@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import {
   Check,
-  Code2,
   Copy,
   Database,
   Download,
@@ -12,14 +11,40 @@ import {
   LogOut,
   ShieldCheck,
   Zap,
+  UserPlus,
+  Trash2,
+  User,
+  UserCheck,
+  Building2,
+  KeyRound,
+  ShieldAlert,
 } from "lucide-react";
 
 import ReportsLayout from "@/app/reports/layout";
 import { RecentReportsList } from "@/components/dashboard/RecentReportsList";
 import { useReportProgress } from "@/components/report-builder/ReportProgressContext";
-import { getReportSessions } from "@/lib/api";
+import {
+  getReportSessions,
+  getLoggedInUser,
+  updateCurrentUser,
+  getUsers,
+  createUserByAdmin,
+  deleteUserByAdmin,
+  logoutUser,
+} from "@/lib/api";
+import { useRouter } from "next/navigation";
 
-const ADMIN_PASSWORD_STORAGE_KEY = "dnk-admin-password";
+const STATIONS = [
+  "Juja",
+  "Athi River",
+  "Kanyonyo",
+  "Gilgil",
+  "Isinya",
+  "Suswa",
+  "Webuye",
+  "Mariakani",
+  "Mtwapa",
+];
 
 type DeveloperTicket = {
   id: string;
@@ -33,41 +58,68 @@ type DeveloperTicket = {
   prompt: string;
 };
 
+type UserAccount = {
+  id: string;
+  username: string;
+  full_name: string | null;
+  role: string;
+  station: string | null;
+};
+
 export default function AdminPage() {
-  const [password, setPassword] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [error, setError] = useState("");
-  const [checking, setChecking] = useState(false);
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<"status" | "credentials" | "users">("status");
 
   useEffect(() => {
-    const storedPassword = sessionStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY);
-    if (storedPassword) {
-      setAdminPassword(storedPassword);
+    const user = getLoggedInUser();
+    setCurrentUser(user);
+    if (!user) {
+      router.push("/login");
+      setIsAuthorized(false);
+    } else if (user.role !== "admin") {
+      setIsAuthorized(false);
+    } else {
+      setIsAuthorized(true);
     }
-  }, []);
+  }, [router]);
 
-  async function handleUnlock(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setChecking(true);
-
-    try {
-      await getReportSessions(password);
-      sessionStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, password);
-      setAdminPassword(password);
-      setPassword("");
-    } catch {
-      setError("The admin password was not accepted.");
-    } finally {
-      setChecking(false);
-    }
+  if (isAuthorized === null) {
+    return (
+      <ReportsLayout>
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
+            <p className="text-sm font-bold text-cyan-300">Checking credentials...</p>
+          </div>
+        </div>
+      </ReportsLayout>
+    );
   }
 
-  function handleLock() {
-    sessionStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY);
-    setAdminPassword("");
-    setPassword("");
-    setError("");
+  if (isAuthorized === false) {
+    return (
+      <ReportsLayout>
+        <div className="mx-auto max-w-md rounded-xl border border-red-900/50 bg-red-950/20 p-6 text-center shadow-xl">
+          <ShieldAlert className="mx-auto h-12 w-12 text-red-500" />
+          <h2 className="mt-4 text-xl font-bold text-white">Access Denied</h2>
+          <p className="mt-2 text-sm text-slate-300">
+            You do not have administrative privileges to access this console. Please sign in with an administrator account.
+          </p>
+          <button
+            onClick={() => {
+              logoutUser();
+              router.push("/login");
+            }}
+            className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 transition"
+          >
+            <LogOut size={16} />
+            Sign in as Admin
+          </button>
+        </div>
+      </ReportsLayout>
+    );
   }
 
   return (
@@ -78,86 +130,527 @@ export default function AdminPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-200">
                 <ShieldCheck aria-hidden="true" size={14} />
-                Admin
+                Admin Console
               </div>
               <h1 className="mt-3 text-2xl font-extrabold text-white">
-                Admin Console
+                Console Dashboard
               </h1>
               <p className="mt-1 text-sm text-slate-400">
-                Report and workspace history.
+                Manage system users, credentials, and view report history.
               </p>
             </div>
+            
+            <div className="text-xs text-slate-400">
+              Logged in as: <span className="font-bold text-cyan-300">{currentUser?.username}</span> ({currentUser?.role})
+            </div>
+          </div>
 
-            {adminPassword && (
-              <button
-                type="button"
-                onClick={handleLock}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-800 px-3 py-2 text-sm font-bold text-cyan-200 hover:bg-cyan-500/10"
-              >
-                <LogOut aria-hidden="true" size={16} />
-                Lock
-              </button>
-            )}
+          {/* Navigation Tabs */}
+          <div className="mt-6 flex border-b border-cyan-900/50">
+            <button
+              onClick={() => setActiveTab("status")}
+              className={`pb-3 pr-6 text-sm font-bold transition-all border-b-2 ${
+                activeTab === "status"
+                  ? "border-cyan-400 text-cyan-300"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              System Status & Reports
+            </button>
+            <button
+              onClick={() => setActiveTab("credentials")}
+              className={`pb-3 px-6 text-sm font-bold transition-all border-b-2 ${
+                activeTab === "credentials"
+                  ? "border-cyan-400 text-cyan-300"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              My Credentials
+            </button>
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`pb-3 px-6 text-sm font-bold transition-all border-b-2 ${
+                activeTab === "users"
+                  ? "border-cyan-400 text-cyan-300"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Account Management
+            </button>
           </div>
         </div>
 
-        {!adminPassword ? (
-          <form
-            onSubmit={handleUnlock}
-            className="max-w-md rounded-xl border border-cyan-900/50 bg-[#0b2135]/80 p-5 shadow-xl"
-          >
-            <label className="text-sm font-bold text-cyan-200" htmlFor="admin-password">
-              Admin password
-            </label>
-            <div className="mt-3 flex gap-2">
-              <div className="relative min-w-0 flex-1">
-                <Lock
-                  aria-hidden="true"
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
-                <input
-                  id="admin-password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-lg border border-cyan-900 bg-[#071827] py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-cyan-500"
-                  autoComplete="current-password"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!password || checking}
-                className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-extrabold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {checking ? "Checking" : "Unlock"}
-              </button>
+        {activeTab === "status" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <SystemStatusPanel />
+              <SessionDetailsPanel />
             </div>
-            {error && (
-              <p className="mt-3 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs font-semibold text-red-200">
-                {error}
-              </p>
-            )}
-          </form>
-        ) : (
-          <AdminUnlockedContent adminPassword={adminPassword} />
+
+            <DeveloperPromptAccessPanel />
+
+            <RecentReportsList />
+          </div>
+        )}
+
+        {activeTab === "credentials" && (
+          <ChangeCredentialsForm currentUser={currentUser} setCurrentUser={setCurrentUser} />
+        )}
+
+        {activeTab === "users" && (
+          <UserManagementPanel currentUser={currentUser} />
         )}
       </div>
     </ReportsLayout>
   );
 }
 
-function AdminUnlockedContent({ adminPassword }: { adminPassword: string }) {
+// Subcomponents
+
+function ChangeCredentialsForm({ currentUser, setCurrentUser }: { currentUser: any; setCurrentUser: any }) {
+  const [username, setUsername] = useState(currentUser?.username || "");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState(currentUser?.full_name || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function handleUpdateProfile(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (password && password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload: any = { username, full_name: fullName };
+      if (password) {
+        payload.password = password;
+      }
+      const updatedUser = await updateCurrentUser(payload);
+      setCurrentUser(updatedUser);
+      setSuccess("Profile updated successfully!");
+      setPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      setError(err.message || "Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <SystemStatusPanel />
-        <SessionDetailsPanel />
+    <div className="mx-auto max-w-xl rounded-xl border border-cyan-900/50 bg-[#0b2135]/85 p-6 shadow-xl">
+      <div className="flex items-center gap-3 border-b border-cyan-900/40 pb-4 mb-6">
+        <KeyRound className="h-6 w-6 text-cyan-400" />
+        <div>
+          <h2 className="text-lg font-bold text-white">Update My Credentials</h2>
+          <p className="text-xs text-slate-400">Change your login username, name, or password</p>
+        </div>
       </div>
 
-      <DeveloperPromptAccessPanel />
+      <form onSubmit={handleUpdateProfile} className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="admin-username-input">
+            Username
+          </label>
+          <div className="relative mt-2">
+            <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              id="admin-username-input"
+              type="text"
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full rounded-lg border border-cyan-900 bg-[#071827] py-2.5 pl-10 pr-3 text-sm text-white outline-none focus:border-cyan-500 transition"
+            />
+          </div>
+        </div>
 
-      <RecentReportsList adminPassword={adminPassword} />
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="admin-fullname-input">
+            Full Name
+          </label>
+          <div className="relative mt-2">
+            <UserCheck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              id="admin-fullname-input"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full rounded-lg border border-cyan-900 bg-[#071827] py-2.5 pl-10 pr-3 text-sm text-white outline-none focus:border-cyan-500 transition"
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-cyan-900/40 pt-4 mt-6">
+          <p className="text-xs text-slate-400 mb-4">Leave password fields blank if you do not wish to change it.</p>
+          
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="admin-pwd-input">
+                New Password
+              </label>
+              <div className="relative mt-2">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  id="admin-pwd-input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-cyan-900 bg-[#071827] py-2.5 pl-10 pr-3 text-sm text-white outline-none focus:border-cyan-500 transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="admin-pwd-confirm">
+                Confirm Password
+              </label>
+              <div className="relative mt-2">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  id="admin-pwd-confirm"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-cyan-900 bg-[#071827] py-2.5 pl-10 pr-3 text-sm text-white outline-none focus:border-cyan-500 transition"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-950 bg-red-950/20 p-3 text-xs text-red-400 font-semibold">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mt-4 rounded-lg border border-emerald-950 bg-emerald-950/20 p-3 text-xs text-emerald-400 font-semibold">
+            {success}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-6 w-full rounded-lg bg-cyan-400 py-2.5 text-sm font-extrabold text-slate-950 hover:bg-cyan-300 disabled:opacity-50 transition"
+        >
+          {loading ? "Saving Changes..." : "Save Profile Changes"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function UserManagementPanel({ currentUser }: { currentUser: any }) {
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // Create user form state
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newFullName, setNewFullName] = useState("");
+  const [newRole, setNewRole] = useState("user");
+  const [newStation, setNewStation] = useState(STATIONS[0]);
+  const [customStation, setCustomStation] = useState("");
+  const [isCustomStation, setIsCustomStation] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  async function fetchUsers() {
+    setLoading(true);
+    try {
+      const data = await getUsers();
+      setUsers(data);
+    } catch (err: any) {
+      setError("Failed to fetch user accounts");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateUser(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    const stationValue = isCustomStation ? customStation : newStation;
+
+    setLoading(true);
+    try {
+      const newUser = await createUserByAdmin({
+        username: newUsername,
+        password: newPassword,
+        full_name: newFullName || undefined,
+        role: newRole,
+        station: stationValue || undefined,
+      });
+
+      setSuccess(`Account '${newUsername}' created successfully!`);
+      setNewUsername("");
+      setNewPassword("");
+      setNewFullName("");
+      setNewRole("user");
+      setCustomStation("");
+      setIsCustomStation(false);
+      setUsers((prev) => [...prev, newUser]);
+    } catch (err: any) {
+      setError(err.message || "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteUser(userId: string, username: string) {
+    if (!confirm(`Are you sure you want to delete user account '${username}'?`)) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    try {
+      await deleteUserByAdmin(userId);
+      setSuccess(`Account '${username}' deleted.`);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+    } catch (err: any) {
+      setError(err.message || `Failed to delete account ${username}`);
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      {/* User creation form */}
+      <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/85 p-6 shadow-xl xl:col-span-1">
+        <div className="flex items-center gap-3 border-b border-cyan-900/40 pb-4 mb-6">
+          <UserPlus className="h-6 w-6 text-cyan-400" />
+          <div>
+            <h2 className="text-lg font-bold text-white">Add New Account</h2>
+            <p className="text-xs text-slate-400">Create login credentials for other officers</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleCreateUser} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="new-username">
+              Username
+            </label>
+            <input
+              id="new-username"
+              type="text"
+              required
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 transition"
+              placeholder="e.g. jdoe"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="new-password">
+              Password
+            </label>
+            <input
+              id="new-password"
+              type="password"
+              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 transition"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="new-fullname">
+              Full Name
+            </label>
+            <input
+              id="new-fullname"
+              type="text"
+              value={newFullName}
+              onChange={(e) => setNewFullName(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 transition"
+              placeholder="e.g. John Doe"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400" htmlFor="new-role">
+              System Role
+            </label>
+            <select
+              id="new-role"
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 transition"
+            >
+              <option value="user">User (Reporting Officer)</option>
+              <option value="admin">Administrator</option>
+              <option value="developer">Developer</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Station
+            </label>
+            <div className="flex items-center gap-4 mt-2">
+              <label className="inline-flex items-center text-xs text-slate-300">
+                <input
+                  type="radio"
+                  checked={!isCustomStation}
+                  onChange={() => setIsCustomStation(false)}
+                  className="mr-2 text-cyan-500 focus:ring-0"
+                />
+                Select Station
+              </label>
+              <label className="inline-flex items-center text-xs text-slate-300">
+                <input
+                  type="radio"
+                  checked={isCustomStation}
+                  onChange={() => setIsCustomStation(true)}
+                  className="mr-2 text-cyan-500 focus:ring-0"
+                />
+                Custom Station Name
+              </label>
+            </div>
+
+            {!isCustomStation ? (
+              <select
+                value={newStation}
+                onChange={(e) => setNewStation(e.target.value)}
+                className="mt-2 w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 transition"
+              >
+                {STATIONS.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                required={isCustomStation}
+                value={customStation}
+                onChange={(e) => setCustomStation(e.target.value)}
+                placeholder="Enter custom station name"
+                className="mt-2 w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 transition"
+              />
+            )}
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-950 bg-red-950/20 p-3 text-xs text-red-400 font-semibold">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="rounded-lg border border-emerald-950 bg-emerald-950/20 p-3 text-xs text-emerald-400 font-semibold">
+              {success}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-cyan-400 py-2.5 text-sm font-extrabold text-slate-950 hover:bg-cyan-300 disabled:opacity-50 transition"
+          >
+            {loading ? "Creating..." : "Create Account"}
+          </button>
+        </form>
+      </div>
+
+      {/* User list */}
+      <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/85 p-6 shadow-xl xl:col-span-2">
+        <h2 className="text-lg font-bold text-white border-b border-cyan-900/40 pb-4 mb-4">
+          All System Accounts
+        </h2>
+
+        {loading && users.length === 0 ? (
+          <div className="flex h-40 items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-300">
+              <thead>
+                <tr className="border-b border-cyan-900/40 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <th className="pb-3 pl-2">User details</th>
+                  <th className="pb-3">Role</th>
+                  <th className="pb-3">Station</th>
+                  <th className="pb-3 text-right pr-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-cyan-950/40">
+                {users.map((account) => {
+                  const isSelf = account.id === currentUser?.id;
+                  return (
+                    <tr key={account.id} className="hover:bg-[#071827]/40 transition-colors">
+                      <td className="py-3.5 pl-2">
+                        <div className="font-semibold text-white">{account.username}</div>
+                        {account.full_name && (
+                          <div className="text-xs text-slate-400">{account.full_name}</div>
+                        )}
+                      </td>
+                      <td className="py-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            account.role === "admin"
+                              ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                              : account.role === "developer"
+                              ? "bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                              : "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                          }`}
+                        >
+                          {account.role}
+                        </span>
+                      </td>
+                      <td className="py-3.5 text-slate-300 font-medium">
+                        {account.station ? (
+                          <span className="flex items-center gap-1.5">
+                            <Building2 size={13} className="text-slate-500" />
+                            {account.station}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-600">—</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 text-right pr-2">
+                        {isSelf ? (
+                          <span className="text-xs font-bold text-cyan-400/70 mr-2">You</span>
+                        ) : (
+                          <button
+                            onClick={() => handleDeleteUser(account.id, account.username)}
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition"
+                            title="Delete user"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

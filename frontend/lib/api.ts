@@ -93,6 +93,71 @@ export function getLoggedInUser() {
   return null;
 }
 
+export async function updateCurrentUser(payload: { username?: string; password?: string; full_name?: string }) {
+  const response = await fetch(apiUrl("auth/me"), {
+    method: "PATCH",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, "Failed to update profile"));
+  }
+
+  const data = await response.json();
+  if (typeof window !== "undefined") {
+    localStorage.setItem("dnk-auth-user", JSON.stringify(data));
+  }
+  return data;
+}
+
+export async function getUsers() {
+  const response = await fetch(apiUrl("users"), {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, "Failed to fetch users"));
+  }
+
+  return response.json();
+}
+
+export async function createUserByAdmin(payload: {
+  username: string;
+  password: string;
+  full_name?: string;
+  role: string;
+  station?: string;
+}) {
+  const response = await fetch(apiUrl("users"), {
+    method: "POST",
+    headers: authHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, "Failed to create user"));
+  }
+
+  return response.json();
+}
+
+export async function deleteUserByAdmin(userId: string) {
+  const response = await fetch(apiUrl(`users/${userId}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, "Failed to delete user"));
+  }
+}
+
 
 export function resolveApiUrl(url: string | null | undefined) {
   if (!url) {
@@ -405,9 +470,10 @@ function adminHeaders(adminPassword: string) {
   };
 }
 
-export async function getReportSessions(adminPassword: string) {
+export async function getReportSessions(adminPassword?: string) {
+  const headers = adminPassword ? adminHeaders(adminPassword) : authHeaders();
   const response = await fetch(apiUrl("report-sessions"), {
-    headers: adminHeaders(adminPassword),
+    headers,
   });
   if (!response.ok) {
     throw new Error(
@@ -433,12 +499,13 @@ export async function getReportSession(
   return response.json() as Promise<ReportSessionResponse>;
 }
 
-export async function deleteReportSession(reportId: string, adminPassword: string) {
+export async function deleteReportSession(reportId: string, adminPassword?: string) {
+  const headers = adminPassword ? adminHeaders(adminPassword) : authHeaders();
   const response = await fetch(
     apiUrl(`report-sessions/${reportId}`),
     {
       method: "DELETE",
-      headers: adminHeaders(adminPassword),
+      headers,
     }
   );
 
