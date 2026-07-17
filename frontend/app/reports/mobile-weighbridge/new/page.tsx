@@ -82,6 +82,8 @@ function createInitialMobileInputs(): MobileReportInputs {
     exemptedPermit: "0",
     manuallyWeighed: "0",
     vehicleCharges: [],
+    reweigh_tickets: [],
+    dimension_charges: [],
   };
 }
 
@@ -207,6 +209,8 @@ function mobileInputsFromSession(
     manuallyWeighed:
       stringFromSessionValue(mobileManual.manually_weighed) ||
       fallback.manuallyWeighed,
+    reweigh_tickets: mobileManual.reweigh_tickets || fallback.reweigh_tickets || [],
+    dimension_charges: mobileManual.dimension_charges || fallback.dimension_charges || [],
   };
 }
 
@@ -218,6 +222,7 @@ type TextInputProps = {
   type?: "date" | "number" | "text";
   min?: number;
   uppercase?: boolean;
+  placeholder?: string;
 };
 
 type BuiltMobileFile = {
@@ -238,6 +243,7 @@ function TextInput({
   type = "text",
   min,
   uppercase = true,
+  placeholder,
 }: TextInputProps) {
   const inputTone =
     type === "date"
@@ -257,6 +263,7 @@ function TextInput({
         type={type}
         min={min}
         value={value}
+        placeholder={placeholder}
         onChange={(event) =>
           onChange(
             uppercase && type === "text"
@@ -264,7 +271,7 @@ function TextInput({
               : event.target.value
           )
         }
-        className={`mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm ${inputTone} placeholder:text-slate-400 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40`}
+        className={`mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm ${inputTone} placeholder:text-slate-500 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40`}
       />
     </label>
   );
@@ -347,6 +354,18 @@ export default function NewMobileReportPage() {
   const [mobileExcelUrl, setMobileExcelUrl] = useState<string | null>(
     reportId ? getMobileExcelReportDownloadUrl(reportId) : null
   );
+  const [newDimCharge, setNewDimCharge] = useState({
+    registration: "",
+    transporter: "",
+    axle: "",
+    gvw_excess: "",
+    axle_excess: "",
+    origin: "",
+    destination: "",
+    cargo: "",
+    date_time: "",
+    make: "",
+  });
   const { setProgress } = useReportProgress();
   const { people } = useReportSettings();
 
@@ -506,6 +525,8 @@ export default function NewMobileReportPage() {
           exempted_permit: inputs.exemptedPermit,
           manually_weighed: inputs.manuallyWeighed,
           shifts: isMobileTwo ? [shiftOnePayload, shiftTwoPayload] : [],
+          reweigh_tickets: inputs.reweigh_tickets || [],
+          dimension_charges: inputs.dimension_charges || [],
         },
       },
     };
@@ -864,6 +885,48 @@ export default function NewMobileReportPage() {
       );
       throw error;
     }
+  }
+
+  function handleAddDimensionCharge() {
+    if (!newDimCharge.registration) {
+      alert("Registration is required.");
+      return;
+    }
+    let dateTimeVal = newDimCharge.date_time;
+    if (!dateTimeVal) {
+      const today = inputs.reportDate || new Date().toISOString().split("T")[0];
+      const now = new Date();
+      const timeStr = now.toTimeString().split(" ")[0];
+      dateTimeVal = `${today} ${timeStr}`;
+    }
+
+    const newCharge = {
+      ...newDimCharge,
+      date_time: dateTimeVal,
+      id: `dim-${Date.now()}`,
+    };
+
+    const currentCharges = inputs.dimension_charges || [];
+    updateInput("dimension_charges", [...currentCharges, newCharge]);
+
+    setNewDimCharge({
+      registration: "",
+      transporter: "",
+      axle: "",
+      gvw_excess: "",
+      axle_excess: "",
+      origin: "",
+      destination: "",
+      cargo: "",
+      date_time: "",
+      make: "",
+    });
+  }
+
+  function handleRemoveDimensionCharge(id: string) {
+    const currentCharges = inputs.dimension_charges || [];
+    const filtered = currentCharges.filter((c: any) => c.id !== id);
+    updateInput("dimension_charges", filtered);
   }
 
   async function handleMobileRegisterUpload(file: File) {
@@ -1650,6 +1713,129 @@ export default function NewMobileReportPage() {
                   className="mt-2 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
                 />
               </label>
+
+              {/* Manual Dimension Charges Section */}
+              <div className="mt-6 border-t border-cyan-900/50 pt-6">
+                <h3 className="text-sm font-bold text-cyan-200">Manual Dimension Charges</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Manually record vehicles charged on dimensions. These will be appended to the mobile report.
+                </p>
+
+                {/* Table of current charges */}
+                {(inputs.dimension_charges || []).length > 0 && (
+                  <div className="mt-4 overflow-x-auto rounded-lg border border-cyan-900/50">
+                    <table className="min-w-full divide-y divide-cyan-900/50 text-left text-xs">
+                      <thead className="bg-[#071827] text-slate-400">
+                        <tr>
+                          <th className="px-3 py-2">Reg No</th>
+                          <th className="px-3 py-2">Transporter</th>
+                          <th className="px-3 py-2">Config</th>
+                          <th className="px-3 py-2">Cargo</th>
+                          <th className="px-3 py-2">GVW Excess</th>
+                          <th className="px-3 py-2">Axle Excess</th>
+                          <th className="px-3 py-2">Origin</th>
+                          <th className="px-3 py-2">Destination</th>
+                          <th className="px-3 py-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-cyan-900/40 bg-[#0b2a45]">
+                        {(inputs.dimension_charges || []).map((charge: any) => (
+                          <tr key={charge.id} className="hover:bg-cyan-950/20 text-slate-300">
+                            <td className="px-3 py-2 font-mono font-bold text-cyan-100">{charge.registration}</td>
+                            <td className="px-3 py-2">{charge.transporter || "—"}</td>
+                            <td className="px-3 py-2">{charge.axle || "—"}</td>
+                            <td className="px-3 py-2">{charge.cargo || "—"}</td>
+                            <td className="px-3 py-2">{charge.gvw_excess || "0"}</td>
+                            <td className="px-3 py-2">{charge.axle_excess || "0"}</td>
+                            <td className="px-3 py-2">{charge.origin || "—"}</td>
+                            <td className="px-3 py-2">{charge.destination || "—"}</td>
+                            <td className="px-3 py-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDimensionCharge(charge.id)}
+                                className="text-red-400 hover:text-red-300 font-bold transition"
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Form to add a new charge */}
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 rounded-lg border border-cyan-800/20 bg-slate-900/20 p-4">
+                  <TextInput
+                    id="dim-reg"
+                    label="Registration *"
+                    value={newDimCharge.registration}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, registration: val }))}
+                  />
+                  <TextInput
+                    id="dim-transporter"
+                    label="Transporter"
+                    value={newDimCharge.transporter}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, transporter: val }))}
+                  />
+                  <TextInput
+                    id="dim-axle"
+                    label="Configuration"
+                    value={newDimCharge.axle}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, axle: val }))}
+                  />
+                  <TextInput
+                    id="dim-cargo"
+                    label="Cargo"
+                    value={newDimCharge.cargo}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, cargo: val }))}
+                  />
+                  <TextInput
+                    id="dim-gvw-excess"
+                    label="GVW Excess (KG)"
+                    type="number"
+                    value={newDimCharge.gvw_excess}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, gvw_excess: val }))}
+                  />
+                  <TextInput
+                    id="dim-axle-excess"
+                    label="Axle Excess (KG)"
+                    type="number"
+                    value={newDimCharge.axle_excess}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, axle_excess: val }))}
+                  />
+                  <TextInput
+                    id="dim-origin"
+                    label="Origin"
+                    value={newDimCharge.origin}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, origin: val }))}
+                  />
+                  <TextInput
+                    id="dim-destination"
+                    label="Destination"
+                    value={newDimCharge.destination}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, destination: val }))}
+                  />
+                  <TextInput
+                    id="dim-date-time"
+                    label="Date/Time Override (optional)"
+                    placeholder="e.g. YYYY-MM-DD HH:MM"
+                    value={newDimCharge.date_time}
+                    onChange={(val) => setNewDimCharge(prev => ({ ...prev, date_time: val }))}
+                  />
+
+                  <div className="sm:col-span-2 md:col-span-3 xl:col-span-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleAddDimensionCharge}
+                      className="flex items-center gap-1.5 rounded-md bg-cyan-900/60 border border-cyan-700/60 hover:bg-cyan-700/60 px-4 py-2 text-xs font-bold text-cyan-200 transition"
+                    >
+                      Add Dimension Charge
+                    </button>
+                  </div>
+                </div>
+              </div>
             </fieldset>
 
             <div className="mt-4 flex flex-wrap gap-3">
@@ -1737,6 +1923,71 @@ export default function NewMobileReportPage() {
                 </p>
               )}
             </div>
+
+            {uploadResponse?.mobile_report?.duplicates && uploadResponse.mobile_report.duplicates.length > 0 && (
+              <div className="mt-5 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4">
+                <div className="flex items-center gap-2 text-yellow-300">
+                  <AlertTriangle size={18} />
+                  <h3 className="text-sm font-bold">Duplicate Weighbridge Entries Detected</h3>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  The following vehicles were weighed multiple times. Please select which weigh ticket represents a **Reweigh**. Tickets marked as Reweigh will not count towards overloaded/charged violations.
+                </p>
+
+                <div className="mt-4 space-y-4">
+                  {uploadResponse.mobile_report.duplicates.map((dup: any) => {
+                    const selectedTicket = dup.tickets.find((t: any) =>
+                      inputs.reweigh_tickets?.includes(t.ticket_no)
+                    )?.ticket_no || "";
+
+                    return (
+                      <div key={dup.registration} className="rounded-md border border-cyan-900/50 bg-[#071827] p-3">
+                        <p className="text-sm font-bold text-cyan-200">{dup.registration}</p>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <label className="flex items-center gap-2 rounded border border-cyan-800/40 bg-slate-900/40 p-2 cursor-pointer hover:bg-slate-900/80 transition">
+                            <input
+                              type="radio"
+                              name={`reweigh-${dup.registration}`}
+                              checked={selectedTicket === ""}
+                              onChange={() => {
+                                const ticketNumbers = dup.tickets.map((t: any) => t.ticket_no);
+                                const filtered = (inputs.reweigh_tickets || []).filter(
+                                  (t) => !ticketNumbers.includes(t)
+                                );
+                                updateInput("reweigh_tickets", filtered);
+                              }}
+                              className="accent-cyan-500"
+                            />
+                            <span className="text-xs text-slate-300">No Reweigh (Keep both)</span>
+                          </label>
+
+                          {dup.tickets.map((t: any) => (
+                            <label key={t.ticket_no} className="flex items-center gap-2 rounded border border-cyan-800/40 bg-slate-900/40 p-2 cursor-pointer hover:bg-slate-900/80 transition">
+                              <input
+                                type="radio"
+                                name={`reweigh-${dup.registration}`}
+                                checked={selectedTicket === t.ticket_no}
+                                onChange={() => {
+                                  const ticketNumbers = dup.tickets.map((x: any) => x.ticket_no);
+                                  const filtered = (inputs.reweigh_tickets || []).filter(
+                                    (x) => !ticketNumbers.includes(x)
+                                  );
+                                  updateInput("reweigh_tickets", [...filtered, t.ticket_no]);
+                                }}
+                                className="accent-cyan-500"
+                              />
+                              <span className="text-xs text-slate-300">
+                                Ticket: <strong>{t.ticket_no}</strong> ({t.gvw_kg} kg) - {t.remarks}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {normalizedRows.length > 0 && (
               <div className="mt-5 overflow-x-auto rounded-lg border border-cyan-900/50">

@@ -272,6 +272,8 @@ export type ReportSessionResponse = {
         mileage_start?: string | number;
         mileage_end?: string | number;
       }[];
+      reweigh_tickets?: string[];
+      dimension_charges?: any[];
     };
   };
 
@@ -331,6 +333,18 @@ export type MobileReportUploadResponse = ReportSessionResponse & {
       status: string;
       summary?: MobileReportSummary;
     };
+  };
+  mobile_report?: {
+    data?: Record<string, unknown>[];
+    duplicates?: {
+      registration: string;
+      tickets: {
+        ticket_no: string;
+        date_time: string;
+        gvw_kg: string;
+        remarks: string;
+      }[];
+    }[];
   };
 };
 

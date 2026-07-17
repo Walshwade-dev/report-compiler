@@ -126,6 +126,8 @@ export type MobileReportInputs = {
   exemptedPermit: string;
   manuallyWeighed: string;
   vehicleCharges: MobileVehicleChargeRow[];
+  reweigh_tickets?: string[];
+  dimension_charges?: any[];
 };
 
 export type PreviewFormat =
