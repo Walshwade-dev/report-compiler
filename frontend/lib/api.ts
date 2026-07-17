@@ -36,6 +36,64 @@ export function apiUrl(path: string) {
   return `${origin}/api/${cleanPath}`;
 }
 
+export function authHeaders(extraHeaders: Record<string, string> = {}) {
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("dnk-auth-token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
+
+export async function loginUser(username: string, password: string) {
+  const params = new URLSearchParams();
+  params.append("username", username);
+  params.append("password", password);
+
+  const response = await fetch(apiUrl("auth/token"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, "Login failed"));
+  }
+
+  const data = await response.json();
+  if (typeof window !== "undefined") {
+    localStorage.setItem("dnk-auth-token", data.access_token);
+    localStorage.setItem("dnk-auth-user", JSON.stringify(data.user));
+  }
+  return data;
+}
+
+export function logoutUser() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("dnk-auth-token");
+    localStorage.removeItem("dnk-auth-user");
+  }
+}
+
+export function getLoggedInUser() {
+  if (typeof window !== "undefined") {
+    const userStr = localStorage.getItem("dnk-auth-user");
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+
 export function resolveApiUrl(url: string | null | undefined) {
   if (!url) {
     return null;
@@ -243,9 +301,9 @@ export async function createReportSession(
     {
       method: "POST",
 
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-      },
+      }),
 
       body: JSON.stringify(payload),
     }
@@ -276,6 +334,7 @@ export async function uploadSectionFile(
     apiUrl(`report-sessions/${reportId}/uploads/${endpoint}`),
     {
       method: "POST",
+      headers: authHeaders(),
       body: formData,
     }
   );
@@ -301,6 +360,7 @@ export async function uploadMobileReportFile(
     apiUrl(`report-sessions/${reportId}/uploads/mobile-report`),
     {
       method: "POST",
+      headers: authHeaders(),
       body: formData,
     }
   );
@@ -323,9 +383,9 @@ export async function updateManualInputs(
     apiUrl(`report-sessions/${reportId}/manual-inputs`),
     {
       method: "PATCH",
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify(payload),
     }
   );
@@ -399,9 +459,9 @@ export async function updateReportSessionMetadata(
     apiUrl(`report-sessions/${reportId}/metadata`),
     {
       method: "PATCH",
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify(payload),
     }
   );
@@ -526,6 +586,7 @@ export async function buildFinalReport(
     apiUrl(`report-sessions/${reportId}/build-final-report`),
     {
       method: "POST",
+      headers: authHeaders(),
     }
   );
 

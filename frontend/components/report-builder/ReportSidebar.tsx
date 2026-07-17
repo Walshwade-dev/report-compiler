@@ -7,25 +7,35 @@ import {
   Settings,
   Ticket,
   Truck,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { REPORT_NAV_ITEMS } from "@/lib/constants";
 import { ProgressSummary } from "./ProgressSummary";
 import { useReportProgress } from "./ReportProgressContext";
+import { getLoggedInUser, logoutUser } from "@/lib/api";
+
 
 type ReportSidebarProps = {
   onOpenSettings: () => void;
 };
 
 export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
+  const router = useRouter();
+  const user = getLoggedInUser();
   const [reportsOpen, setReportsOpen] = useState(true);
   const pathname = usePathname();
 
   const [logoError, setLogoError] = useState(false);
 
   const progress = useReportProgress();
+
+  const handleLogout = () => {
+    logoutUser();
+    router.push("/login");
+  };
 
   return (
     <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-cyan-900/40 bg-[#0b2135] p-5">
@@ -164,6 +174,27 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
               >
                 <Settings size={16} />
                 <span>Settings</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="px-3 text-[11px] font-bold uppercase text-cyan-300/70">
+            Account
+          </p>
+
+          <ul className="mt-2 space-y-1">
+            <li className="px-3 py-1 text-xs text-slate-400 font-semibold truncate">
+              {user?.full_name || user?.username || "Authorized Officer"}
+            </li>
+            <li>
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+              >
+                <LogOut size={16} />
+                <span>Log Out</span>
               </button>
             </li>
           </ul>

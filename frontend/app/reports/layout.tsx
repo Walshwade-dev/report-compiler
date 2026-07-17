@@ -1,9 +1,10 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { FileText, Settings, Truck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { getLoggedInUser } from "@/lib/api";
 
 import { ReportSidebar } from "@/components/report-builder/ReportSidebar";
 import {
@@ -30,11 +31,33 @@ export default function ReportsLayout({ children }: ReportsLayoutProps) {
 }
 
 function ReportsLayoutContent({ children }: ReportsLayoutProps) {
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [personName, setPersonName] = useState("");
   const pathname = usePathname();
 
+  useEffect(() => {
+    const user = getLoggedInUser();
+    if (!user) {
+      router.push("/login");
+    } else {
+      setAuthorized(true);
+    }
+  }, [router]);
+
   const { people, addPerson } = useReportSettings();
+
+  if (!authorized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#071827]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
+          <p className="text-sm font-bold text-cyan-300">Verifying session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#071827] text-slate-100">
