@@ -20,7 +20,7 @@ export function RecentReportsList({
   adminPassword,
   compact = false,
 }: {
-  adminPassword: string;
+  adminPassword?: string;
   compact?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);

@@ -33,6 +33,7 @@ export default function ReportsLayout({ children }: ReportsLayoutProps) {
 function ReportsLayoutContent({ children }: ReportsLayoutProps) {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [personName, setPersonName] = useState("");
   const pathname = usePathname();
@@ -43,6 +44,7 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
       router.push("/login");
     } else {
       setAuthorized(true);
+      setCurrentUser(user);
     }
   }, [router]);
 
@@ -146,18 +148,20 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
             </div>
 
             <div className="mt-6 space-y-4">
-              <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
-                <p className="text-sm font-bold text-cyan-200 mb-3">
-                  Admin Controls
-                </p>
-                <Link
-                  href="/admin"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-700 bg-cyan-500/10 px-3 py-2 text-sm font-bold text-cyan-200 hover:bg-cyan-500/20"
-                >
-                  <ShieldCheck aria-hidden="true" size={16} />
-                  Open Admin Console
-                </Link>
-              </div>
+              {currentUser?.role === "admin" && (
+                <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
+                  <p className="text-sm font-bold text-cyan-200 mb-3">
+                    Admin Controls
+                  </p>
+                  <Link
+                    href="/admin"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-700 bg-cyan-500/10 px-3 py-2 text-sm font-bold text-cyan-200 hover:bg-cyan-500/20"
+                  >
+                    <ShieldCheck aria-hidden="true" size={16} />
+                    Open Admin Console
+                  </Link>
+                </div>
+              )}
 
               <div className="rounded-xl border border-cyan-900/50 bg-[#071827] p-4">
                 <p className="text-sm font-bold text-cyan-200">
