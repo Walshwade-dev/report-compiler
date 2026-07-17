@@ -9,6 +9,7 @@ import {
   getFinalReportDownloadUrl,
   getExcelReportDownloadUrl,
   ReportSessionResponse,
+  getLoggedInUser,
 } from "../api";
 
 
@@ -119,6 +120,37 @@ export function useReportSession() {
     loadStoredSelection(ACTIVE_BOUND_KEY, "THIKA BOUND")
   );
   const [reportId, setReportId] = useState<string | null>(null);
+
+  // Lock station and preparedBy for non-admin users
+  useEffect(() => {
+    const user = getLoggedInUser();
+    if (user && user.role !== "admin") {
+      if (user.station) {
+        const STATION_MAP: Record<string, string> = {
+          "juja": "JUJA",
+          "athi": "ATHI RIVER",
+          "gilgil": "GILGIL",
+          "kanyonyo": "KANYONYO",
+          "suswa": "SUSWA",
+          "isinya": "ISINYA"
+        };
+        const normalized = user.station.toLowerCase();
+        let matched = "JUJA";
+        for (const [key, value] of Object.entries(STATION_MAP)) {
+          if (normalized.includes(key)) {
+            matched = value;
+            break;
+          }
+        }
+        setWeighbridgeName(matched);
+      }
+      
+      setMetadata((prev) => ({
+        ...prev,
+        preparedBy: user.full_name || user.username || "",
+      }));
+    }
+  }, []);
 
   const [manualInputs, setManualInputs] = useState<ManualInputs>({
     casesCleared: 0,
@@ -233,6 +265,11 @@ export function useReportSession() {
       );
       setFinalReportDownloadUrl(null);
       setExcelReportDownloadUrl(null);
+    } else if (session.final_report?.status === "processing") {
+      setBuildStatus("building");
+      setFinalReportDownloadUrl(null);
+      setExcelReportDownloadUrl(null);
+      setBuildError(null);
     } else {
       setBuildStatus("not_ready");
       setFinalReportDownloadUrl(null);
@@ -240,6 +277,41 @@ export function useReportSession() {
       setBuildError(null);
     }
   }, []);
+
+  // Poll if session is in building/processing status on load
+  useEffect(() => {
+    if (!reportId || buildStatus !== "building") return;
+    
+    let active = true;
+    const poll = async () => {
+      let attempts = 0;
+      const maxAttempts = 60;
+      while (active && attempts < maxAttempts) {
+        try {
+          const session = await getReportSession(reportId);
+          if (session.final_report?.status === "ready") {
+            setBuildStatus("completed");
+            setFinalReportDownloadUrl(await getFinalReportDownloadUrl(reportId));
+            setExcelReportDownloadUrl(await getExcelReportDownloadUrl(reportId));
+            break;
+          } else if (session.final_report?.status === "error") {
+            setBuildStatus("error");
+            setBuildError(session.final_report.error || "The backend reported a final report build error.");
+            break;
+          }
+        } catch (e) {
+          console.error("Polling error:", e);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+      }
+    };
+    
+    poll();
+    return () => {
+      active = false;
+    };
+  }, [reportId, buildStatus]);
 
   const handleCreateSession = useCallback(async () => {
     try {
@@ -331,16 +403,32 @@ export function useReportSession() {
     setExcelReportDownloadUrl(null);
 
     try {
-      const response = await buildFinalReport(reportId);
-      const finalReport = response.final_report;
+      let response = await buildFinalReport(reportId);
+      let finalReport = response.final_report;
 
-      if (finalReport.status === "ready") {
+      // Poll until status is "ready" or "error"
+      let attempts = 0;
+      const maxAttempts = 60; // 60 seconds max
+      while (
+        (finalReport?.status === "processing" || finalReport?.status === "building") &&
+        attempts < maxAttempts
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        response = await getReportSession(reportId);
+        finalReport = response.final_report;
+        attempts++;
+      }
+
+      if (finalReport?.status === "ready") {
         setBuildStatus("completed");
         setFinalReportDownloadUrl(await getFinalReportDownloadUrl(response.report_id));
         setExcelReportDownloadUrl(await getExcelReportDownloadUrl(response.report_id));
+      } else if (finalReport?.status === "error") {
+        setBuildStatus("error");
+        setBuildError(finalReport.error || "The backend reported a final report build error.");
       } else {
         setBuildStatus("error");
-        setBuildError(finalReport.error || "Backend did not mark the final report as ready.");
+        setBuildError("Build timed out. Please try again.");
       }
     } catch (error) {
       console.error(error);

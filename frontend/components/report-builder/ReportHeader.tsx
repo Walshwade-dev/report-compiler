@@ -5,6 +5,8 @@ import {
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { getLoggedInUser } from "@/lib/api";
+import { useEffect, useState } from "react";
 
 type ReportHeaderProps = {
     weighbridgeName: string;
@@ -26,6 +28,13 @@ export function ReportHeader({
   setWeighbridgeName,
   setBoundName,
 }: ReportHeaderProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const user = mounted ? getLoggedInUser() : null;
+  const isAdmin = !user || user.role === "admin";
   
   return (
     <header className="mb-6">
@@ -59,20 +68,25 @@ export function ReportHeader({
 
       <div className="mt-4 flex flex-wrap gap-3">
         <select
+          disabled={!isAdmin}
           value={weighbridgeName}
           onChange={(e) =>
             setWeighbridgeName(e.target.value)
           }
-          className="rounded-lg border border-cyan-700 bg-[#0b2135] px-3 py-2 text-sm text-cyan-200"
+          className={`rounded-lg border border-cyan-700 bg-[#0b2135] px-3 py-2 text-sm text-cyan-200 ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
-          {WEIGHBRIDGE_OPTIONS.map((option) => (
-            <option
-              key={option}
-              value={option}
-            >
-              {option}
-            </option>
-          ))}
+          {isAdmin ? (
+            WEIGHBRIDGE_OPTIONS.map((option) => (
+              <option
+                key={option}
+                value={option}
+              >
+                {option}
+              </option>
+            ))
+          ) : (
+            <option value={weighbridgeName}>{weighbridgeName}</option>
+          )}
         </select>
 
         <select

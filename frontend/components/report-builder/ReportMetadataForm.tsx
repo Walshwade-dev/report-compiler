@@ -4,6 +4,8 @@ import { ReportMetadata } from "@/lib/types";
 import { useReportSettings } from "./ReportSettingsContext";
 import { useState, useEffect } from "react";
 
+import { getLoggedInUser } from "@/lib/api";
+
 type ReportMetadataFormProps = {
   metadata: ReportMetadata;
   setMetadata: React.Dispatch<
@@ -27,6 +29,9 @@ export function ReportMetadataForm({
 
   const dateInputClass =
     "mobile-date-input [color-scheme:dark] rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none";
+
+  const user = mounted ? getLoggedInUser() : null;
+  const isAdmin = !user || user.role === "admin";
 
   // Server and initial client render show the simplified version
   if (!mounted) {
@@ -98,7 +103,8 @@ export function ReportMetadataForm({
         />
 
         <select
-          className="rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none"
+          disabled={!isAdmin}
+          className={`rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm outline-none ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
           value={metadata.preparedBy}
           onChange={(e) =>
             setMetadata((prev) => ({
@@ -107,12 +113,18 @@ export function ReportMetadataForm({
             }))
           }
         >
-          <option value="">Select prepared by</option>
-          {people.map((person) => (
-            <option key={person} value={person}>
-              {person}
-            </option>
-          ))}
+          {isAdmin ? (
+            <>
+              <option value="">Select prepared by</option>
+              {people.map((person) => (
+                <option key={person} value={person}>
+                  {person}
+                </option>
+              ))}
+            </>
+          ) : (
+            <option value={metadata.preparedBy}>{metadata.preparedBy}</option>
+          )}
         </select>
 
         <select

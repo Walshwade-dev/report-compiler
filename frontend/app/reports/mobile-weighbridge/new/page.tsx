@@ -32,6 +32,7 @@ import {
   updateManualInputs,
   updateReportSessionMetadata,
   uploadMobileReportFile,
+  getLoggedInUser,
 } from "@/lib/api";
 import {
   isSupportedSpreadsheetFile,
@@ -277,6 +278,7 @@ type SelectInputProps = {
   value: string;
   onChange: (value: string) => void;
   options: string[];
+  disabled?: boolean;
 };
 
 function SelectInput({
@@ -285,6 +287,7 @@ function SelectInput({
   value,
   onChange,
   options,
+  disabled = false,
 }: SelectInputProps) {
   return (
     <label htmlFor={id} className="block">
@@ -293,10 +296,11 @@ function SelectInput({
       </span>
 
       <select
+        disabled={disabled}
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
+        className={`mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -314,6 +318,14 @@ export default function NewMobileReportPage() {
   );
   const [reportId, setReportId] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const user = mounted ? getLoggedInUser() : null;
+  const isAdmin = !user || user.role === "admin";
   const [draftStatus, setDraftStatus] = useState<"saved" | "saving">("saved");
   const [sessionStatus, setSessionStatus] = useState<WorkflowStatus>("idle");
   const [autoSessionKey, setAutoSessionKey] = useState<string | null>(null);
@@ -594,13 +606,62 @@ export default function NewMobileReportPage() {
       const savedReportId = localStorage.getItem(MOBILE_REPORT_ID_KEY);
       let restoredInputs = createInitialMobileInputs();
 
+      const user = getLoggedInUser();
+      if (user && user.role !== "admin") {
+        if (user.station) {
+          const STATION_MAP: Record<string, string> = {
+            "juja": "Juja mobile",
+            "kanyonyo": "Kanyonyo mobile",
+            "isinya": "Isinya mobile",
+            "athi": "Athi River mobile",
+            "gilgil": "Gilgil mobile",
+            "suswa": "Suswa mobile"
+          };
+          const normalized = user.station.toLowerCase();
+          let matched = "Juja mobile";
+          for (const [key, value] of Object.entries(STATION_MAP)) {
+            if (normalized.includes(key)) {
+              matched = value;
+              break;
+            }
+          }
+          restoredInputs.station = matched;
+        }
+        restoredInputs.preparedBy = user.full_name || user.username || "";
+      }
+
       if (savedDraft) {
         try {
           restoredInputs = {
-            ...createInitialMobileInputs(),
+            ...restoredInputs,
             ...JSON.parse(savedDraft),
             approvedBy: "Faith Njani",
           } as MobileReportInputs;
+
+          // Re-apply lock to ensure user doesn't bypass via modified localstorage draft
+          if (user && user.role !== "admin") {
+            if (user.station) {
+              const STATION_MAP: Record<string, string> = {
+                "juja": "Juja mobile",
+                "kanyonyo": "Kanyonyo mobile",
+                "isinya": "Isinya mobile",
+                "athi": "Athi River mobile",
+                "gilgil": "Gilgil mobile",
+                "suswa": "Suswa mobile"
+              };
+              const normalized = user.station.toLowerCase();
+              let matched = "Juja mobile";
+              for (const [key, value] of Object.entries(STATION_MAP)) {
+                if (normalized.includes(key)) {
+                  matched = value;
+                  break;
+                }
+              }
+              restoredInputs.station = matched;
+            }
+            restoredInputs.preparedBy = user.full_name || user.username || "";
+          }
+
           setInputs(restoredInputs);
         } catch {
           localStorage.removeItem(MOBILE_DRAFT_KEY);
@@ -618,6 +679,30 @@ export default function NewMobileReportPage() {
             session,
             restoredInputs
           );
+
+          if (user && user.role !== "admin") {
+            if (user.station) {
+              const STATION_MAP: Record<string, string> = {
+                "juja": "Juja mobile",
+                "kanyonyo": "Kanyonyo mobile",
+                "isinya": "Isinya mobile",
+                "athi": "Athi River mobile",
+                "gilgil": "Gilgil mobile",
+                "suswa": "Suswa mobile"
+              };
+              const normalized = user.station.toLowerCase();
+              let matched = "Juja mobile";
+              for (const [key, value] of Object.entries(STATION_MAP)) {
+                if (normalized.includes(key)) {
+                  matched = value;
+                  break;
+                }
+              }
+              restoredFromSession.station = matched;
+            }
+            restoredFromSession.preparedBy = user.full_name || user.username || "";
+          }
+
           const mobileSection = session.sections.mobile_report;
           const mobileReady = mobileSection?.status === "ready";
           const hasMobileManualInputs = Boolean(
@@ -1198,11 +1283,12 @@ export default function NewMobileReportPage() {
               />
 
               <SelectInput
+                disabled={!isAdmin}
                 id="mobile-station"
                 label="Station"
                 value={inputs.station}
                 onChange={(value) => updateInput("station", value)}
-                options={STATION_OPTIONS}
+                options={isAdmin ? STATION_OPTIONS : [inputs.station]}
               />
 
               <SelectInput
@@ -1219,26 +1305,33 @@ export default function NewMobileReportPage() {
                 </span>
 
                 <select
+                  disabled={!isAdmin}
                   id="mobile-prepared-by"
                   value={inputs.preparedBy}
                   onChange={(event) =>
                     updateInput("preparedBy", event.target.value)
                   }
-                  className="mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 shadow-inner outline-none transition hover:border-cyan-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40"
+                  className={`mt-1 w-full rounded-md border border-cyan-700 bg-[#071827] px-3 py-2 text-sm text-slate-100 shadow-inner outline-none transition hover:border-cyan-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-500/40 ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
-                  {!inputs.preparedBy && (
-                    <option value="">Select officer</option>
+                  {!isAdmin ? (
+                    <option value={inputs.preparedBy}>{inputs.preparedBy}</option>
+                  ) : (
+                    <>
+                      {!inputs.preparedBy && (
+                        <option value="">Select officer</option>
+                      )}
+                      {inputs.preparedBy && !people.includes(inputs.preparedBy) && (
+                        <option value={inputs.preparedBy}>
+                          {inputs.preparedBy}
+                        </option>
+                      )}
+                      {people.map((person) => (
+                        <option key={person} value={person}>
+                          {person}
+                        </option>
+                      ))}
+                    </>
                   )}
-                  {inputs.preparedBy && !people.includes(inputs.preparedBy) && (
-                    <option value={inputs.preparedBy}>
-                      {inputs.preparedBy}
-                    </option>
-                  )}
-                  {people.map((person) => (
-                    <option key={person} value={person}>
-                      {person}
-                    </option>
-                  ))}
                 </select>
               </label>
 

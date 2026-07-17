@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { REPORT_NAV_ITEMS } from "@/lib/constants";
 import { ProgressSummary } from "./ProgressSummary";
 import { useReportProgress } from "./ReportProgressContext";
@@ -24,7 +24,13 @@ type ReportSidebarProps = {
 
 export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
   const router = useRouter();
-  const user = getLoggedInUser();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const user = mounted ? getLoggedInUser() : null;
+  const isManager = user?.role === "duty_manager" || user?.role === "cluster_manager";
   const [reportsOpen, setReportsOpen] = useState(true);
   const pathname = usePathname();
 
@@ -36,6 +42,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
     logoutUser();
     router.push("/login");
   };
+
 
   return (
     <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-cyan-900/40 bg-[#0b2135] p-5">
@@ -79,57 +86,59 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
               </Link>
             </li>
 
-            <li>
-              <button
-                onClick={() => setReportsOpen((prev) => !prev)}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10"
-                aria-expanded={reportsOpen}
-              >
-                <span className="flex items-center gap-3">
-                  <FileText size={16} />
-                  Reports
-                </span>
+            {!isManager && (
+              <li>
+                <button
+                  onClick={() => setReportsOpen((prev) => !prev)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10"
+                  aria-expanded={reportsOpen}
+                >
+                  <span className="flex items-center gap-3">
+                    <FileText size={16} />
+                    Reports
+                  </span>
 
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform ${
-                    reportsOpen ? "rotate-0" : "-rotate-90"
-                  }`}
-                />
-              </button>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${
+                      reportsOpen ? "rotate-0" : "-rotate-90"
+                    }`}
+                  />
+                </button>
 
-              {reportsOpen && (
-                <ul className="ml-6 mt-1 space-y-1 border-l border-cyan-900/50 pl-3">
-                  {REPORT_NAV_ITEMS[0].items.map((item) => (
-                    <li key={item.label}>
-                      {(() => {
-                        const active = pathname === item.href;
+                {reportsOpen && (
+                  <ul className="ml-6 mt-1 space-y-1 border-l border-cyan-900/50 pl-3">
+                    {REPORT_NAV_ITEMS[0].items.map((item) => (
+                      <li key={item.label}>
+                        {(() => {
+                          const active = pathname === item.href;
 
-                        return (
-                        <Link
-                          href={item.href}
-                          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                            active
-                              ? "bg-cyan-500/20 text-cyan-200"
-                              : "text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-200"
-                          }`}
-                          aria-current={active ? "page" : undefined}
-                        >
-                          {item.icon === "file" ? (
-                            <FileText size={16} />
-                          ) : (
-                            <Truck size={16} />
-                          )}
+                          return (
+                          <Link
+                            href={item.href}
+                            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                              active
+                                ? "bg-cyan-500/20 text-cyan-200"
+                                : "text-slate-500 hover:bg-cyan-500/10 hover:text-cyan-200"
+                            }`}
+                            aria-current={active ? "page" : undefined}
+                          >
+                            {item.icon === "file" ? (
+                              <FileText size={16} />
+                            ) : (
+                              <Truck size={16} />
+                            )}
 
-                          <span>{item.label}</span>
-                        </Link>
-                        );
-                      })()}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
+                            <span>{item.label}</span>
+                          </Link>
+                          );
+                        })()}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            )}
 
             <li>
               <Link
@@ -145,39 +154,43 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
               </Link>
             </li>
 
-            <li>
-              <Link
-                href="/tickets"
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
-                  pathname === "/tickets"
-                    ? "bg-cyan-500/20 text-cyan-200"
-                    : "text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
-                }`}
-              >
-                <Ticket size={16} />
-                <span>Tickets</span>
-              </Link>
-            </li>
+            {!isManager && (
+              <li>
+                <Link
+                  href="/tickets"
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    pathname === "/tickets"
+                      ? "bg-cyan-500/20 text-cyan-200"
+                      : "text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+                  }`}
+                >
+                  <Ticket size={16} />
+                  <span>Tickets</span>
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
 
-        <div>
-          <p className="px-3 text-[11px] font-bold uppercase text-cyan-300/70">
-            General
-          </p>
+        {!isManager && (
+          <div>
+            <p className="px-3 text-[11px] font-bold uppercase text-cyan-300/70">
+              General
+            </p>
 
-          <ul className="mt-2 space-y-1">
-            <li>
-              <button
-                onClick={onOpenSettings}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
-              >
-                <Settings size={16} />
-                <span>Settings</span>
-              </button>
-            </li>
-          </ul>
-        </div>
+            <ul className="mt-2 space-y-1">
+              <li>
+                <button
+                  onClick={onOpenSettings}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+                >
+                  <Settings size={16} />
+                  <span>Settings</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        )}
 
         <div>
           <p className="px-3 text-[11px] font-bold uppercase text-cyan-300/70">
@@ -201,17 +214,19 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
         </div>
       </nav>
 
-      <div className="mt-auto mb-4">
-        <ProgressSummary
-          reportType={progress.reportType}
-          metadataComplete={progress.metadataComplete}
-          uploadsComplete={progress.uploadsComplete}
-          manualInputsComplete={progress.manualInputsComplete}
-          uploadCount={progress.uploadCount}
-          uploadTotal={progress.uploadTotal}
-          canBuild={progress.canBuild}
-        />
-      </div>
+      {!isManager && (
+        <div className="mt-auto mb-4">
+          <ProgressSummary
+            reportType={progress.reportType}
+            metadataComplete={progress.metadataComplete}
+            uploadsComplete={progress.uploadsComplete}
+            manualInputsComplete={progress.manualInputsComplete}
+            uploadCount={progress.uploadCount}
+            uploadTotal={progress.uploadTotal}
+            canBuild={progress.canBuild}
+          />
+        </div>
+      )}
     </aside>
   );
 }
