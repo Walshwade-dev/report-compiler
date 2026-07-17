@@ -357,6 +357,7 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Create user form state
   const [newUsername, setNewUsername] = useState("");
@@ -416,10 +417,6 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
   }
 
   async function handleDeleteUser(userId: string, username: string) {
-    if (!confirm(`Are you sure you want to delete user account '${username}'?`)) {
-      return;
-    }
-
     setError("");
     setSuccess("");
     try {
@@ -428,6 +425,8 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
       setUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch (err: any) {
       setError(err.message || `Failed to delete account ${username}`);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -633,9 +632,24 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
                       <td className="py-3.5 text-right pr-2">
                         {isSelf ? (
                           <span className="text-xs font-bold text-cyan-400/70 mr-2">You</span>
+                        ) : deletingId === account.id ? (
+                          <div className="flex items-center justify-end gap-1.5 mr-2">
+                            <button
+                              onClick={() => setDeletingId(null)}
+                              className="rounded bg-slate-700 px-2 py-1 text-xs font-bold text-slate-200 hover:bg-slate-600 transition"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(account.id, account.username)}
+                              className="rounded bg-rose-600 px-2 py-1 text-xs font-bold text-white hover:bg-rose-700 transition"
+                            >
+                              Confirm
+                            </button>
+                          </div>
                         ) : (
                           <button
-                            onClick={() => handleDeleteUser(account.id, account.username)}
+                            onClick={() => setDeletingId(account.id)}
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition"
                             title="Delete user"
                           >
