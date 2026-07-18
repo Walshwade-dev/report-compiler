@@ -170,6 +170,8 @@ export function useReportSession() {
   const [manualInputsTouched, setManualInputsTouched] = useState(false);
   const [buildStatus, setBuildStatus] = useState<BuildStatus>("not_ready");
   const [buildError, setBuildError] = useState<string | null>(null);
+  const [createStatus, setCreateStatus] = useState<"idle" | "creating" | "ready" | "error">("idle");
+  const [createError, setCreateError] = useState<string | null>(null);
   const [finalReportDownloadUrl, setFinalReportDownloadUrl] = useState<string | null>(null);
   const [excelReportDownloadUrl, setExcelReportDownloadUrl] = useState<string | null>(null);
   const [manualSaveStatus, setManualSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -185,7 +187,8 @@ export function useReportSession() {
     Boolean(metadata.date) &&
     Boolean(metadata.preparedBy) &&
     Boolean(metadata.approvedBy) &&
-    !reportId;
+    !reportId &&
+    createStatus === "idle";
 
   // Function to load session details from backend response
   const loadSessionData = useCallback(async (session: ReportSessionResponse) => {
@@ -314,7 +317,12 @@ export function useReportSession() {
   }, [reportId, buildStatus]);
 
   const handleCreateSession = useCallback(async () => {
+    if (reportId || createStatus === "creating") return;
+
     try {
+      setCreateStatus("creating");
+      setCreateError(null);
+
       const response = await createReportSession({
         report_date: metadata.date,
         station: weighbridgeName,
@@ -326,11 +334,25 @@ export function useReportSession() {
 
       setReportId(response.report_id);
       localStorage.setItem("active-report-id", response.report_id);
+      setCreateStatus("ready");
       await loadSessionData(response);
     } catch (error) {
       console.error("Failed to create session:", error);
+      setCreateStatus("error");
+      setCreateError(
+        error instanceof Error ? error.message : "Failed to create report workspace"
+      );
     }
-  }, [metadata.date, metadata.preparedBy, metadata.approvedBy, weighbridgeName, boundName, loadSessionData]);
+  }, [
+    reportId,
+    createStatus,
+    metadata.date,
+    metadata.preparedBy,
+    metadata.approvedBy,
+    weighbridgeName,
+    boundName,
+    loadSessionData,
+  ]);
 
   const handleSaveManualInputs = useCallback(async () => {
     if (!reportId) return;
@@ -464,6 +486,8 @@ export function useReportSession() {
     setManualInputsTouched(false);
     setBuildStatus("not_ready");
     setBuildError(null);
+    setCreateStatus("idle");
+    setCreateError(null);
     setFinalReportDownloadUrl(null);
     setExcelReportDownloadUrl(null);
     setReportId(null);
@@ -560,6 +584,8 @@ export function useReportSession() {
 
         const session = await getReportSession(savedReportId);
         setReportId(savedReportId);
+        setCreateStatus("ready");
+        setCreateError(null);
         await loadSessionData(session);
       } catch (error) {
         console.error("Failed to restore session:", error);
@@ -587,6 +613,8 @@ export function useReportSession() {
     setBuildStatus,
     buildError,
     setBuildError,
+    createStatus,
+    createError,
     finalReportDownloadUrl,
     setFinalReportDownloadUrl,
     excelReportDownloadUrl,
