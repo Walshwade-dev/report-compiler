@@ -7,7 +7,7 @@ import {
   TriangleAlert,
   Truck,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   getSummaryCards,
@@ -102,55 +102,18 @@ export function SummaryCards({
   reportId,
   refreshKey,
 }: SummaryCardsProps) {
-  const [cards, setCards] =
-    useState<SummaryCard[]>(fallbackCards);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] =
-    useState<string | null>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["summaryCards", reportId, refreshKey],
+    queryFn: () => getSummaryCards(reportId!),
+    enabled: !!reportId,
+  });
 
-  useEffect(() => {
-    if (!reportId) {
-      return;
-    }
-
-    let cancelled = false;
-    const activeReportId = reportId;
-
-    async function loadSummaryCards() {
-      try {
-        setLoading(true);
-        setErrorMessage(null);
-
-        const response = await getSummaryCards(activeReportId);
-
-        if (cancelled) return;
-
-        setCards(response.cards);
-      } catch (error) {
-        if (cancelled) return;
-
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch summary cards"
-        );
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadSummaryCards();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reportId, refreshKey]);
+  const cards = data?.cards || fallbackCards;
+  const errorMessage = error instanceof Error ? error.message : null;
 
   const displayedCards = reportId ? cards : fallbackCards;
   const displayedErrorMessage = reportId ? errorMessage : null;
-  const displayedLoading = Boolean(reportId) && loading;
+  const displayedLoading = Boolean(reportId) && isLoading;
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

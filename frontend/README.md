@@ -1,5 +1,7 @@
 # Report Compiler Frontend
 
+Last updated: 2026-07-19
+
 Next.js frontend for the Daily Report Automation report builder.
 
 ## Development

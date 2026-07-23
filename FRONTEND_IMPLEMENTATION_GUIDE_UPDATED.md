@@ -1,5 +1,7 @@
 # Daily Report Automation — Frontend Implementation Guide
 
+Last reviewed: 2026-07-19
+
 ## 1. Project Goal
 
 Build a frontend report-builder UI for the Daily Report Automation system.
@@ -759,6 +761,8 @@ Completion criteria:
 - Progress summary cards are implemented via `ProgressSummary.tsx` and `SummaryCards.tsx` to surface metadata, upload, manual input, and build readiness.
 - Input controls now use semantic browser UI: report date uses `type="date"`, and numeric manual inputs use `type="number"` with `min={0}` and `step={1}` validations.
 - A reusable `SectionCard` wrapper now provides consistent panel styling for report sections.
+
+- Documentation updated: 2026-07-19 — review and minor clarifications; no behavioral changes.
 
 ## Architecture Notes
 

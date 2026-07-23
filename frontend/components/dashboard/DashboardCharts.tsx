@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Scale, Gavel, CheckCircle2, TrendingUp, X, Maximize2 } from "lucide-react";
-import { getAnalyticsDashboard, isApiConnectionError } from "@/lib/api";
+import { getAnalyticsDashboard } from "@/lib/api";
 
 interface ComplianceDetail {
   calledIn: number;
@@ -97,39 +98,28 @@ export function DashboardCharts({ selectedDate }: { selectedDate: string }) {
   const [hasData, setHasData] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const { data: res, isError } = useQuery({
+    queryKey: ["analyticsDashboard", selectedDate],
+    queryFn: () => getAnalyticsDashboard({ staticDate: selectedDate }),
+    enabled: !!selectedDate,
+  });
+
   useEffect(() => {
-    if (!selectedDate) return;
-    let active = true;
-    async function fetchData() {
-      try {
-        const res = await getAnalyticsDashboard({ staticDate: selectedDate });
-        if (!active) return;
+    if (res && res.stations && res.stations.length > 0) {
+      const hasAnyData = res.stations.some(
+        (st: StationType) => st.traffic.boundA > 0 || st.traffic.boundB > 0
+      );
+      setHasData(hasAnyData);
 
-        if (res.stations && res.stations.length > 0) {
-          const hasAnyData = res.stations.some(
-            (st: StationType) => st.traffic.boundA > 0 || st.traffic.boundB > 0
-          );
-          setHasData(hasAnyData);
-
-          const activeStations = res.stations.filter(
-            (st: StationType) => st.traffic.boundA > 0 || st.traffic.boundB > 0
-          );
-          setStations(activeStations.length > 0 ? activeStations : [res.stations.find((s: StationType) => s.code === "Juja") || res.stations[0]]);
-        } else {
-          setStations([initialStations[0]]);
-          setHasData(false);
-        }
-      } catch (err) {
-        if (!isApiConnectionError(err)) {
-          console.error("Failed to fetch dashboard charts data", err);
-        }
-      }
+      const activeStations = res.stations.filter(
+        (st: StationType) => st.traffic.boundA > 0 || st.traffic.boundB > 0
+      );
+      setStations(activeStations.length > 0 ? activeStations : [res.stations.find((s: StationType) => s.code === "Juja") || res.stations[0]]);
+    } else if (res || isError) {
+      setStations([initialStations[0]]);
+      setHasData(false);
     }
-    fetchData();
-    return () => {
-      active = false;
-    };
-  }, [selectedDate]);
+  }, [res, isError]);
 
   useEffect(() => {
     if (!isModalOpen) return;

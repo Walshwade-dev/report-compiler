@@ -1,5 +1,7 @@
 # report-compiler
 
+Last updated: 2026-07-19
+
 Frontend report-builder for the Daily Report Automation system.
 
 The app lets users create a report workspace, enter report metadata, upload required CSV/XLSX files, save manual inputs, preview generated report sections, build the final DOCX report, and download it.
