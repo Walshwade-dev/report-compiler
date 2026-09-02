@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 import { Download, CalendarDays, MapPin } from "lucide-react";
 import { WEIGHBRIDGE_OPTIONS } from "@/lib/constants";
-import { getLoggedInUser } from "@/lib/api";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getLoggedInUser, API_ORIGIN } from "@/lib/api";
 
 export default function WeeklyReportPage() {
   const [startDate, setStartDate] = useState("");
@@ -73,7 +71,7 @@ export default function WeeklyReportPage() {
         format: formatType,
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/reports/weekly/generate?${queryParams.toString()}`, {
+      const response = await fetch(`${API_ORIGIN}/api/reports/weekly/generate?${queryParams.toString()}`, {
         method: "GET",
         headers,
       });
