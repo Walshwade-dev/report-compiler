@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useEffect } from "react";
-import { FileText, Settings, Truck, ShieldCheck } from "lucide-react";
+import { FileText, Settings, Truck, ShieldCheck, Calendar } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getLoggedInUser } from "@/lib/api";
@@ -108,6 +108,8 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
                   >
                     {item.icon === "truck" ? (
                       <Truck aria-hidden="true" size={16} />
+                    ) : item.icon === "calendar" ? (
+                      <Calendar aria-hidden="true" size={16} />
                     ) : (
                       <FileText aria-hidden="true" size={16} />
                     )}

@@ -25,6 +25,16 @@ export const REPORT_NAV_ITEMS = [
 
         active: false,
       },
+
+      {
+        label: "Weekly Report",
+
+        href: "/reports/weekly/new",
+
+        icon: "calendar",
+
+        active: false,
+      },
     ],
   },
 ];
