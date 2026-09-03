@@ -161,7 +161,9 @@ export async function deleteUserByAdmin(userId: string) {
 export async function updateUserRole(userId: string, role: string) {
   const response = await fetch(apiUrl(`users/${userId}/role`), {
     method: "PATCH",
-    headers: authHeaders(),
+    headers: authHeaders({
+      "Content-Type": "application/json",
+    }),
     body: JSON.stringify({ role }),
   });
 
