@@ -194,6 +194,13 @@ export function resolveApiUrl(url: string | null | undefined) {
 }
 
 async function getErrorMessage(response: Response, fallback: string) {
+  if (response.status === 401 && !response.url.includes("auth/token")) {
+    logoutUser();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login?session_expired=1";
+    }
+  }
+
   try {
     const body = await response.json();
     const detail = body?.detail;
