@@ -158,6 +158,20 @@ export async function deleteUserByAdmin(userId: string) {
   }
 }
 
+export async function updateUserRole(userId: string, role: string) {
+  const response = await fetch(apiUrl(`users/${userId}/role`), {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ role }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, "Failed to update user role"));
+  }
+
+  return response.json();
+}
+
 
 export function resolveApiUrl(url: string | null | undefined) {
   if (!url) {

@@ -30,7 +30,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
   }, []);
 
   const user = mounted ? getLoggedInUser() : null;
-  const isManager = user?.role === "duty_manager" || user?.role === "cluster_manager";
+  const isRestricted = user?.role === "duty_manager" || user?.role === "cluster_manager" || user?.role === "viewer";
   const [reportsOpen, setReportsOpen] = useState(true);
   const pathname = usePathname();
 
@@ -86,7 +86,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
               </Link>
             </li>
 
-            {!isManager && (
+            {!isRestricted && (
               <li>
                 <button
                   onClick={() => setReportsOpen((prev) => !prev)}
@@ -154,7 +154,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
               </Link>
             </li>
 
-            {!isManager && (
+            {!isRestricted && (
               <li>
                 <Link
                   href="/tickets"
@@ -172,7 +172,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
           </ul>
         </div>
 
-        {!isManager && (
+        {!isRestricted && (
           <div>
             <p className="px-3 text-[11px] font-bold uppercase text-cyan-300/70">
               General
@@ -214,7 +214,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
         </div>
       </nav>
 
-      {!isManager && (
+      {!isRestricted && (
         <div className="mt-auto mb-4">
           <ProgressSummary
             reportType={progress.reportType}

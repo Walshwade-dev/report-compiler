@@ -30,6 +30,7 @@ import {
   getUsers,
   createUserByAdmin,
   deleteUserByAdmin,
+  updateUserRole,
   logoutUser,
 } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -78,7 +79,7 @@ export default function AdminPage() {
     if (!user) {
       router.push("/login");
       setIsAuthorized(false);
-    } else if (user.role !== "admin") {
+    } else if (user.role !== "admin" && user.role !== "developer") {
       setIsAuthorized(false);
     } else {
       setIsAuthorized(true);
@@ -358,6 +359,7 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
   // Create user form state
   const [newUsername, setNewUsername] = useState("");
@@ -430,6 +432,24 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
     }
   }
 
+  async function handleUpdateRole(userId: string, newRole: string) {
+    if (newRole === currentUser?.role && userId === currentUser?.id) return;
+    
+    setUpdatingRole(userId);
+    setError("");
+    setSuccess("");
+    try {
+      const updatedUser = await updateUserRole(userId, newRole);
+      setSuccess(`Role updated to ${newRole} for ${updatedUser.username}`);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+    } catch (err: any) {
+      setError(err.message || "Failed to update role");
+      // Revert the UI select visually by re-fetching or letting the existing state persist on error
+    } finally {
+      setUpdatingRole(null);
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
       {/* User creation form */}
@@ -498,6 +518,7 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
               className="mt-2 w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-white outline-none focus:border-cyan-500 transition"
             >
               <option value="user">User (Reporting Officer)</option>
+              <option value="viewer">Viewer (Dashboard Only)</option>
               <option value="admin">Administrator</option>
               <option value="developer">Developer</option>
             </select>
@@ -607,17 +628,32 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
                         )}
                       </td>
                       <td className="py-3.5">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        <select
+                          value={account.role}
+                          disabled={
+                            updatingRole === account.id || 
+                            isSelf ||
+                            (currentUser?.role === "developer" && account.role === "admin")
+                          }
+                          onChange={(e) => handleUpdateRole(account.id, e.target.value)}
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold outline-none cursor-pointer ${
                             account.role === "admin"
                               ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
                               : account.role === "developer"
                               ? "bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                              : account.role === "viewer"
+                              ? "bg-slate-500/10 text-slate-300 border border-slate-500/20"
                               : "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
                           }`}
                         >
-                          {account.role}
-                        </span>
+                          <option value="user">user</option>
+                          <option value="viewer">viewer</option>
+                          <option value="admin">admin</option>
+                          <option value="developer">developer</option>
+                        </select>
+                        {updatingRole === account.id && (
+                          <span className="ml-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent"></span>
+                        )}
                       </td>
                       <td className="py-3.5 text-slate-300 font-medium">
                         {account.station ? (

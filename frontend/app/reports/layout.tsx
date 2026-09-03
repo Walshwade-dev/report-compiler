@@ -42,7 +42,7 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
     const user = getLoggedInUser();
     if (!user) {
       router.push("/login");
-    } else if (user.role === "duty_manager" || user.role === "cluster_manager") {
+    } else if (user.role === "duty_manager" || user.role === "cluster_manager" || user.role === "viewer") {
       router.push("/");
     } else {
       setAuthorized(true);
