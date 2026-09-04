@@ -433,6 +433,10 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
   }
 
   async function handleUpdateRole(userId: string, newRole: string) {
+    if (!userId || userId === "undefined") {
+      setError("Invalid user account specified.");
+      return;
+    }
     if (newRole === currentUser?.role && userId === currentUser?.id) return;
     
     setUpdatingRole(userId);
@@ -440,11 +444,10 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
     setSuccess("");
     try {
       const updatedUser = await updateUserRole(userId, newRole);
-      setSuccess(`Role updated to ${newRole} for ${updatedUser.username}`);
+      setSuccess(`Role updated to '${newRole}' for user '${updatedUser.username}'`);
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
     } catch (err: any) {
       setError(err.message || "Failed to update role");
-      // Revert the UI select visually by re-fetching or letting the existing state persist on error
     } finally {
       setUpdatingRole(null);
     }
@@ -650,6 +653,9 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
                           <option value="viewer">viewer</option>
                           <option value="admin">admin</option>
                           <option value="developer">developer</option>
+                          {!["user", "viewer", "admin", "developer"].includes(account.role) && (
+                            <option value={account.role}>{account.role}</option>
+                          )}
                         </select>
                         {updatingRole === account.id && (
                           <span className="ml-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent"></span>

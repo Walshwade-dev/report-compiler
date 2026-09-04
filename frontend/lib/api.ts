@@ -211,6 +211,15 @@ async function getErrorMessage(response: Response, fallback: string) {
       return detail;
     }
 
+    if (Array.isArray(detail)) {
+      const messages = detail.map((item: any) => {
+        if (typeof item === "string") return item;
+        const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : "";
+        return field ? `${field}: ${item.msg}` : item?.msg || JSON.stringify(item);
+      });
+      return messages.join("; ");
+    }
+
     if (typeof detail?.message === "string") {
       return detail.message;
     }
