@@ -8,6 +8,7 @@ import {
   Ticket,
   Truck,
   LogOut,
+  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -75,6 +76,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
             <li>
               <Link
                 href="/"
+                prefetch={false}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
                   pathname === "/"
                     ? "bg-cyan-500/20 text-cyan-200"
@@ -116,6 +118,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
                           return (
                           <Link
                             href={item.href}
+                            prefetch={false}
                             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
                               active
                                 ? "bg-cyan-500/20 text-cyan-200"
@@ -143,6 +146,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
             <li>
               <Link
                 href="/analytics"
+                prefetch={false}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                   pathname === "/analytics"
                     ? "bg-cyan-500/20 text-cyan-200"
@@ -154,10 +158,26 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
               </Link>
             </li>
 
+            <li>
+              <Link
+                href="/mobile-checklist"
+                prefetch={false}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                  pathname === "/mobile-checklist"
+                    ? "bg-cyan-500/20 text-cyan-200"
+                    : "text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-200"
+                }`}
+              >
+                <ClipboardCheck size={16} />
+                <span>Mobile Checklist</span>
+              </Link>
+            </li>
+
             {!isRestricted && (
               <li>
                 <Link
                   href="/tickets"
+                  prefetch={false}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                     pathname === "/tickets"
                       ? "bg-cyan-500/20 text-cyan-200"

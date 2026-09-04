@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ReportsLayout from "../reports/layout";
 import { BarChart3, Scale, Gavel, TrendingUp, Award, MapPin } from "lucide-react";
+import { getAnalyticsDetails } from "@/lib/api";
 
 interface HoveredBarType {
   label: string;
@@ -33,6 +34,7 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<"traffic" | "court" | "cross">("traffic");
   const [hoveredBar, setHoveredBar] = useState<HoveredBarType | null>(null);
   const [hasData, setHasData] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [kpis, setKpis] = useState({
     totalTraffic: 0,
     thikaTraffic: 0,
@@ -51,19 +53,23 @@ export default function AnalyticsPage() {
     let active = true;
     async function fetchData() {
       try {
-        const { getAnalyticsDetails } = await import("@/lib/api");
+        setIsLoading(true);
         const res = await getAnalyticsDetails();
         if (!active) return;
 
-        if (res.kpis) {
+        if (res && res.kpis) {
           setKpis(res.kpis);
           setTrafficData(res.trafficData || []);
           setCourtCasesData(res.courtCasesData || []);
           setCrossStationData(res.crossStationData || []);
-          setHasData(res.kpis.totalTraffic > 0 || res.kpis.totalCourtCases > 0);
+          setHasData((res.kpis.totalTraffic || 0) > 0 || (res.kpis.totalCourtCases || 0) > 0);
         }
       } catch (err) {
         console.error("Failed to fetch analytics details:", err);
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
       }
     }
     fetchData();
@@ -72,9 +78,18 @@ export default function AnalyticsPage() {
     };
   }, []);
 
-  const maxTraffic = Math.max(...trafficData.map(d => Math.max(d.thikaBound, d.nairobiBound)), 100);
-  const maxCases = Math.max(...courtCasesData.map(d => Math.max(d.thikaBound, d.nairobiBound)), 10);
-  const maxCrossCases = Math.max(...crossStationData.map(st => st.cases), 50);
+  const maxTraffic = Math.max(
+    ...trafficData.map(d => Math.max(Number(d?.thikaBound) || 0, Number(d?.nairobiBound) || 0)),
+    100
+  );
+  const maxCases = Math.max(
+    ...courtCasesData.map(d => Math.max(Number(d?.thikaBound) || 0, Number(d?.nairobiBound) || 0)),
+    10
+  );
+  const maxCrossCases = Math.max(
+    ...crossStationData.map(st => Number(st?.cases) || 0),
+    50
+  );
 
   const getFormattedDate = (day: string) => {
     return `Day ${day}`;
@@ -112,22 +127,41 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Juja Total Traffic</span>
-            <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? kpis.totalTraffic.toLocaleString() : "0"}</p>
+            {isLoading ? (
+              <div className="mt-3 h-8 w-24 animate-pulse rounded bg-cyan-950/60" />
+            ) : (
+              <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? kpis.totalTraffic.toLocaleString() : "0"}</p>
+            )}
             <p className="mt-1 text-xs text-slate-500">{hasData ? `${kpis.thikaTraffic.toLocaleString()} Thika / ${kpis.nairobiTraffic.toLocaleString()} Nairobi` : "No active session"}</p>
           </div>
+
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Juja Total Court Cases</span>
-            <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? kpis.totalCourtCases.toLocaleString() : "0"}</p>
+            {isLoading ? (
+              <div className="mt-3 h-8 w-24 animate-pulse rounded bg-cyan-950/60" />
+            ) : (
+              <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? kpis.totalCourtCases.toLocaleString() : "0"}</p>
+            )}
             <p className="mt-1 text-xs text-slate-500">{hasData ? `${kpis.totalCourtCases} cases resolved` : "No active session"}</p>
           </div>
+
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Compliance Rate</span>
-            <p className="mt-3 text-3xl font-extrabold text-emerald-400">{hasData ? `${kpis.complianceRate}%` : "0%"}</p>
+            {isLoading ? (
+              <div className="mt-3 h-8 w-24 animate-pulse rounded bg-cyan-950/60" />
+            ) : (
+              <p className="mt-3 text-3xl font-extrabold text-emerald-400">{hasData ? `${kpis.complianceRate}%` : "0%"}</p>
+            )}
             <p className="mt-1 text-xs text-slate-500">{hasData ? "Average across both bounds" : "No active session"}</p>
           </div>
+
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Overloads Intercepted</span>
-            <p className="mt-3 text-3xl font-extrabold text-rose-400">{hasData ? kpis.overloadsIntercepted.toLocaleString() : "0"}</p>
+            {isLoading ? (
+              <div className="mt-3 h-8 w-24 animate-pulse rounded bg-cyan-950/60" />
+            ) : (
+              <p className="mt-3 text-3xl font-extrabold text-rose-400">{hasData ? kpis.overloadsIntercepted.toLocaleString() : "0"}</p>
+            )}
             <p className="mt-1 text-xs text-slate-500">{hasData ? "Without valid special permits" : "No active session"}</p>
           </div>
         </div>
@@ -184,163 +218,179 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="relative min-h-[300px]">
-            {activeTab === "traffic" && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-cyan-200 uppercase tracking-wider">
-                      Weighbridge Bounds Traffic Comparison
-                    </h3>
-                    <p className="text-xs text-slate-500">Bi-directional split over days of the month.</p>
-                  </div>
-                  <div className="flex gap-4 text-xs">
-                    <span className="flex items-center gap-1.5 text-slate-300">
-                      <span className="h-3 w-3 rounded bg-cyan-400"></span> Thika Bound
-                    </span>
-                    <span className="flex items-center gap-1.5 text-slate-300">
-                      <span className="h-3 w-3 rounded bg-indigo-500"></span> Nairobi Bound
-                    </span>
-                  </div>
-                </div>
-
-                <div className="relative w-full h-[220px] border-b border-l border-cyan-950 flex items-end justify-between px-6 pt-4">
-                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-4">
-                    {[0, 1, 2, 3].map((val) => (
-                      <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5">
-                        {hasData ? Math.round(maxTraffic - (val * maxTraffic) / 3) : 0} vehicles
-                      </div>
-                    ))}
-                  </div>
-
-                  {trafficData.map((d) => {
-                    const thikaHeight = hasData ? (d.thikaBound / maxTraffic) * 160 : 0;
-                    const nairobiHeight = hasData ? (d.nairobiBound / maxTraffic) * 160 : 0;
-
-                    return (
-                      <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
-                        <div className="flex items-end gap-1.5 h-[160px]">
-                          <div
-                            onMouseEnter={() => setHoveredBar({ label: "Thika Bound", value: hasData ? d.thikaBound : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
-                            onMouseLeave={() => setHoveredBar(null)}
-                            style={{ height: `${thikaHeight}px` }}
-                            className="w-5 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_10px_rgba(34,211,238,0.2)]"
-                          />
-                          <div
-                            onMouseEnter={() => setHoveredBar({ label: "Nairobi Bound", value: hasData ? d.nairobiBound : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
-                            onMouseLeave={() => setHoveredBar(null)}
-                            style={{ height: `${nairobiHeight}px` }}
-                            className="w-5 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_10px_rgba(99,102,241,0.2)]"
-                          />
-                        </div>
-                        <span className="mt-2 text-xs font-semibold text-slate-400">Day {d.day}</span>
-                      </div>
-                    );
-                  })}
+            {isLoading ? (
+              <div className="flex h-[260px] items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
+                  <p className="text-xs font-semibold text-cyan-300">Loading Juja analytics workspace...</p>
                 </div>
               </div>
-            )}
-
-            {activeTab === "court" && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
+            ) : (
+              <>
+                {activeTab === "traffic" && (
                   <div>
-                    <h3 className="text-sm font-bold text-cyan-200 uppercase tracking-wider">
-                      Court Cases: Bi-directional Bounds Comparison
-                    </h3>
-                    <p className="text-xs text-slate-500">Cleared court cases split by bound over days of the month.</p>
-                  </div>
-                  <div className="flex gap-4 text-xs">
-                    <span className="flex items-center gap-1.5 text-slate-300">
-                      <span className="h-3 w-3 rounded bg-cyan-400"></span> Thika Bound Cases
-                    </span>
-                    <span className="flex items-center gap-1.5 text-slate-300">
-                      <span className="h-3 w-3 rounded bg-indigo-500"></span> Nairobi Bound Cases
-                    </span>
-                  </div>
-                </div>
-
-                <div className="relative w-full h-[220px] border-b border-l border-cyan-950 flex items-end justify-between px-6 pt-4">
-                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-4">
-                    {[0, 1, 2, 3].map((val) => (
-                      <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5">
-                        {hasData ? Math.round(maxCases - (val * maxCases) / 3) : 0} cases
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h3 className="text-sm font-bold text-cyan-200 uppercase tracking-wider">
+                          Weighbridge Bounds Traffic Comparison
+                        </h3>
+                        <p className="text-xs text-slate-500">Bi-directional split over days of the month.</p>
                       </div>
-                    ))}
-                  </div>
-
-                  {courtCasesData.map((d) => {
-                    const thikaHeight = hasData ? (d.thikaBound / maxCases) * 160 : 0;
-                    const nairobiHeight = hasData ? (d.nairobiBound / maxCases) * 160 : 0;
-
-                    return (
-                      <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
-                        <div className="flex items-end gap-1.5 h-[160px]">
-                          <div
-                            onMouseEnter={() => setHoveredBar({ label: "Thika Bound Cases", value: hasData ? d.thikaBound : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
-                            onMouseLeave={() => setHoveredBar(null)}
-                            style={{ height: `${thikaHeight}px` }}
-                            className="w-5 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer"
-                          />
-                          <div
-                            onMouseEnter={() => setHoveredBar({ label: "Nairobi Bound Cases", value: hasData ? d.nairobiBound : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
-                            onMouseLeave={() => setHoveredBar(null)}
-                            style={{ height: `${nairobiHeight}px` }}
-                            className="w-5 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer"
-                          />
-                        </div>
-                        <span className="mt-2 text-xs font-semibold text-slate-400">Day {d.day}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {activeTab === "cross" && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-cyan-200 uppercase tracking-wider">
-                      Cross-Station Court Cases Cleared Comparison
-                    </h3>
-                    <p className="text-xs text-slate-500">Comparison across allowed stations whose data is available (Juja highlighted).</p>
-                  </div>
-                </div>
-
-                <div className="relative w-full h-[220px] border-b border-l border-cyan-950 flex items-end justify-around px-8 pt-4">
-                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-4">
-                    {[0, 1, 2, 3].map((val) => (
-                      <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5">
-                        {hasData ? Math.round(maxCrossCases - (val * maxCrossCases) / 3) : 0} cases
-                      </div>
-                    ))}
-                  </div>
-
-                  {crossStationData.map((st) => {
-                    const barHeight = hasData ? (st.cases / maxCrossCases) * 160 : 0;
-
-                    return (
-                      <div key={st.name} className="flex flex-col items-center group z-10">
-                        <div className="flex items-end h-[160px]">
-                          <div
-                            onMouseEnter={() => setHoveredBar({ label: "Cases Cleared", value: hasData ? st.cases : 0, title: st.name, date: "June 2026" })}
-                            onMouseLeave={() => setHoveredBar(null)}
-                            style={{ height: `${barHeight}px` }}
-                            className={`w-10 rounded-t transition-all duration-300 cursor-pointer ${
-                              st.active
-                                ? "bg-gradient-to-t from-cyan-500 to-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] brightness-110 border border-cyan-300/40"
-                                : "bg-gradient-to-t from-slate-700 to-slate-500 hover:brightness-110"
-                            }`}
-                          />
-                        </div>
-                        <span className={`mt-2 text-[10px] font-semibold text-center truncate w-16 ${st.active ? "text-cyan-300 font-bold" : "text-slate-400"}`}>
-                          {st.name.replace(" Weighbridge", "")}
+                      <div className="flex gap-4 text-xs">
+                        <span className="flex items-center gap-1.5 text-slate-300">
+                          <span className="h-3 w-3 rounded bg-cyan-400"></span> Thika Bound
+                        </span>
+                        <span className="flex items-center gap-1.5 text-slate-300">
+                          <span className="h-3 w-3 rounded bg-indigo-500"></span> Nairobi Bound
                         </span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                    </div>
+
+                    <div className="relative w-full h-[220px] border-b border-l border-cyan-950 flex items-end justify-between px-6 pt-4">
+                      <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-4">
+                        {[0, 1, 2, 3].map((val) => (
+                          <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5">
+                            {hasData && maxTraffic > 0 ? Math.round(maxTraffic - (val * maxTraffic) / 3) : 0} vehicles
+                          </div>
+                        ))}
+                      </div>
+
+                      {trafficData.map((d) => {
+                        const thikaVal = Number(d?.thikaBound) || 0;
+                        const nairobiVal = Number(d?.nairobiBound) || 0;
+                        const thikaHeight = hasData && maxTraffic > 0 ? (thikaVal / maxTraffic) * 160 : 0;
+                        const nairobiHeight = hasData && maxTraffic > 0 ? (nairobiVal / maxTraffic) * 160 : 0;
+
+                        return (
+                          <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
+                            <div className="flex items-end gap-1.5 h-[160px]">
+                              <div
+                                onMouseEnter={() => setHoveredBar({ label: "Thika Bound", value: hasData ? thikaVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseLeave={() => setHoveredBar(null)}
+                                style={{ height: `${thikaHeight}px` }}
+                                className="w-5 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_10px_rgba(34,211,238,0.2)]"
+                              />
+                              <div
+                                onMouseEnter={() => setHoveredBar({ label: "Nairobi Bound", value: hasData ? nairobiVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseLeave={() => setHoveredBar(null)}
+                                style={{ height: `${nairobiHeight}px` }}
+                                className="w-5 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                              />
+                            </div>
+                            <span className="mt-2 text-xs font-semibold text-slate-400">Day {d.day}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "court" && (
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h3 className="text-sm font-bold text-cyan-200 uppercase tracking-wider">
+                          Court Cases: Bi-directional Bounds Comparison
+                        </h3>
+                        <p className="text-xs text-slate-500">Cleared court cases split by bound over days of the month.</p>
+                      </div>
+                      <div className="flex gap-4 text-xs">
+                        <span className="flex items-center gap-1.5 text-slate-300">
+                          <span className="h-3 w-3 rounded bg-cyan-400"></span> Thika Bound Cases
+                        </span>
+                        <span className="flex items-center gap-1.5 text-slate-300">
+                          <span className="h-3 w-3 rounded bg-indigo-500"></span> Nairobi Bound Cases
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="relative w-full h-[220px] border-b border-l border-cyan-950 flex items-end justify-between px-6 pt-4">
+                      <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-4">
+                        {[0, 1, 2, 3].map((val) => (
+                          <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5">
+                            {hasData && maxCases > 0 ? Math.round(maxCases - (val * maxCases) / 3) : 0} cases
+                          </div>
+                        ))}
+                      </div>
+
+                      {courtCasesData.map((d) => {
+                        const thikaVal = Number(d?.thikaBound) || 0;
+                        const nairobiVal = Number(d?.nairobiBound) || 0;
+                        const thikaHeight = hasData && maxCases > 0 ? (thikaVal / maxCases) * 160 : 0;
+                        const nairobiHeight = hasData && maxCases > 0 ? (nairobiVal / maxCases) * 160 : 0;
+
+                        return (
+                          <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
+                            <div className="flex items-end gap-1.5 h-[160px]">
+                              <div
+                                onMouseEnter={() => setHoveredBar({ label: "Thika Bound Cases", value: hasData ? thikaVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseLeave={() => setHoveredBar(null)}
+                                style={{ height: `${thikaHeight}px` }}
+                                className="w-5 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer"
+                              />
+                              <div
+                                onMouseEnter={() => setHoveredBar({ label: "Nairobi Bound Cases", value: hasData ? nairobiVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseLeave={() => setHoveredBar(null)}
+                                style={{ height: `${nairobiHeight}px` }}
+                                className="w-5 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer"
+                              />
+                            </div>
+                            <span className="mt-2 text-xs font-semibold text-slate-400">Day {d.day}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "cross" && (
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h3 className="text-sm font-bold text-cyan-200 uppercase tracking-wider">
+                          Cross-Station Court Cases Cleared Comparison
+                        </h3>
+                        <p className="text-xs text-slate-500">Comparison across allowed stations whose data is available (Juja highlighted).</p>
+                      </div>
+                    </div>
+
+                    <div className="relative w-full h-[220px] border-b border-l border-cyan-950 flex items-end justify-around px-8 pt-4">
+                      <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-4">
+                        {[0, 1, 2, 3].map((val) => (
+                          <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5">
+                            {hasData && maxCrossCases > 0 ? Math.round(maxCrossCases - (val * maxCrossCases) / 3) : 0} cases
+                          </div>
+                        ))}
+                      </div>
+
+                      {crossStationData.map((st) => {
+                        const casesVal = Number(st?.cases) || 0;
+                        const barHeight = hasData && maxCrossCases > 0 ? (casesVal / maxCrossCases) * 160 : 0;
+
+                        return (
+                          <div key={st.name} className="flex flex-col items-center group z-10">
+                            <div className="flex items-end h-[160px]">
+                              <div
+                                onMouseEnter={() => setHoveredBar({ label: "Cases Cleared", value: hasData ? casesVal : 0, title: st.name, date: "Current Period" })}
+                                onMouseLeave={() => setHoveredBar(null)}
+                                style={{ height: `${barHeight}px` }}
+                                className={`w-10 rounded-t transition-all duration-300 cursor-pointer ${
+                                  st.active
+                                    ? "bg-gradient-to-t from-cyan-500 to-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.4)] brightness-110 border border-cyan-300/40"
+                                    : "bg-gradient-to-t from-slate-700 to-slate-500 hover:brightness-110"
+                                }`}
+                              />
+                            </div>
+                            <span className={`mt-2 text-[10px] font-semibold text-center truncate w-16 ${st.active ? "text-cyan-300 font-bold" : "text-slate-400"}`}>
+                              {st.name.replace(" Weighbridge", "")}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {hoveredBar && (
@@ -359,4 +409,3 @@ export default function AnalyticsPage() {
     </ReportsLayout>
   );
 }
-

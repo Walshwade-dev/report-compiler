@@ -65,6 +65,7 @@ function ReportTableRow({
         <div className="flex justify-end gap-2">
           <Link
             href={report.editUrl}
+            prefetch={false}
             onClick={() => {
               const key = report.type === "Mobile Weighbridge" ? "active-mobile-report-id" : "active-report-id";
               localStorage.setItem(key, report.id);
@@ -247,6 +248,7 @@ export function RecentReportsList({
               <div className="flex items-center justify-end gap-2 mt-1 pt-1.5 border-t border-cyan-900/10">
                 <Link
                   href={report.editUrl}
+                  prefetch={false}
                   onClick={() => {
                     localStorage.setItem("active-report-id", report.id);
                   }}

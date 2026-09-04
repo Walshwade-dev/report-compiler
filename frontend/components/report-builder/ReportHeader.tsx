@@ -40,7 +40,7 @@ export function ReportHeader({
     <header className="mb-6">
       {/* Breadcrumbs */}
       <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-400" aria-label="Breadcrumbs">
-        <Link href="/" className="hover:text-cyan-400 transition-colors">
+        <Link href="/" prefetch={false} className="hover:text-cyan-400 transition-colors">
           Dashboard
         </Link>
         <ChevronRight size={12} className="opacity-60" />

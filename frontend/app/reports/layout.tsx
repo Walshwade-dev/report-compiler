@@ -32,39 +32,45 @@ export default function ReportsLayout({ children }: ReportsLayoutProps) {
 
 function ReportsLayoutContent({ children }: ReportsLayoutProps) {
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const pathname = usePathname();
+  const isAllowedRestrictedPath = pathname === "/" || pathname === "/analytics" || pathname === "/mobile-checklist";
+  
+  const [authorized, setAuthorized] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const user = getLoggedInUser();
+      if (!user) return false;
+      const isRestrictedRole = user.role === "duty_manager" || user.role === "cluster_manager" || user.role === "viewer" || user.role.startsWith("viewer_") || user.role === "technician";
+      if (!isAllowedRestrictedPath && isRestrictedRole) {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  });
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      return getLoggedInUser();
+    }
+    return null;
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [personName, setPersonName] = useState("");
-  const pathname = usePathname();
 
   useEffect(() => {
     const user = getLoggedInUser();
+    const isRestrictedRole = user?.role === "duty_manager" || user?.role === "cluster_manager" || user?.role === "viewer" || user?.role?.startsWith("viewer_") || user?.role === "technician";
     if (!user) {
+      setAuthorized(false);
       router.push("/login");
-    } else if (
-      pathname !== "/" && 
-      (user.role === "duty_manager" || user.role === "cluster_manager" || user.role === "viewer")
-    ) {
+    } else if (!isAllowedRestrictedPath && isRestrictedRole) {
       router.push("/");
     } else {
       setAuthorized(true);
       setCurrentUser(user);
     }
-  }, [pathname, router]);
+  }, [pathname, router, isAllowedRestrictedPath]);
 
   const { people, addPerson } = useReportSettings();
-
-  if (!authorized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#071827]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
-          <p className="text-sm font-bold text-cyan-300">Verifying session...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-[#071827] text-slate-100">
@@ -74,56 +80,68 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
         </div>
 
         <section className="flex-1 p-4 sm:p-6">
-          <header className="mb-5 rounded-xl border border-cyan-900/50 bg-[#0b2135] p-3 xl:hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-cyan-200">
-                  Reports
-                </p>
-                <p className="text-xs text-slate-500">
-                  Select report workspace
-                </p>
+          {!authorized ? (
+            <div className="flex min-h-[400px] items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
+                <p className="text-sm font-bold text-cyan-300">Verifying session...</p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                className="hidden lg:flex items-center gap-2 rounded-lg border border-cyan-700 px-3 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-500/10"
-              >
-                <Settings aria-hidden="true" size={16} />
-                Settings
-              </button>
             </div>
-            <nav className="mt-3 hidden lg:grid gap-2 sm:grid-cols-2" aria-label="Report navigation">
-              {REPORT_NAV_ITEMS[0].items.map((item) => {
-                const active = pathname === item.href;
+          ) : (
+            <>
+              <header className="mb-5 rounded-xl border border-cyan-900/50 bg-[#0b2135] p-3 xl:hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-cyan-200">
+                      Reports
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Select report workspace
+                    </p>
+                  </div>
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
-                      active
-                        ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-100"
-                        : "border-cyan-900/60 bg-[#071827] text-slate-400 hover:border-cyan-700 hover:text-cyan-200"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => setSettingsOpen(true)}
+                    className="hidden lg:flex items-center gap-2 rounded-lg border border-cyan-700 px-3 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-500/10"
                   >
-                    {item.icon === "truck" ? (
-                      <Truck aria-hidden="true" size={16} />
-                    ) : item.icon === "calendar" ? (
-                      <Calendar aria-hidden="true" size={16} />
-                    ) : (
-                      <FileText aria-hidden="true" size={16} />
-                    )}
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </header>
+                    <Settings aria-hidden="true" size={16} />
+                    Settings
+                  </button>
+                </div>
+                <nav className="mt-3 hidden lg:grid gap-2 sm:grid-cols-2" aria-label="Report navigation">
+                  {REPORT_NAV_ITEMS[0].items.map((item) => {
+                    const active = pathname === item.href;
 
-          {children}
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        prefetch={false}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
+                          active
+                            ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-100"
+                            : "border-cyan-900/60 bg-[#071827] text-slate-400 hover:border-cyan-700 hover:text-cyan-200"
+                        }`}
+                      >
+                        {item.icon === "truck" ? (
+                          <Truck aria-hidden="true" size={16} />
+                        ) : item.icon === "calendar" ? (
+                          <Calendar aria-hidden="true" size={16} />
+                        ) : (
+                          <FileText aria-hidden="true" size={16} />
+                        )}
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </header>
+
+              {children}
+            </>
+          )}
         </section>
       </div>
 
@@ -162,6 +180,7 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
                   </p>
                   <Link
                     href="/admin"
+                    prefetch={false}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-700 bg-cyan-500/10 px-3 py-2 text-sm font-bold text-cyan-200 hover:bg-cyan-500/20"
                   >
                     <ShieldCheck aria-hidden="true" size={16} />
