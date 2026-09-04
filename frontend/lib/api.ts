@@ -234,6 +234,30 @@ async function getErrorMessage(response: Response, fallback: string) {
   return fallback;
 }
 
+const apiCache = new Map<string, { data: any; expiry: number }>();
+const DEFAULT_CACHE_TTL_MS = 20000;
+
+export function clearApiCache() {
+  apiCache.clear();
+}
+
+async function fetchCached<T>(url: string, ttlMs: number = DEFAULT_CACHE_TTL_MS, options?: RequestInit): Promise<T> {
+  const now = Date.now();
+  const cached = apiCache.get(url);
+  if (cached && now < cached.expiry) {
+    return cached.data as T;
+  }
+
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, `Fetch failed for ${url}`));
+  }
+
+  const data = await response.json();
+  apiCache.set(url, { data, expiry: now + ttlMs });
+  return data as T;
+}
+
 export type CreateReportSessionPayload = {
   report_date: string;
   station: string;
@@ -627,15 +651,7 @@ export async function getAnalyticsDashboard(filters?: {
     ? `report-sessions/analytics/dashboard?${query.toString()}`
     : "report-sessions/analytics/dashboard";
 
-  const response = await fetch(apiUrl(path));
-
-  if (!response.ok) {
-    throw new Error(
-      await getErrorMessage(response, "Failed to fetch analytics dashboard")
-    );
-  }
-
-  return response.json();
+  return fetchCached(apiUrl(path));
 }
 
 export async function getAnalyticsDetails() {
@@ -755,24 +771,12 @@ export type SmsSummaryItem = {
 };
 
 export async function getSmsSummaryDates(): Promise<string[]> {
-  const response = await fetch(apiUrl("report-sessions/sms-summaries/dates"));
-  if (!response.ok) {
-    throw new Error(
-      await getErrorMessage(response, "Failed to fetch SMS summary dates")
-    );
-  }
-  return response.json();
+  return fetchCached<string[]>(apiUrl("report-sessions/sms-summaries/dates"));
 }
 
 export async function getSmsSummariesByDate(reportDate: string, station?: string): Promise<SmsSummaryItem[]> {
   const url = station
     ? apiUrl(`report-sessions/sms-summaries/${reportDate}?station=${encodeURIComponent(station)}`)
     : apiUrl(`report-sessions/sms-summaries/${reportDate}`);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      await getErrorMessage(response, `Failed to fetch SMS summaries for date ${reportDate}`)
-    );
-  }
-  return response.json();
+  return fetchCached<SmsSummaryItem[]>(url);
 }
