@@ -680,6 +680,7 @@ export type DmsPerformanceResponse = {
   totalCharged: number;
   totalWeighed: number;
   reports: number;
+  selectedDate?: string;
 };
 
 export async function getDmsPerformance(date?: string) {

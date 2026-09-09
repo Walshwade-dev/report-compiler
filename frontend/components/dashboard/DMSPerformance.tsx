@@ -26,6 +26,7 @@ export function DMSPerformance({ selectedDate }: { selectedDate: string }) {
   const [dmsData, setDmsData] = useState<DMSStats[]>([]);
   const [totalCharged, setTotalCharged] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dataDate, setDataDate] = useState<string>("");
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -42,6 +43,9 @@ export function DMSPerformance({ selectedDate }: { selectedDate: string }) {
 
         setDmsData(sortedData);
         setTotalCharged(performance.totalCharged);
+        if (performance.selectedDate) {
+          setDataDate(performance.selectedDate);
+        }
       } catch (err) {
         if (!isApiConnectionError(err)) {
           console.error("Failed to fetch DMS performance data", err);
@@ -100,6 +104,8 @@ export function DMSPerformance({ selectedDate }: { selectedDate: string }) {
       ? `conic-gradient(${weighedGradientStops})`
       : "conic-gradient(#0f2b46 0% 100%)";
 
+  const isDifferentDate = Boolean(dataDate && selectedDate && dataDate !== selectedDate);
+
   return (
     <>
       <div
@@ -111,8 +117,19 @@ export function DMSPerformance({ selectedDate }: { selectedDate: string }) {
           <div className="flex items-center gap-2">
             <UserRound className="text-cyan-400" size={16} />
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-cyan-200">DMs Chart Performance</h2>
-              <p className="text-[10px] text-slate-400">Mobile team charge rates for {selectedDate || "..."}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-cyan-200">DMs Chart Performance</h2>
+                {isDifferentDate && (
+                  <span className="text-[8px] font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
+                    {dataDate} (Prior Period)
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                {isDifferentDate
+                  ? `Active mobile team rates from ${dataDate} (Filter: ${selectedDate})`
+                  : `Mobile team charge rates for ${selectedDate || "..."}`}
+              </p>
             </div>
           </div>
 
@@ -233,12 +250,21 @@ export function DMSPerformance({ selectedDate }: { selectedDate: string }) {
             {/* Modal Header */}
             <div className="flex items-center justify-between gap-3 border-b border-cyan-900/50 px-6 py-4">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Award className="text-cyan-400" size={20} />
-                  DMS Performance Leaderboard
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Full list of active DM teams and their charge rates for {selectedDate}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Award className="text-cyan-400" size={20} />
+                    DMS Performance Leaderboard
+                  </h3>
+                  {isDifferentDate && (
+                    <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                      Data from {dataDate} (Prior Period)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {isDifferentDate
+                    ? `Full list of active DM teams and charge rates from ${dataDate} (Filter: ${selectedDate})`
+                    : `Full list of active DM teams and their charge rates for ${selectedDate}`}
                 </p>
               </div>
               <button

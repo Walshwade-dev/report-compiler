@@ -160,6 +160,8 @@ export function DashboardCharts({ selectedDate }: { selectedDate: string }) {
 
   // Render mini bars (for fixed height h-[480px] panel)
   const maxMiniChartHeight = 135;
+  const actualDataDate = res?.static?.selectedDate;
+  const isDifferentDate = Boolean(actualDataDate && selectedDate && actualDataDate !== selectedDate);
 
   return (
     <>
@@ -170,12 +172,21 @@ export function DashboardCharts({ selectedDate }: { selectedDate: string }) {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-cyan-950 pb-3 mb-4 gap-4 shrink-0">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-              <BarChart3 className="text-cyan-400" size={16} />
-              Analytics & Comparative Stats
-            </h2>
-            <p className="text-[10px] text-slate-400">
-              Station overview for {selectedDate || "..."}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                <BarChart3 className="text-cyan-400" size={16} />
+                Analytics & Comparative Stats
+              </h2>
+              {isDifferentDate && (
+                <span className="text-[9px] font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                  Data from {actualDataDate} (Prior Day)
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              {isDifferentDate
+                ? `Station overview showing closed data from ${actualDataDate} (Active filter: ${selectedDate})`
+                : `Station overview for ${selectedDate || "..."}`}
             </p>
           </div>
 
@@ -466,9 +477,18 @@ export function DashboardCharts({ selectedDate }: { selectedDate: string }) {
               <div className="flex items-center gap-2">
                 <BarChart3 className="text-cyan-400" size={22} />
                 <div>
-                  <h3 className="text-lg font-bold text-white uppercase tracking-wider">Comparative Analytics</h3>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-lg font-bold text-white uppercase tracking-wider">Comparative Analytics</h3>
+                    {isDifferentDate && (
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
+                        Data from {actualDataDate} (Prior Day)
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-400">
-                    High resolution comparative analytics and compliance statistics for {selectedDate}
+                    {isDifferentDate
+                      ? `High resolution comparative analytics and compliance statistics from closed report ${actualDataDate} (Filtered date: ${selectedDate})`
+                      : `High resolution comparative analytics and compliance statistics for ${selectedDate}`}
                   </p>
                 </div>
               </div>

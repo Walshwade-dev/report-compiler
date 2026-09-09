@@ -19,6 +19,7 @@ export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
   const [data, setData] = useState<DMSTableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dataDate, setDataDate] = useState<string>("");
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -30,6 +31,9 @@ export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
         if (!active) return;
 
         setData(performance.rows);
+        if (performance.selectedDate) {
+          setDataDate(performance.selectedDate);
+        }
       } catch (err) {
         if (!isApiConnectionError(err)) {
           console.error("Failed to fetch top DMs", err);
@@ -92,6 +96,8 @@ export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
     URL.revokeObjectURL(url);
   }
 
+  const isDifferentDate = Boolean(dataDate && selectedDate && dataDate !== selectedDate);
+
   return (
     <>
       <div
@@ -101,12 +107,21 @@ export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
         {/* Header */}
         <div className="border-b border-cyan-950 pb-3 mb-3 shrink-0 flex items-center justify-between">
           <div className="space-y-1">
-            <div className="flex items-center gap-1.5">
-              <Trophy className="text-amber-400 shrink-0" size={16} />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-white">DMs Performance Table</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <Trophy className="text-amber-400 shrink-0" size={16} />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-white">DMs Performance Table</h2>
+              </div>
+              {isDifferentDate && (
+                <span className="text-[8px] font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
+                  {dataDate} (Prior Period)
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-slate-400">
-              Charge records by DM-led mobile team for {selectedDate}
+              {isDifferentDate
+                ? `Charge records by DM-led mobile team from ${dataDate} (Filter: ${selectedDate})`
+                : `Charge records by DM-led mobile team for ${selectedDate}`}
             </p>
           </div>
 
@@ -224,9 +239,18 @@ export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
               <div className="flex items-center gap-2">
                 <Trophy className="text-amber-400" size={22} />
                 <div>
-                  <h3 className="text-lg font-bold text-white">Full DMS Performance Leaderboard</h3>
-                  <p className="text-xs text-slate-400">
-                    Detailed statistics for all participating DMS teams for {selectedDate}
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-lg font-bold text-white">Full DMS Performance Leaderboard</h3>
+                    {isDifferentDate && (
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                        Data from {dataDate} (Prior Period)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {isDifferentDate
+                      ? `Detailed statistics for all participating DMS teams from ${dataDate} (Filtered date: ${selectedDate})`
+                      : `Detailed statistics for all participating DMS teams for ${selectedDate}`}
                   </p>
                 </div>
               </div>

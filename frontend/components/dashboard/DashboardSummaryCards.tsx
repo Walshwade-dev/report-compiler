@@ -185,7 +185,7 @@ export function StaticSummaryCards({ selectedDate }: { selectedDate: string }) {
       color: "bg-transparent border-rose-500/20 text-rose-300 hover:border-rose-500/40 hover:bg-[#071827]/40",
     },
     {
-      title: "PSV Overloads (No Permit)",
+      title: "PSV Coaches weighed",
       metric: staticMetric.psvOverloads,
       change: "Buses & passenger vehicles",
       icon: Bus,
