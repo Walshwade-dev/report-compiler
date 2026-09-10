@@ -2029,3 +2029,21 @@ Implemented in `frontend/components/report-builder/BatchFileIngest.tsx` and `fro
 - **Uppercase Entries**: All cell values in both `DAILY TRANSGRESSIONS REPORT` and `TRANSGRESSIONS ACTION REPORT` tables on the generated Word report (`.docx`) are strictly rendered in uppercase.
 - **Date Separator**: Standardized to `/` across all transgression dates (e.g. `06/09/2026`).
 - **CamelCase Normalization**: Seamlessly maps frontend camelCase fields (`regNo`, `axleConfig`, `censusClerk`, `policeInCharge`, `actionTaken`, `truckNo`, `timeReceived`, etc.) to Word table columns.
+
+## 26. Implementation Update — Mobile Weighbridge Officer Station Locking & Draft Reset Mechanics
+
+Implemented in `frontend/app/reports/mobile-weighbridge/new/page.tsx` and `backend/app/routes/reports.py`:
+- **Station Locking by Officer/Viewer Profile**:
+  - `resolveUserMobileStation(user)` dynamically resolves station identity from `user.station`, falling back to `user.username` or `user.full_name` across all weighbridge stations (`kanyonyo`, `isinya`, `athi`, `gilgil`, `suswa`, `juja`).
+  - For non-admin officers (e.g. Kanyonyo office, Isinya, etc.), the Mobile Weighbridge station is strictly locked to their respective station (e.g. `Kanyonyo mobile`, `Isinya mobile`, `Athi River mobile`).
+  - Dropdown options include both `"Athi River mobile"` and `"Athiriver mobile"` for seamless compatibility.
+- **Instant Non-Flickering Initial State**:
+  - `inputs` state is initialized dynamically using `resolveUserMobileStation(getLoggedInUser())`, rendering the officer's station immediately upon mount without defaulting or flickering to `"Juja mobile"`.
+- **Draft & Session Restoration Protection**:
+  - `useEffect` enforces station locking over any previously saved localStorage drafts or backend session metadata, guaranteeing operators cannot bypass station assignment.
+  - `inputs` state is guaranteed to be populated on fresh visits even when no prior draft exists.
+- **Clean "New Report / Reset" Behavior**:
+  - Clicking **"New Report / Reset"** resets all form inputs and clears active report sessions while preserving the officer's station (e.g. resets to `Kanyonyo mobile`), preventing reversion to Juja Mobile.
+- **Backend Station Alignment**:
+  - `create_report_session` and `update_report_session_metadata` preserve the `f"{station} mobile"` format for mobile reports created by non-admin users, keeping Excel builder titles and download filenames synchronized with frontend state.
+

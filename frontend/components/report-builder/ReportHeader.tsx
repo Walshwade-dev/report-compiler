@@ -37,7 +37,8 @@ export function ReportHeader({
   const isAdmin = !user || user.role === "admin";
   const isKanyonyo =
     weighbridgeName?.toUpperCase() === "KANYONYO" ||
-    (user?.station && user.station.toUpperCase() === "KANYONYO");
+    (user?.station && user.station.toUpperCase() === "KANYONYO") ||
+    (user?.username && user.username.toUpperCase().includes("KANYONYO"));
   const boundOptions = isKanyonyo ? ["NAIROBI BOUND"] : BOUND_OPTIONS;
 
   useEffect(() => {

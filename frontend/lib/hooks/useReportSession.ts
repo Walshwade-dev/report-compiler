@@ -126,7 +126,8 @@ export function useReportSession() {
   useEffect(() => {
     const user = getLoggedInUser();
     if (user && user.role !== "admin") {
-      if (user.station) {
+      const rawStation = user.station || user.username || "";
+      if (rawStation) {
         const STATION_MAP: Record<string, string> = {
           "juja": "JUJA",
           "athi": "ATHI RIVER",
@@ -135,7 +136,7 @@ export function useReportSession() {
           "suswa": "SUSWA",
           "isinya": "ISINYA"
         };
-        const normalized = user.station.toLowerCase();
+        const normalized = rawStation.toLowerCase();
         let matched = "JUJA";
         for (const [key, value] of Object.entries(STATION_MAP)) {
           if (normalized.includes(key)) {

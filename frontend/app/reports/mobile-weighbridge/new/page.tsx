@@ -47,16 +47,40 @@ const STATION_OPTIONS = [
   "Juja mobile",
   "Kanyonyo mobile",
   "Isinya mobile",
+  "Athi River mobile",
   "Athiriver mobile",
   "Suswa mobile",
   "Gilgil mobile",
 ];
 
+export function resolveUserMobileStation(user: { station?: string | null; username?: string | null; full_name?: string | null } | null): string {
+  if (!user) return "Juja mobile";
+
+  const rawStation = (user.station || user.username || user.full_name || "").trim();
+  const normalized = rawStation.toLowerCase();
+
+  if (normalized.includes("kanyonyo")) return "Kanyonyo mobile";
+  if (normalized.includes("isinya")) return "Isinya mobile";
+  if (normalized.includes("athi")) return "Athi River mobile";
+  if (normalized.includes("gilgil")) return "Gilgil mobile";
+  if (normalized.includes("suswa")) return "Suswa mobile";
+  if (normalized.includes("juja")) return "Juja mobile";
+
+  if (user.station) {
+    if (user.station.toLowerCase().endsWith("mobile")) {
+      return user.station;
+    }
+    return `${user.station} mobile`;
+  }
+
+  return "Juja mobile";
+}
+
 const SHIFT_OPTIONS = ["Mobile 1", "Mobile 2"];
 
-function createInitialMobileInputs(): MobileReportInputs {
+function createInitialMobileInputs(defaultStation = "Juja mobile"): MobileReportInputs {
   return {
-    station: "Juja mobile",
+    station: defaultStation,
     bound: "Mobile 2",
     reportDate: "",
     preparedBy: "",
@@ -147,11 +171,15 @@ function mobileInputsFromSession(
   const shiftTwoStaff = splitSlashSeparatedNames(shiftTwo.danka_staff);
   const shiftOnePolice = splitSlashSeparatedNames(shiftOne.police_officers);
   const shiftTwoPolice = splitSlashSeparatedNames(shiftTwo.police_officers);
+  let stationVal = session.metadata?.station || fallback.station;
+  if (stationVal && !stationVal.toLowerCase().includes("mobile")) {
+    stationVal = `${stationVal} mobile`;
+  }
   const summary = session.sections?.mobile_report?.summary;
 
   return {
     ...fallback,
-    station: session.metadata?.station || fallback.station,
+    station: stationVal,
     bound: session.metadata?.bound || fallback.bound,
     reportDate: session.metadata?.report_date || fallback.reportDate,
     preparedBy:
@@ -320,9 +348,16 @@ function SelectInput({
 }
 
 export default function NewMobileReportPage() {
-  const [inputs, setInputs] = useState<MobileReportInputs>(
-    createInitialMobileInputs
-  );
+  const [inputs, setInputs] = useState<MobileReportInputs>(() => {
+    const user = getLoggedInUser();
+    const station = resolveUserMobileStation(user);
+    const initial = createInitialMobileInputs(station);
+    if (user && user.role !== "admin") {
+      initial.station = station;
+      initial.preparedBy = user.full_name || user.username || "";
+    }
+    return initial;
+  });
   const [reportId, setReportId] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
@@ -639,67 +674,33 @@ export default function NewMobileReportPage() {
 
   useEffect(() => {
     Promise.resolve().then(async () => {
+      const user = getLoggedInUser();
+      const userStation = resolveUserMobileStation(user);
+      const isLockedUser = Boolean(user && user.role !== "admin");
+
       const savedDraft = localStorage.getItem(MOBILE_DRAFT_KEY);
       const savedReportId = localStorage.getItem(MOBILE_REPORT_ID_KEY);
-      let restoredInputs = createInitialMobileInputs();
+      let currentInputs = createInitialMobileInputs(userStation);
 
-      const user = getLoggedInUser();
-      if (user && user.role !== "admin") {
-        if (user.station) {
-          const STATION_MAP: Record<string, string> = {
-            "juja": "Juja mobile",
-            "kanyonyo": "Kanyonyo mobile",
-            "isinya": "Isinya mobile",
-            "athi": "Athi River mobile",
-            "gilgil": "Gilgil mobile",
-            "suswa": "Suswa mobile"
-          };
-          const normalized = user.station.toLowerCase();
-          let matched = "Juja mobile";
-          for (const [key, value] of Object.entries(STATION_MAP)) {
-            if (normalized.includes(key)) {
-              matched = value;
-              break;
-            }
-          }
-          restoredInputs.station = matched;
-        }
-        restoredInputs.preparedBy = user.full_name || user.username || "";
+      if (isLockedUser) {
+        currentInputs.station = userStation;
+        currentInputs.preparedBy = user.full_name || user.username || "";
       }
 
       if (savedDraft) {
         try {
-          restoredInputs = {
-            ...restoredInputs,
-            ...JSON.parse(savedDraft),
+          const parsedDraft = JSON.parse(savedDraft);
+          currentInputs = {
+            ...currentInputs,
+            ...parsedDraft,
             approvedBy: "Faith Njani",
           } as MobileReportInputs;
 
-          // Re-apply lock to ensure user doesn't bypass via modified localstorage draft
-          if (user && user.role !== "admin") {
-            if (user.station) {
-              const STATION_MAP: Record<string, string> = {
-                "juja": "Juja mobile",
-                "kanyonyo": "Kanyonyo mobile",
-                "isinya": "Isinya mobile",
-                "athi": "Athi River mobile",
-                "gilgil": "Gilgil mobile",
-                "suswa": "Suswa mobile"
-              };
-              const normalized = user.station.toLowerCase();
-              let matched = "Juja mobile";
-              for (const [key, value] of Object.entries(STATION_MAP)) {
-                if (normalized.includes(key)) {
-                  matched = value;
-                  break;
-                }
-              }
-              restoredInputs.station = matched;
-            }
-            restoredInputs.preparedBy = user.full_name || user.username || "";
+          // Re-apply lock to ensure user cannot bypass their assigned station via draft
+          if (isLockedUser) {
+            currentInputs.station = userStation;
+            currentInputs.preparedBy = user.full_name || user.username || "";
           }
-
-          setInputs(restoredInputs);
         } catch {
           localStorage.removeItem(MOBILE_DRAFT_KEY);
         }
@@ -714,39 +715,21 @@ export default function NewMobileReportPage() {
           const session = await getReportSession(savedReportId);
           const restoredFromSession = mobileInputsFromSession(
             session,
-            restoredInputs
+            currentInputs
           );
 
-          if (user && user.role !== "admin") {
-            if (user.station) {
-              const STATION_MAP: Record<string, string> = {
-                "juja": "Juja mobile",
-                "kanyonyo": "Kanyonyo mobile",
-                "isinya": "Isinya mobile",
-                "athi": "Athi River mobile",
-                "gilgil": "Gilgil mobile",
-                "suswa": "Suswa mobile"
-              };
-              const normalized = user.station.toLowerCase();
-              let matched = "Juja mobile";
-              for (const [key, value] of Object.entries(STATION_MAP)) {
-                if (normalized.includes(key)) {
-                  matched = value;
-                  break;
-                }
-              }
-              restoredFromSession.station = matched;
-            }
+          if (isLockedUser) {
+            restoredFromSession.station = userStation;
             restoredFromSession.preparedBy = user.full_name || user.username || "";
           }
 
-          const mobileSection = session.sections.mobile_report;
+          const mobileSection = session.sections?.mobile_report;
           const mobileReady = mobileSection?.status === "ready";
           const hasMobileManualInputs = Boolean(
             session.manual_inputs?.mobile_report
           );
 
-          setInputs(restoredFromSession);
+          currentInputs = restoredFromSession;
           setManualStatus(hasMobileManualInputs ? "ready" : "idle");
           setUploadResponse(session as MobileReportUploadResponse);
           setUploadStatus(
@@ -766,6 +749,7 @@ export default function NewMobileReportPage() {
         }
       }
 
+      setInputs(currentInputs);
       setDraftLoaded(true);
     });
   }, []);
@@ -1167,7 +1151,13 @@ export default function NewMobileReportPage() {
     localStorage.removeItem(MOBILE_DRAFT_KEY);
     localStorage.removeItem(MOBILE_REPORT_ID_KEY);
     setDraftStatus("saving");
-    setInputs(createInitialMobileInputs());
+    const userStation = resolveUserMobileStation(user);
+    const initialInputs = createInitialMobileInputs(userStation);
+    if (!isAdmin && user) {
+      initialInputs.station = userStation;
+      initialInputs.preparedBy = user.full_name || user.username || "";
+    }
+    setInputs(initialInputs);
     setReportId(null);
     setSessionStatus("idle");
     setManualStatus("idle");
