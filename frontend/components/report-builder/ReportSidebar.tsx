@@ -34,6 +34,11 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
   const isRestricted = user?.role === "duty_manager" || user?.role === "cluster_manager" || user?.role === "viewer";
   const [reportsOpen, setReportsOpen] = useState(true);
   const pathname = usePathname();
+  const isReportCreationPage = Boolean(
+    pathname &&
+      (pathname.startsWith("/reports/static-weighbridge") ||
+        pathname.startsWith("/reports/mobile-weighbridge"))
+  );
 
   const [logoError, setLogoError] = useState(false);
 
@@ -234,7 +239,7 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
         </div>
       </nav>
 
-      {!isRestricted && (
+      {!isRestricted && isReportCreationPage && (
         <div className="mt-auto mb-4">
           <ProgressSummary
             reportType={progress.reportType}

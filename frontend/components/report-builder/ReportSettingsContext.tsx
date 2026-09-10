@@ -51,11 +51,19 @@ export function ReportSettingsProvider({
 }: {
   children: ReactNode;
 }) {
-  const [people, setPeople] = useState(loadStoredPeople);
+  const [people, setPeople] = useState<string[]>(DEFAULT_PEOPLE);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(OFFICER_STORAGE_KEY, JSON.stringify(people));
-  }, [people]);
+    setPeople(loadStoredPeople());
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(OFFICER_STORAGE_KEY, JSON.stringify(people));
+    }
+  }, [people, isLoaded]);
 
   function addPerson(name: string) {
     const trimmed = name.trim();

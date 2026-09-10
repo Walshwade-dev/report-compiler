@@ -35,24 +35,8 @@ function ReportsLayoutContent({ children }: ReportsLayoutProps) {
   const pathname = usePathname();
   const isAllowedRestrictedPath = pathname === "/" || pathname === "/analytics" || pathname === "/mobile-checklist";
   
-  const [authorized, setAuthorized] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const user = getLoggedInUser();
-      if (!user) return false;
-      const isRestrictedRole = user.role === "duty_manager" || user.role === "cluster_manager" || user.role === "viewer" || user.role.startsWith("viewer_") || user.role === "technician";
-      if (!isAllowedRestrictedPath && isRestrictedRole) {
-        return false;
-      }
-      return true;
-    }
-    return false;
-  });
-  const [currentUser, setCurrentUser] = useState<any>(() => {
-    if (typeof window !== "undefined") {
-      return getLoggedInUser();
-    }
-    return null;
-  });
+  const [authorized, setAuthorized] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [personName, setPersonName] = useState("");
 

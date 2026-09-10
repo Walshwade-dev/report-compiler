@@ -349,10 +349,10 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                     className={`relative flex min-h-[115px] flex-col justify-between overflow-hidden rounded-xl border p-2.5 transition-all duration-300 ${card.color}`}
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10.5px] sm:text-[11px] font-extrabold uppercase tracking-wide text-slate-100 leading-tight block truncate max-w-[85%]">
+                      <span className="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wide text-slate-200 leading-tight block truncate max-w-[85%]">
                         {card.title}
                       </span>
-                      <Icon size={13} className="opacity-90 shrink-0" />
+                      <Icon size={13} className="opacity-80 shrink-0" />
                     </div>
 
                     {card.isAxleConfig ? (
@@ -365,12 +365,12 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                                 className="min-w-0 rounded border border-purple-500/30 bg-purple-950/50 px-1 py-0.5 text-center"
                               >
                                 <span
-                                  className="block truncate text-[8.5px] font-extrabold uppercase text-purple-200"
+                                  className="block truncate text-[8.5px] font-bold uppercase text-purple-300"
                                   title={cfg}
                                 >
                                   {cfg}
                                 </span>
-                                <span className="block truncate text-xs font-black tracking-tight text-white font-mono">
+                                <span className="block truncate text-xs font-bold tracking-tight text-slate-200 font-mono">
                                   {count.toLocaleString()}
                                 </span>
                               </div>
@@ -392,11 +392,11 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                             <div className="rounded-lg border border-cyan-500/30 bg-[#061e33]/90 px-2.5 py-1.5 flex items-center justify-between shadow-inner">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0 shadow-sm shadow-cyan-400/50"></span>
-                                <span className="truncate text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wider text-cyan-200" title={singleBoundLabel}>
+                                <span className="truncate text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wider text-cyan-300" title={singleBoundLabel}>
                                   {singleBoundLabel}
                                 </span>
                               </div>
-                              <span className="text-sm sm:text-base font-black tracking-tight text-white font-mono ml-2 shrink-0">
+                              <span className="text-sm sm:text-base font-extrabold tracking-tight text-slate-200 font-mono ml-2 shrink-0">
                                 {data.hasStaticData ? formatMetric(card.metric.boundA || card.metric.total) : "0"}
                               </span>
                             </div>
@@ -414,12 +414,12 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                               ].map(([label, value]) => (
                                 <div key={label} className="min-w-0 rounded border border-white/10 bg-black/30 px-1 py-1 text-center">
                                   <span
-                                    className="block truncate text-[8px] sm:text-[8.5px] font-bold uppercase text-slate-200 text-center tracking-tight"
+                                    className="block truncate text-[8px] sm:text-[8.5px] font-bold uppercase text-slate-300 text-center tracking-tight"
                                     title={String(label)}
                                   >
                                     {label}
                                   </span>
-                                  <span className="block truncate text-xs sm:text-[12.5px] font-black tracking-tight text-white text-center font-mono">
+                                  <span className="block truncate text-xs sm:text-[12.5px] font-bold tracking-tight text-slate-200 text-center font-mono">
                                     {data.hasStaticData ? formatMetric(value) : "0"}
                                   </span>
                                 </div>
@@ -554,7 +554,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                               </span>
                               <span className="text-[10px] text-slate-400">Sole Operational Bound</span>
                             </div>
-                            <span className="text-xl sm:text-2xl font-black text-white font-mono">
+                            <span className="text-xl sm:text-2xl font-black text-slate-200 font-mono">
                               {data.hasStaticData ? formatMetric(card.metric.boundA || card.metric.total) : "0"}
                             </span>
                           </div>
@@ -568,7 +568,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                               <span className="block truncate text-[10px] font-bold uppercase text-slate-300 mb-1">
                                 {label}
                               </span>
-                              <span className="block truncate text-base font-extrabold text-white font-mono">
+                              <span className="block truncate text-base font-extrabold text-slate-200 font-mono">
                                 {data.hasStaticData ? formatMetric(value) : "0"}
                               </span>
                             </div>
@@ -727,7 +727,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                         <span className="block truncate text-[7.5px] font-bold uppercase text-slate-400">
                           Shift A (Day)
                         </span>
-                        <span className="block truncate text-sm font-extrabold tracking-tight text-white">
+                        <span className="block truncate text-sm font-extrabold tracking-tight text-slate-200">
                           {data.hasMobileData ? card.shiftA.toLocaleString() : "0"}
                         </span>
                       </div>
@@ -735,7 +735,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                         <span className="block truncate text-[7.5px] font-bold uppercase text-slate-400">
                           Shift B (Night)
                         </span>
-                        <span className="block truncate text-sm font-extrabold tracking-tight text-white">
+                        <span className="block truncate text-sm font-extrabold tracking-tight text-slate-200">
                           {data.hasMobileData ? card.shiftB.toLocaleString() : "0"}
                         </span>
                       </div>
@@ -743,7 +743,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
 
                     <div className="flex items-center justify-between border-t border-white/10 pt-1.5 mt-1.5 px-1.5 bg-black/25 rounded">
                       <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide truncate">Total {card.shortLabel}:</span>
-                      <span className="font-mono text-sm font-extrabold text-white shrink-0 tracking-tight">
+                      <span className="font-mono text-sm font-extrabold text-slate-200 shrink-0 tracking-tight">
                         {data.hasMobileData ? card.total.toLocaleString() : "0"}
                       </span>
                     </div>
@@ -798,7 +798,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                           <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
                             Shift A (Day - Team 1)
                           </span>
-                          <span className="block text-xl font-extrabold text-white">
+                          <span className="block text-xl font-extrabold text-slate-200">
                             {data.hasMobileData ? card.shiftA.toLocaleString() : "0"}
                           </span>
                           <span className="block text-[9px] text-cyan-400/80 font-mono mt-0.5">
@@ -809,7 +809,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                           <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
                             Shift B (Night - Team 2)
                           </span>
-                          <span className="block text-xl font-extrabold text-white">
+                          <span className="block text-xl font-extrabold text-slate-200">
                             {data.hasMobileData ? card.shiftB.toLocaleString() : "0"}
                           </span>
                           <span className="block text-[9px] text-cyan-400/80 font-mono mt-0.5">
@@ -820,7 +820,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
 
                       <div className="flex items-center justify-between border-t border-cyan-900/30 pt-2 mt-1 px-1 text-xs">
                         <span className="font-semibold text-slate-300">Total {card.title}:</span>
-                        <span className="font-extrabold text-white text-sm font-mono">
+                        <span className="font-extrabold text-slate-200 text-sm font-mono">
                           {data.hasMobileData ? card.total.toLocaleString() : "0"}
                         </span>
                       </div>

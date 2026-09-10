@@ -1981,5 +1981,18 @@ Implemented in `frontend/components/dashboard/DashboardSummaryCards.tsx`:
 - For Juja Station (`station=juja`), static report KPI cards display **"Thika Bound"** for Bound A and **"Nairobi Bound"** for Bound B to match the physical road directions and eliminate generic `"Bound A"` labels.
 - In the expanded modal view, axle configuration breakdowns display `"Thika"` and `"Nairobi"` counters respectively.
 
+### Visual Contrast & Tone-Down Tuning
+- Tuned down harsh pure white (`#ffffff`) metric values by ~10% to smooth `text-slate-200` across Static and Mobile KPI cards and modals.
+- Bound titles softened to `text-slate-300` and `text-cyan-300`, and subcontainer titles tuned to `text-slate-200 font-bold` for reduced glare and balanced visual hierarchy.
 
-
+### Sidebar Project Summary Visibility Scoping
+- **Dashboard Visibility**: The side menu `ProgressSummary` container ("Project Summary" workflow checklist showing Session/Metadata, Uploads, Manual, Build readiness) is hidden on the main dashboard (`/`), analytics page, and general navigation views.
+- **Report Creation Scoping**: In `frontend/components/report-builder/ReportSidebar.tsx`, `ProgressSummary` is explicitly conditioned on `isReportCreationPage`:
+  ```tsx
+  const isReportCreationPage = Boolean(
+    pathname &&
+      (pathname.startsWith("/reports/static-weighbridge") ||
+        pathname.startsWith("/reports/mobile-weighbridge"))
+  );
+  ```
+- **Result**: The container only displays when an authorized officer is actively on the report creation/compilation page for static or mobile weighbridges (`/reports/static-weighbridge/new` or `/reports/mobile-weighbridge/new`), keeping the main dashboard navigation clean and focused.
