@@ -8,7 +8,7 @@ The app lets users create a report workspace, enter report metadata, upload requ
 
 Key capabilities include:
 - **Station-Scoped Dashboard**: Data isolation by station (e.g. Juja vs Kanyonyo) with cross-station comparative traffic, compliance, and court metrics.
-- **Dual-Shift Mobile Report KPIs**: Side-by-side Shift A (Day Shift) and Shift B (Night Shift) metrics for Mobile Weighed, Mobile Warned, Mobile Legal, and Mobile Charged with totals.
+- **Dual-Shift Mobile Report KPIs**: Direct alignment of Shift A (Day Shift) with Mobile Shift 1 (Team 1) SMS KPIs and Shift B (Night Shift) with Mobile Team 2 SMS KPIs; removed mobile dropdown selector with enlarged, high-legibility totals.
 - **PSV Concession & Axle Breakdown**: PSV Coaches Weighed with 2000KG allowance breakdown (`withinAllowed`, `charged`, `redistributed`, `specialRelease`) and Axle Configuration Breakdown card.
 - **Mobile Checklist**: Scale test calibration verification with a 2000KG tolerance threshold between static multideck and mobile weighbridge scales.
 

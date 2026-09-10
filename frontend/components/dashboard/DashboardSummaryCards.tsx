@@ -155,7 +155,11 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
 }
 
 export function StaticSummaryCards({ selectedDate, station }: { selectedDate: string; station?: string | null }) {
-  const { data, isLoading } = useDashboardData({ staticDate: selectedDate, station: station || undefined });
+  const { data, isLoading } = useDashboardData({
+    staticDate: selectedDate,
+    mobileDate: selectedDate,
+    station: station || undefined,
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const effectiveDate = selectedDate || data.selectedStaticDate || "";
 
@@ -531,35 +535,15 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
 }
 
 export function MobileSummaryCards({ selectedDate, station }: { selectedDate: string; station?: string | null }) {
-  const [selectedBound, setSelectedBound] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const mobileBoundSelectRef = useRef<HTMLSelectElement>(null);
   
   const { data, isLoading } = useDashboardData({
+    staticDate: selectedDate,
     mobileDate: selectedDate,
-    mobileBound: selectedBound,
     station: station || undefined,
   });
 
-  const effectiveDate = selectedDate || data.selectedMobileReport?.date || "";
-  const effectiveBound = selectedBound || data.selectedMobileReport?.bound || "";
-
-  const availableBounds = data.mobileReports.filter(
-    (report) => !effectiveDate || report.date === effectiveDate
-  );
-
-  const selectedLabel =
-    data.selectedMobileReport?.label ||
-    (effectiveDate && effectiveBound
-      ? `${effectiveDate} - ${effectiveBound === "mobile_2" ? "Mobile 2" : "Mobile 1"}`
-      : "No mobile session");
-
-  // Keep dropdown state in sync if data loads a new selected bound
-  useEffect(() => {
-    if (data.selectedMobileReport?.bound && !selectedBound) {
-      setSelectedBound(data.selectedMobileReport.bound);
-    }
-  }, [data.selectedMobileReport, selectedBound]);
+  const effectiveDate = selectedDate || data.selectedStaticDate || "";
 
   const shifts = data.mobileShifts || {
     shiftA: { weighed: 0, warned: 0, legal: 0, charged: 0 },
@@ -575,7 +559,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
       shiftA: shifts.shiftA.weighed,
       shiftB: shifts.shiftB.weighed,
       total: shifts.total.weighed || data.mobileWeighed,
-      change: data.hasMobileData ? selectedLabel : "No mobile session",
+      change: data.hasMobileData ? effectiveDate : "No mobile session",
       icon: Scale,
       color: "bg-transparent border-sky-500/20 text-sky-300 hover:border-sky-500/40 hover:bg-[#071827]/40",
     },
@@ -630,44 +614,23 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
         className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-xl backdrop-blur-md h-[540px] flex flex-col cursor-pointer transition-all duration-300 hover:border-cyan-500/40 hover:scale-[1.005] hover:bg-[#0b2135]/80 relative group"
       >
         {/* Header */}
-        <div className="flex flex-col gap-2 border-b border-cyan-900/30 pb-3 mb-3 shrink-0">
-          <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-cyan-900/30 pb-3 mb-3 shrink-0">
+          <div>
             <h2 className="text-sm font-bold uppercase tracking-wider text-cyan-200 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
               Mobile Report KPIs
             </h2>
-            <div className="text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Maximize2 size={14} />
-            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              Shift A (Day - Team 1) & Shift B (Night - Team 2) · {effectiveDate || "..."}
+            </p>
           </div>
-
-          {/* Bound Selector: Stop propagation to prevent modal trigger */}
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex cursor-pointer rounded-lg border border-cyan-900/60 bg-[#071827]/85 px-2 py-1 shadow-sm"
-          >
-            <select
-              ref={mobileBoundSelectRef}
-              value={effectiveBound}
-              onChange={(event) => setSelectedBound(event.target.value)}
-              disabled={availableBounds.length === 0}
-              className="min-w-0 flex-1 cursor-pointer bg-transparent text-[11px] font-bold text-white outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {availableBounds.length === 0 ? (
-                <option value="">No Mobile Report</option>
-              ) : (
-                availableBounds.map((report) => (
-                  <option key={`${report.date}-${report.bound}`} value={report.bound} className="bg-[#071827] text-white">
-                    {report.bound_label}
-                  </option>
-                ))
-              )}
-            </select>
+          <div className="text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity">
+            <Maximize2 size={14} />
           </div>
         </div>
 
         {/* Content area */}
-        <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="flex-1 flex flex-col gap-2.5 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
           {isLoading
             ? Array.from({ length: 4 }).map((_, i) => (
                 <div
@@ -714,9 +677,9 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-white/5 pt-1 mt-1 text-[8px] px-0.5">
-                      <span className="text-slate-400 font-medium truncate">Total {card.shortLabel}:</span>
-                      <span className="font-extrabold text-white font-mono shrink-0">
+                    <div className="flex items-center justify-between border-t border-white/10 pt-1.5 mt-1.5 px-1.5 bg-black/25 rounded">
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide truncate">Total {card.shortLabel}:</span>
+                      <span className="font-mono text-sm font-extrabold text-white shrink-0 tracking-tight">
                         {data.hasMobileData ? card.total.toLocaleString() : "0"}
                       </span>
                     </div>
@@ -740,7 +703,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
             <div className="flex items-center justify-between border-b border-cyan-900/50 px-6 py-4">
               <div>
                 <h3 className="text-lg font-bold text-white uppercase tracking-wider">Mobile Report KPIs Details</h3>
-                <p className="text-xs text-slate-400">Detailed mobile weighbridge statistics for {effectiveBound === "mobile_2" ? "Mobile 2" : "Mobile 1"} on {effectiveDate}</p>
+                <p className="text-xs text-slate-400">Detailed mobile weighbridge statistics for {effectiveDate || "Active Session"}</p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -769,7 +732,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                       <div className="grid grid-cols-2 gap-3 py-2">
                         <div className="rounded-lg border border-cyan-900/20 bg-black/30 p-2.5 text-center">
                           <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
-                            Shift A (Day Shift)
+                            Shift A (Day - Team 1)
                           </span>
                           <span className="block text-xl font-extrabold text-white">
                             {data.hasMobileData ? card.shiftA.toLocaleString() : "0"}
@@ -780,7 +743,7 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                         </div>
                         <div className="rounded-lg border border-cyan-900/20 bg-black/30 p-2.5 text-center">
                           <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
-                            Shift B (Night Shift)
+                            Shift B (Night - Team 2)
                           </span>
                           <span className="block text-xl font-extrabold text-white">
                             {data.hasMobileData ? card.shiftB.toLocaleString() : "0"}

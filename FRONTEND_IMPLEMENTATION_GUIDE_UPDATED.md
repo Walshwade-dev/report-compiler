@@ -1941,3 +1941,17 @@ Implemented in `frontend/components/dashboard/SmsSummaryPanel.tsx` and integrate
 ### Impounded & Prohibited Formula
 
 - The impounded and prohibited metric on the dashboards and generated documents is computed using the formula `P = Z + R`, where `Z` is the charged count and `R` is the count of cases cleared/released in court.
+
+---
+
+## 23. Implementation Update — 2026-07-28 Mobile Report KPIs: Shift Alignment, Dropdown Removal & Legibility
+
+### Mobile Shift A & B Alignment with SMS KPIs
+Implemented in `frontend/components/dashboard/DashboardSummaryCards.tsx`:
+- **Shift A (Day)**: Directly presents metrics (`weighed`, `warned`, `legal`, `charged`) from Mobile Shift 1 (Team 1) matching the exact SMS KPI text.
+- **Shift B (Night)**: Directly presents metrics from Mobile Team 2 matching the exact SMS KPI text.
+- **Total**: Accurately sums Shift A + Shift B.
+- **Removed Dropdown Selector**: The bound `<select>` dropdown was removed from the header of `MobileSummaryCards` since both shifts are displayed simultaneously side-by-side.
+- **Enlarged Totals Font Size**: In each child KPI card (Mobile Weighed, Mobile Warned, Mobile Legal, Mobile Charged), the totals font size was enlarged to `text-sm font-extrabold` with a `text-[10px] font-bold` label on a subtle background pill to make totals immediately clear and legible.
+- **Request Deduplication**: `StaticSummaryCards` and `MobileSummaryCards` synchronize their date query parameters (`staticDate: selectedDate, mobileDate: selectedDate`), allowing the browser in-flight request deduplicator in `lib/api.ts` to merge them into a single backend API call.
+
