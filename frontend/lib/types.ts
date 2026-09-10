@@ -161,3 +161,18 @@ export type TransgressionOcrResponse = {
   };
   raw_text_summary: string;
 };
+
+export type CensusOcrResponse = {
+  success: boolean;
+  filename: string;
+  cc_records: CCRecordRow[];
+  grand_total: {
+    buses_gte_3500kg: number;
+    vehicles_3500_to_7000_excluding_buses: number;
+    vehicles_gte_7000_excluding_buses: number;
+  };
+  clerks: string[];
+  primary_clerk: string;
+  checksum_valid: boolean;
+};
+

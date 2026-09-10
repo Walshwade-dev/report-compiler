@@ -6,6 +6,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  UploadCloud,
 } from "lucide-react";
 
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/lib/types";
 import { extractTransgressionOcr } from "@/lib/api";
 import { processTransgressionFiles } from "@/lib/transgressionIngest";
+import { processCensusFiles } from "@/lib/censusIngest";
 import { StatusBadge } from "./StatusBadge";
 
 type ManualInputsPanelProps = {
@@ -85,7 +87,15 @@ export function ManualInputsPanel({
     message: string;
   } | null>(null);
 
+  const [censusOcrUploading, setCensusOcrUploading] = useState(false);
+  const [censusOcrFeedback, setCensusOcrFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const censusFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const censusFileInputRef = useRef<HTMLInputElement>(null);
 
   // Clear feedback and close modal when session is reset or when transgression entries are cleared
   useEffect(() => {
@@ -141,7 +151,16 @@ export function ManualInputsPanel({
 
     if (result.extractedCount > 0) {
       setManualInputsTouched(true);
-      setManualInputs(result.updatedInputs);
+      setManualInputs((prev) => {
+        const nextDaily = [...prev.dailyTransgressions, ...result.extractedDailyList];
+        const nextAction = [...prev.transgressionActions, ...result.extractedActionList];
+        return {
+          ...prev,
+          dailyTransgressions: nextDaily,
+          transgressionActions: nextAction,
+          transgressions: nextDaily.length,
+        };
+      });
     }
 
     if (result.feedbackMessage) {
@@ -166,6 +185,52 @@ export function ManualInputsPanel({
     }
 
     setOcrUploading(false);
+  };
+
+  const handleCensusOcrUpload = async (files: File[]) => {
+    if (!reportId) {
+      setCensusOcrFeedback({
+        type: "error",
+        message: "Please initialize or select a report session before uploading documents.",
+      });
+      return;
+    }
+
+    if (files.length === 0) return;
+
+    setCensusOcrUploading(true);
+    setCensusOcrFeedback(null);
+    if (censusFeedbackTimeoutRef.current) {
+      clearTimeout(censusFeedbackTimeoutRef.current);
+    }
+
+    const result = await processCensusFiles(files, reportId, manualInputs);
+
+    if (result.success && result.extractedValues) {
+      setManualInputsTouched(true);
+      setManualInputs((prev) => ({
+        ...prev,
+        buses3500: result.extractedValues!.buses3500,
+        vehicles3500to7000: result.extractedValues!.vehicles3500to7000,
+        vehicles7000: result.extractedValues!.vehicles7000,
+        ccRecords: result.extractedValues!.ccRecords,
+      }));
+    }
+
+    if (result.feedbackMessage) {
+      setCensusOcrFeedback({
+        type: result.feedbackType || "success",
+        message: result.feedbackMessage,
+      });
+
+      if (result.feedbackType === "success") {
+        censusFeedbackTimeoutRef.current = setTimeout(() => {
+          setCensusOcrFeedback(null);
+        }, 5000);
+      }
+    }
+
+    setCensusOcrUploading(false);
   };
 
   const handleCellChange = (rowIndex: number, colKey: keyof CCRecordRow, value: number) => {
@@ -308,9 +373,45 @@ export function ManualInputsPanel({
           )}
 
           <div className="mt-5 space-y-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
-              Traffic Census (CC Records)
-            </span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Traffic Census (CC Records)
+              </span>
+              <button
+                type="button"
+                disabled={censusOcrUploading}
+                onClick={() => censusFileInputRef.current?.click()}
+                className="flex items-center gap-1 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
+                title="Scan CC Records from PDF or Image"
+              >
+                <UploadCloud size={13} />
+                {censusOcrUploading ? "Scanning..." : "Scan CC Form"}
+              </button>
+              <input
+                ref={censusFileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.png,.jpg,.jpeg,.tiff,.webp"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    handleCensusOcrUpload(Array.from(e.target.files));
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </div>
+            {censusOcrFeedback && (
+              <p
+                className={`text-[11px] rounded px-2.5 py-1.5 ${
+                  censusOcrFeedback.type === "success"
+                    ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800/50"
+                    : "bg-red-950/60 text-red-300 border border-red-800/50"
+                }`}
+              >
+                {censusOcrFeedback.message}
+              </p>
+            )}
             <div className="overflow-x-auto rounded-lg border border-cyan-800/40 bg-[#071827] p-2">
               <table className="w-full border-collapse text-xs text-slate-300">
                 <thead>

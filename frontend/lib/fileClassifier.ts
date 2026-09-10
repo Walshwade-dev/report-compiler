@@ -56,10 +56,9 @@ export const TARGET_CATEGORIES: TargetCategoryOption[] = [
   },
   {
     key: "census",
-    label: "Traffic Census (OCR - Coming Soon)",
+    label: "Traffic Census Record (OCR)",
     badgeLabel: "Census (OCR)",
     type: "scan",
-    disabled: true,
   },
   {
     key: "unassigned",
@@ -95,11 +94,20 @@ export async function classifyFile(file: File): Promise<ClassificationResult> {
 
   // 1. Scanned documents & images
   if (isScan) {
-    if (name.includes("census") || name.includes("traffic_count") || name.includes("traffic count")) {
+    if (
+      name.includes("census") ||
+      name.includes("traffic_count") ||
+      name.includes("traffic count") ||
+      name.includes("cc records") ||
+      name.includes("cc record") ||
+      name.includes("cc_record") ||
+      name.includes("cc_records") ||
+      name.includes("traffic census")
+    ) {
       return {
         target: "census",
         confidence: "high",
-        reason: "Matched traffic census filename pattern (OCR pending)",
+        reason: "Matched traffic census / CC records filename pattern",
       };
     }
 

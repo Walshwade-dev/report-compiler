@@ -29,6 +29,10 @@ async function runTests() {
   const res6 = await classifyFile(census);
   assert.strictEqual(res6.target, "census", "census filename test failed");
 
+  const ccRecords = new File(["dummy"], "CC records sample.pdf");
+  const resCc = await classifyFile(ccRecords);
+  assert.strictEqual(resCc.target, "census", "CC records sample.pdf filename test failed");
+
   // 2. By content header sniffing (arbitrary filenames)
   const sniffDaily = new File(
     ["MultiDeck[D],SingleAxle[S],Manually[M],HSWIM Total[H],CalledIn[C]"],

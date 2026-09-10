@@ -27,6 +27,7 @@ import {
   formatFileSize,
 } from "@/lib/fileClassifier";
 import { processTransgressionFiles } from "@/lib/transgressionIngest";
+import { processCensusFiles } from "@/lib/censusIngest";
 
 export type StagedFileItem = {
   id: string;
@@ -171,6 +172,9 @@ export function BatchFileIngest({
     transgressionsStaged: stagedFiles.filter(
       (f) => f.selectedTarget === "transgression"
     ).length,
+    censusStaged: stagedFiles.filter(
+      (f) => f.selectedTarget === "census"
+    ).length,
   };
 
   const allSpreadsheetsCovered =
@@ -210,6 +214,10 @@ export function BatchFileIngest({
       (f) => f.selectedTarget === "transgression" && f.status !== "ready"
     );
 
+    const censusItems = stagedFiles.filter(
+      (f) => f.selectedTarget === "census" && f.status !== "ready"
+    );
+
     let spreadsheetSuccessCount = 0;
     let spreadsheetErrorCount = 0;
 
@@ -242,73 +250,165 @@ export function BatchFileIngest({
       }
     }
 
-    // 2. Process Transgression Scan Files
+    // 2. Process Transgression and Census Scan Files Concurrently
+    const hasTransgression = transgressionItems.length > 0;
+    const hasCensus = censusItems.length > 0;
+
     let transgressionSuccessCount = 0;
     let transgressionErrorCount = 0;
+    let censusSuccessCount = 0;
+    let censusErrorCount = 0;
 
-    if (transgressionItems.length > 0) {
-      // Mark all transgression rows as extracting
-      setStagedFiles((prev) =>
-        prev.map((f) =>
-          transgressionItems.some((t) => t.id === f.id)
-            ? { ...f, status: "extracting", error: undefined }
-            : f
-        )
-      );
-
-      const filesToExtract = transgressionItems.map((t) => t.file);
-      const result = await processTransgressionFiles(
-        filesToExtract,
-        reportId,
-        manualInputs
-      );
-
-      if (result.extractedCount > 0) {
-        setManualInputs(result.updatedInputs);
-        setManualInputsTouched(true);
-      }
-
-      // Update per-item status
+    if (hasTransgression || hasCensus) {
+      // Mark all OCR items as extracting simultaneously
       setStagedFiles((prev) =>
         prev.map((f) => {
-          const matchingItem = transgressionItems.find((t) => t.id === f.id);
-          if (!matchingItem) return f;
-
-          const hasError = result.errors.some((err) =>
-            err.includes(matchingItem.file.name)
-          );
-          if (hasError) {
-            transgressionErrorCount++;
-            return {
-              ...f,
-              status: "error",
-              error: "OCR extraction could not extract valid truck data",
-            };
+          if (
+            (hasTransgression && transgressionItems.some((t) => t.id === f.id)) ||
+            (hasCensus && censusItems.some((c) => c.id === f.id))
+          ) {
+            return { ...f, status: "extracting", error: undefined };
           }
-
-          transgressionSuccessCount++;
-          return {
-            ...f,
-            status: "ready",
-          };
+          return f;
         })
       );
 
-      if (result.feedbackMessage) {
+      // Execute both OCR extractions concurrently
+      const [transgressionResult, censusResult] = await Promise.all([
+        hasTransgression
+          ? processTransgressionFiles(
+              transgressionItems.map((t) => t.file),
+              reportId,
+              manualInputs
+            )
+          : Promise.resolve(null),
+        hasCensus
+          ? processCensusFiles(
+              censusItems.map((c) => c.file),
+              reportId,
+              manualInputs
+            )
+          : Promise.resolve(null),
+      ]);
+
+      // Atomic functional state merge: combines both results into manualInputs without data loss
+      const hasTransgressionData = Boolean(
+        transgressionResult && transgressionResult.extractedCount > 0
+      );
+      const hasCensusData = Boolean(
+        censusResult && censusResult.success && censusResult.extractedValues
+      );
+
+      if (hasTransgressionData || hasCensusData) {
+        setManualInputs((prev) => {
+          let next = { ...prev };
+          if (hasTransgressionData && transgressionResult) {
+            const combinedDaily = [
+              ...next.dailyTransgressions,
+              ...transgressionResult.extractedDailyList,
+            ];
+            const combinedAction = [
+              ...next.transgressionActions,
+              ...transgressionResult.extractedActionList,
+            ];
+            next = {
+              ...next,
+              dailyTransgressions: combinedDaily,
+              transgressionActions: combinedAction,
+              transgressions: combinedDaily.length,
+            };
+          }
+          if (hasCensusData && censusResult?.extractedValues) {
+            next = {
+              ...next,
+              buses3500: censusResult.extractedValues.buses3500,
+              vehicles3500to7000: censusResult.extractedValues.vehicles3500to7000,
+              vehicles7000: censusResult.extractedValues.vehicles7000,
+              ccRecords: censusResult.extractedValues.ccRecords,
+            };
+          }
+          return next;
+        });
+        setManualInputsTouched(true);
+      }
+
+      // Update per-item status for both transgression and census files
+      setStagedFiles((prev) =>
+        prev.map((f) => {
+          if (hasTransgression && transgressionItems.some((t) => t.id === f.id)) {
+            const matchingItem = transgressionItems.find((t) => t.id === f.id);
+            const hasError = transgressionResult?.errors.some((err) =>
+              err.includes(matchingItem?.file.name || "")
+            );
+            if (
+              hasError ||
+              (transgressionResult &&
+                transgressionResult.extractedCount === 0 &&
+                transgressionResult.errors.length > 0)
+            ) {
+              transgressionErrorCount++;
+              return {
+                ...f,
+                status: "error",
+                error: "OCR extraction could not extract valid truck data",
+              };
+            }
+            transgressionSuccessCount++;
+            return { ...f, status: "ready" };
+          }
+
+          if (hasCensus && censusItems.some((c) => c.id === f.id)) {
+            const matchingItem = censusItems.find((c) => c.id === f.id);
+            const hasError = censusResult?.errors.some((err) =>
+              err.includes(matchingItem?.file.name || "")
+            );
+            if (hasError || (censusResult && !censusResult.success)) {
+              censusErrorCount++;
+              return {
+                ...f,
+                status: "error",
+                error: "Could not extract census subtotals from document",
+              };
+            }
+            censusSuccessCount++;
+            return { ...f, status: "ready" };
+          }
+
+          return f;
+        })
+      );
+
+      // Handle feedback summaries from OCR
+      if (
+        transgressionResult?.feedbackType === "error" &&
+        transgressionResult.feedbackMessage
+      ) {
         setIngestSummary({
-          type: result.feedbackType || "info",
-          message: result.feedbackMessage,
+          type: "error",
+          message: transgressionResult.feedbackMessage,
+        });
+      } else if (
+        censusResult?.feedbackType === "error" &&
+        censusResult.feedbackMessage
+      ) {
+        setIngestSummary({
+          type: "error",
+          message: censusResult.feedbackMessage,
         });
       }
     }
 
     setIsProcessing(false);
 
-    // Provide overall completion summary if not already set by transgression alert
-    if (spreadsheetErrorCount === 0 && transgressionErrorCount === 0) {
+    // Provide overall completion summary if not already set by alert
+    if (spreadsheetErrorCount === 0 && transgressionErrorCount === 0 && censusErrorCount === 0) {
       const summaryMsg = `Successfully ingested ${spreadsheetSuccessCount} data section(s)${
         transgressionSuccessCount > 0
           ? ` and processed ${transgressionSuccessCount} transgression form(s)`
+          : ""
+      }${
+        censusSuccessCount > 0
+          ? ` and processed ${censusSuccessCount} census record(s)`
           : ""
       }. All mappings verified!`;
       setIngestSummary({
@@ -318,7 +418,7 @@ export function BatchFileIngest({
     } else {
       setIngestSummary({
         type: "error",
-        message: `Ingest completed with errors: ${spreadsheetErrorCount + transgressionErrorCount} file(s) had issues. Check row indicators below.`,
+        message: `Ingest completed with errors: ${spreadsheetErrorCount + transgressionErrorCount + censusErrorCount} file(s) had issues. Check row indicators below.`,
       });
     }
   };
@@ -376,6 +476,11 @@ export function BatchFileIngest({
           {sectionCoverage.transgressionsStaged > 0 && (
             <span className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-300">
               {sectionCoverage.transgressionsStaged} Transgression Scan(s)
+            </span>
+          )}
+          {sectionCoverage.censusStaged > 0 && (
+            <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
+              {sectionCoverage.censusStaged} Census Scan(s)
             </span>
           )}
         </div>

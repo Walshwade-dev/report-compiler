@@ -1,5 +1,5 @@
 import { UPLOAD_ENDPOINTS } from "./constants";
-import type { TransgressionOcrResponse } from "./types";
+import type { TransgressionOcrResponse, CensusOcrResponse } from "./types";
 
 const DEPLOYED_API_ORIGIN = "https://report-app-px6c.onrender.com";
 const LOCAL_API_ORIGIN = "http://127.0.0.1:8000";
@@ -555,6 +555,31 @@ export async function extractTransgressionOcr(
   }
 
   return response.json() as Promise<TransgressionOcrResponse>;
+}
+
+export async function extractCensusOcr(
+  reportId: string,
+  file: File
+): Promise<CensusOcrResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(
+    apiUrl(`report-sessions/${reportId}/census/ocr-extract`),
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to extract traffic census data from document")
+    );
+  }
+
+  return response.json() as Promise<CensusOcrResponse>;
 }
 
 export async function resetReportSession(

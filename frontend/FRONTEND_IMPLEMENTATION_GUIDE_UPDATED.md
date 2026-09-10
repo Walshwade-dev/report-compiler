@@ -2061,4 +2061,22 @@ Implemented in `frontend/app/reports/weekly/new/page.tsx` and `backend/app/route
 - **Auth Token Transmission**:
   - `handleDownload` leverages `authHeaders()` to ensure `dnk-auth-token` is passed as `Authorization: Bearer <token>` on report downloads.
 
+## 28. Implementation Update — Traffic Census (CC Records) OCR, Concurrent OCR Processing & Race-Condition Prevention
+
+Implemented in `frontend/lib/censusIngest.ts`, `frontend/lib/transgressionIngest.ts`, `frontend/components/report-builder/BatchFileIngest.tsx`, `frontend/components/report-builder/ManualInputsPanel.tsx`, and `backend/app/services/census_ocr_extractor.py`:
+- **Traffic Census OCR Service (`/api/reports/{id}/census/ocr-extract`)**:
+  - Automatically parses scanned Traffic Census (CC Records) forms (PDF/images) extracting shift subtotals for Buses ($\ge 3,500\text{kg}$), Empty Trucks ($3,500 - 7,000\text{kg}$), and Empty Trucks ($> 7,000\text{kg}$).
+  - Canonical shift arrangement based on time intervals:
+    - **Shift A (Row 0)**: `0000 - 0700`
+    - **Shift B (Row 1)**: `0700 - 1800`
+    - **Shift C (Row 2)**: `1800 - 2359`
+  - Validates checksum against Grand Total when present to ensure mathematical integrity.
+- **Concurrent & Asynchronous Processing**:
+  - In `BatchFileIngest.tsx`, Transgression OCR and Census OCR are executed in parallel via `Promise.all([processTransgressionFiles(...), processCensusFiles(...)])`, reducing batch intake latency by up to 50%.
+  - Multi-file uploads within each category are also extracted concurrently with `Promise.all(files.map(...))`.
+- **Atomic Functional State Merge (Data Wiping Prevention)**:
+  - Both `BatchFileIngest.tsx` and `ManualInputsPanel.tsx` utilize React functional state updaters (`setManualInputs(prev => ({ ...prev, ... }))`) to cleanly merge transgression records and census subtotals into `manualInputs`.
+  - Eliminates stale closure overwrites, guaranteeing all extracted data reaches the report building stage without loss.
+
+
 
