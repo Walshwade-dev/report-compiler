@@ -406,6 +406,7 @@ export function useReportSession() {
             action_1: row.action1,
             action_2: row.action2,
             attach_evidence: row.attachEvidence,
+            attach_evidence_if_any: row.attachEvidence,
             weight_noted: row.weightNoted,
             tagged_in_system: row.taggedInSystem,
           })),
