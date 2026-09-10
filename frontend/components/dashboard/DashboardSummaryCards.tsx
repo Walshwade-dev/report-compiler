@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { BarChart3, ShieldAlert, FileText, Scale, Gavel, Bus, Maximize2, X } from "lucide-react";
+import { BarChart3, ShieldAlert, FileText, Scale, Gavel, Bus, Truck, CheckCircle2, Maximize2, X } from "lucide-react";
 
 type MobileReportOption = {
   date: string;
@@ -19,6 +19,20 @@ type StaticKpis = {
   minGross: number;
   chargedRedist: string;
   reportsGenerated: number;
+  axleConfigs?: Record<string, number>;
+  psvBreakdown?: {
+    charged: number;
+    redistributed: number;
+    specialRelease: number;
+    withinAllowed?: number;
+  };
+};
+
+type MobileShiftStats = {
+  weighed: number;
+  warned: number;
+  legal: number;
+  charged: number;
 };
 
 function emptyStaticKpis(): StaticKpis {
@@ -30,6 +44,8 @@ function emptyStaticKpis(): StaticKpis {
     minGross: 0,
     chargedRedist: "0 / 0",
     reportsGenerated: 0,
+    axleConfigs: {},
+    psvBreakdown: { charged: 0, redistributed: 0, specialRelease: 0, withinAllowed: 0 },
   };
 }
 
@@ -45,6 +61,8 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
     minGross: 0,
     chargedRedist: "0 / 0",
     reportsGenerated: 0,
+    axleConfigs: {} as Record<string, number>,
+    psvBreakdown: { charged: 0, redistributed: 0, specialRelease: 0, withinAllowed: 0 },
     staticDates: [] as string[],
     selectedStaticDate: null as string | null,
     staticByBound: {
@@ -54,7 +72,13 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
     },
     mobileWeighed: 0,
     mobileWarned: 0,
+    mobileLegal: 0,
     mobileCharged: 0,
+    mobileShifts: {
+      shiftA: { weighed: 0, warned: 0, legal: 0, charged: 0 } as MobileShiftStats,
+      shiftB: { weighed: 0, warned: 0, legal: 0, charged: 0 } as MobileShiftStats,
+      total: { weighed: 0, warned: 0, legal: 0, charged: 0 } as MobileShiftStats,
+    },
     mobileReports: [] as MobileReportOption[],
     selectedMobileReport: null as MobileReportOption | null,
     hasStaticData: false,
@@ -81,6 +105,8 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
             minGross: res.static.minGross,
             chargedRedist: res.static.chargedRedist,
             reportsGenerated: res.static.reportsGenerated,
+            axleConfigs: res.static.axleConfigs || {},
+            psvBreakdown: res.static.psvBreakdown || { charged: 0, redistributed: 0, specialRelease: 0 },
             staticDates: res.static.dates || [],
             selectedStaticDate: res.static.selectedDate || null,
             staticByBound: {
@@ -90,11 +116,21 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
             },
             mobileWeighed: res.mobile.weighed,
             mobileWarned: res.mobile.warned,
+            mobileLegal: res.mobile.legal || 0,
             mobileCharged: res.mobile.charged,
+            mobileShifts: res.mobile.shifts || {
+              shiftA: { weighed: 0, warned: 0, legal: 0, charged: 0 },
+              shiftB: { weighed: 0, warned: 0, legal: 0, charged: 0 },
+              total: { weighed: 0, warned: 0, legal: 0, charged: 0 },
+            },
             mobileReports: res.mobile.reports || [],
             selectedMobileReport: res.mobile.selected || null,
-            hasStaticData: res.static.reportsGenerated > 0,
-            hasMobileData: res.mobile.weighed > 0 || res.mobile.warned > 0 || res.mobile.charged > 0,
+            hasStaticData: res.static.reportsGenerated > 0 || res.static.weighed > 0 || (res.static.axleConfigs && Object.keys(res.static.axleConfigs).length > 0),
+            hasMobileData:
+              (res.mobile.weighed || 0) > 0 ||
+              (res.mobile.warned || 0) > 0 ||
+              (res.mobile.charged || 0) > 0 ||
+              (res.mobile.legal || 0) > 0,
           });
         }
       } catch (err) {
@@ -170,8 +206,22 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
     total: data.staticByBound.total.label || "Total",
   };
 
+  const axleConfigs = data.axleConfigs || data.staticByBound.total.axleConfigs || {};
+  const axleEntries = Object.entries(axleConfigs).sort((a, b) => b[1] - a[1]);
+  const topAxles = axleEntries.slice(0, 6);
+  const totalAxleCount = axleEntries.reduce((acc, [, c]) => acc + c, 0);
+  const remainingAxleCount = axleEntries.slice(6).reduce((acc, [, c]) => acc + c, 0);
+
+  const psvBreakdown = data.psvBreakdown || { charged: 0, redistributed: 0, specialRelease: 0, withinAllowed: 0 };
+  const hasPsvBreakdown =
+    (psvBreakdown.charged || 0) > 0 ||
+    (psvBreakdown.redistributed || 0) > 0 ||
+    (psvBreakdown.specialRelease || 0) > 0 ||
+    (psvBreakdown.withinAllowed || 0) > 0;
+
   const cards = [
     {
+      id: "weighed",
       title: "Total Weighed Vehicles",
       metric: staticMetric.weighed,
       change: data.hasStaticData ? effectiveDate : "No active session",
@@ -179,6 +229,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
       color: "bg-transparent border-cyan-500/20 text-cyan-300 hover:border-cyan-500/40 hover:bg-[#071827]/40",
     },
     {
+      id: "overloads",
       title: "Truck Overloads (No Permit)",
       metric: staticMetric.overloads,
       change: data.hasStaticData ? "Excluded permit holders" : "No active session",
@@ -186,20 +237,27 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
       color: "bg-transparent border-rose-500/20 text-rose-300 hover:border-rose-500/40 hover:bg-[#071827]/40",
     },
     {
+      id: "psv",
       title: "PSV Coaches weighed",
       metric: staticMetric.psvOverloads,
-      change: "Buses & passenger vehicles",
+      change: data.hasStaticData
+        ? hasPsvBreakdown
+          ? `${psvBreakdown.withinAllowed ?? 0} Allowed (+2t) · ${psvBreakdown.charged} Chg · ${psvBreakdown.redistributed} Red`
+          : "Buses & passenger vehicles"
+        : "No active session",
       icon: Bus,
       color: "bg-transparent border-amber-500/20 text-amber-300 hover:border-amber-500/40 hover:bg-[#071827]/40",
     },
     {
-      title: "Min Gross Overload (Allowed)",
+      id: "min_axle",
+      title: "Min Axle Overload Allowed",
       metric: staticMetric.minGross,
-      change: "Within minimal gross margin",
+      change: "Within minimal axle overload tolerance",
       icon: Scale,
       color: "bg-transparent border-emerald-500/20 text-emerald-300 hover:border-emerald-500/40 hover:bg-[#071827]/40",
     },
     {
+      id: "charged_redist",
       title: "Charged vs Redistributed",
       metric: staticMetric.chargedRedist,
       change: data.hasStaticData ? "Charged / Redistributed" : "No active session",
@@ -207,11 +265,17 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
       color: "bg-transparent border-blue-500/20 text-blue-300 hover:border-blue-500/40 hover:bg-[#071827]/40",
     },
     {
-      title: "Reports Generated",
-      metric: staticMetric.reportsGenerated,
-      change: data.hasStaticData ? "Unique reports for date" : "No active session",
-      icon: FileText,
+      id: "axle_config",
+      title: "Axle Config Breakdown",
+      metric: staticMetric.weighed,
+      change: data.hasStaticData && topAxles.length > 0
+        ? remainingAxleCount > 0
+          ? `+${axleEntries.length - 6} other configs (${remainingAxleCount} trucks)`
+          : `${axleEntries.length} axle configurations`
+        : "No active session",
+      icon: Truck,
       color: "bg-transparent border-purple-500/20 text-purple-300 hover:border-purple-500/40 hover:bg-[#071827]/40",
+      isAxleConfig: true,
     },
   ];
 
@@ -265,30 +329,65 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                       </span>
                       <Icon size={12} className="opacity-80 shrink-0" />
                     </div>
-                    <div className="mt-2 grid grid-cols-3 gap-1">
-                      {[
-                        [staticLabels.boundA, card.metric.boundA],
-                        [staticLabels.boundB, card.metric.boundB],
-                        [staticLabels.total, card.metric.total],
-                      ].map(([label, value]) => (
-                        <div key={label} className="min-w-0 rounded border border-white/5 bg-black/20 px-1 py-0.5">
-                          <span
-                            className="block truncate text-[7px] font-bold uppercase text-slate-500 text-center"
-                            title={String(label)}
-                          >
-                            {label}
-                          </span>
-                          <span className="block truncate text-[11px] font-extrabold tracking-tight text-white text-center">
-                            {data.hasStaticData ? formatMetric(value) : "0"}
-                          </span>
+
+                    {card.isAxleConfig ? (
+                      <div className="mt-1.5 flex flex-col justify-between flex-1 min-h-0">
+                        {data.hasStaticData && topAxles.length > 0 ? (
+                          <div className="grid grid-cols-3 gap-1">
+                            {topAxles.map(([cfg, count]) => (
+                              <div
+                                key={cfg}
+                                className="min-w-0 rounded border border-purple-500/20 bg-purple-950/40 px-1 py-0.5 text-center"
+                              >
+                                <span
+                                  className="block truncate text-[7.5px] font-bold uppercase text-purple-300/80"
+                                  title={cfg}
+                                >
+                                  {cfg}
+                                </span>
+                                <span className="block truncate text-[11px] font-extrabold tracking-tight text-white">
+                                  {count.toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center py-2 text-center text-[10px] text-slate-500">
+                            {isLoading ? "Loading..." : "No axle records"}
+                          </div>
+                        )}
+                        <p className="mt-1 text-[8px] text-slate-400 font-medium truncate" title={card.change}>
+                          {card.change}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mt-2 grid grid-cols-3 gap-1">
+                          {[
+                            [staticLabels.boundA, card.metric.boundA],
+                            [staticLabels.boundB, card.metric.boundB],
+                            [staticLabels.total, card.metric.total],
+                          ].map(([label, value]) => (
+                            <div key={label} className="min-w-0 rounded border border-white/5 bg-black/20 px-1 py-0.5">
+                              <span
+                                className="block truncate text-[7px] font-bold uppercase text-slate-500 text-center"
+                                title={String(label)}
+                              >
+                                {label}
+                              </span>
+                              <span className="block truncate text-[11px] font-extrabold tracking-tight text-white text-center">
+                                {data.hasStaticData ? formatMetric(value) : "0"}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="mt-1 text-[8px] text-slate-500 font-medium truncate" title={card.change}>
-                        {card.change}
-                      </p>
-                    </div>
+                        <div>
+                          <p className="mt-1 text-[8px] text-slate-500 font-medium truncate" title={card.change}>
+                            {card.change}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 );
               })}
@@ -323,6 +422,64 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {cards.map((card, i) => {
                   const Icon = card.icon;
+
+                  if (card.isAxleConfig) {
+                    return (
+                      <div
+                        key={`modal-static-${i}`}
+                        className="relative flex flex-col justify-between rounded-xl border border-purple-900/50 bg-[#0b2135]/30 p-4 shadow-md md:col-span-2 lg:col-span-3"
+                      >
+                        <div className="flex items-center justify-between gap-2 border-b border-purple-950 pb-2 mb-3">
+                          <div>
+                            <span className="text-xs font-bold uppercase tracking-wider text-purple-200">
+                              Axle Configuration Breakdown ({totalAxleCount.toLocaleString()} Total Vehicles)
+                            </span>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              Count of vehicles by axle configuration from Impounded & Overloaded records
+                            </p>
+                          </div>
+                          <Icon size={18} className="text-purple-400 shrink-0" />
+                        </div>
+
+                        {data.hasStaticData && axleEntries.length > 0 ? (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+                            {axleEntries.map(([cfg, count]) => {
+                              const boundACount = data.staticByBound.boundA.axleConfigs?.[cfg] || 0;
+                              const boundBCount = data.staticByBound.boundB.axleConfigs?.[cfg] || 0;
+                              const pct = totalAxleCount > 0 ? ((count / totalAxleCount) * 100).toFixed(1) : "0";
+
+                              return (
+                                <div
+                                  key={cfg}
+                                  className="rounded-lg border border-purple-900/30 bg-purple-950/20 p-2.5 flex flex-col justify-between hover:border-purple-500/40 transition"
+                                >
+                                  <div className="flex items-center justify-between border-b border-purple-900/20 pb-1 mb-1.5">
+                                    <span className="font-mono text-xs font-bold text-purple-200">{cfg}</span>
+                                    <span className="text-[9px] font-semibold text-purple-400/80">{pct}%</span>
+                                  </div>
+                                  <div className="text-lg font-extrabold text-white text-center py-0.5">
+                                    {count.toLocaleString()}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1 mt-1 text-[8px] text-slate-400 border-t border-white/5 pt-1">
+                                    <span className="truncate">A: <strong className="text-slate-300">{boundACount}</strong></span>
+                                    <span className="truncate text-right">B: <strong className="text-slate-300">{boundBCount}</strong></span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="py-6 text-center text-xs text-slate-500">
+                            No axle configuration records for selected date
+                          </div>
+                        )}
+                        <p className="mt-3 text-[10px] text-slate-400 font-medium">
+                          {card.change}
+                        </p>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={`modal-static-${i}`}
@@ -350,6 +507,14 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                           </div>
                         ))}
                       </div>
+                      {card.id === "psv" && hasPsvBreakdown && (
+                        <div className="flex flex-wrap items-center justify-between gap-1 text-[9px] bg-amber-950/30 border border-amber-900/30 rounded px-2 py-1 mt-1 text-amber-200/90 font-mono">
+                          <span>Allowed (+2t): <strong>{psvBreakdown.withinAllowed ?? 0}</strong></span>
+                          <span>Charged: <strong>{psvBreakdown.charged}</strong></span>
+                          <span>Redist: <strong>{psvBreakdown.redistributed}</strong></span>
+                          <span>Release: <strong>{psvBreakdown.specialRelease}</strong></span>
+                        </div>
+                      )}
                       <p className="mt-2 text-[10px] text-slate-400 font-medium">
                         {card.change}
                       </p>
@@ -396,25 +561,54 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
     }
   }, [data.selectedMobileReport, selectedBound]);
 
+  const shifts = data.mobileShifts || {
+    shiftA: { weighed: 0, warned: 0, legal: 0, charged: 0 },
+    shiftB: { weighed: 0, warned: 0, legal: 0, charged: 0 },
+    total: { weighed: 0, warned: 0, legal: 0, charged: 0 },
+  };
+
   const cards = [
     {
+      id: "weighed",
       title: "Mobile Weighed",
-      value: data.hasMobileData ? data.mobileWeighed.toLocaleString() : "0",
+      shortLabel: "Weighed",
+      shiftA: shifts.shiftA.weighed,
+      shiftB: shifts.shiftB.weighed,
+      total: shifts.total.weighed || data.mobileWeighed,
       change: data.hasMobileData ? selectedLabel : "No mobile session",
       icon: Scale,
       color: "bg-transparent border-sky-500/20 text-sky-300 hover:border-sky-500/40 hover:bg-[#071827]/40",
     },
     {
+      id: "warned",
       title: "Mobile Warned",
-      value: data.hasMobileData ? data.mobileWarned.toLocaleString() : "0",
-      change: data.hasMobileData ? "Warned trucks" : "No mobile session",
+      shortLabel: "Warned",
+      shiftA: shifts.shiftA.warned,
+      shiftB: shifts.shiftB.warned,
+      total: shifts.total.warned || data.mobileWarned,
+      change: data.hasMobileData ? "Warned vehicles" : "No mobile session",
       icon: ShieldAlert,
       color: "bg-transparent border-amber-500/20 text-amber-300 hover:border-amber-500/40 hover:bg-[#071827]/40",
     },
     {
+      id: "legal",
+      title: "Mobile Legal",
+      shortLabel: "Legal",
+      shiftA: shifts.shiftA.legal,
+      shiftB: shifts.shiftB.legal,
+      total: shifts.total.legal || data.mobileLegal,
+      change: data.hasMobileData ? "Compliant vehicles" : "No mobile session",
+      icon: CheckCircle2,
+      color: "bg-transparent border-emerald-500/20 text-emerald-300 hover:border-emerald-500/40 hover:bg-[#071827]/40",
+    },
+    {
+      id: "charged",
       title: "Mobile Charged",
-      value: data.hasMobileData ? data.mobileCharged.toLocaleString() : "0",
-      change: data.hasMobileData ? "Charged trucks" : "No mobile session",
+      shortLabel: "Charged",
+      shiftA: shifts.shiftA.charged,
+      shiftB: shifts.shiftB.charged,
+      total: shifts.total.charged || data.mobileCharged,
+      change: data.hasMobileData ? "Charged vehicles" : "No mobile session",
       icon: Gavel,
       color: "bg-transparent border-rose-500/20 text-rose-300 hover:border-rose-500/40 hover:bg-[#071827]/40",
     },
@@ -473,15 +667,18 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
         </div>
 
         {/* Content area */}
-        <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
           {isLoading
-            ? Array.from({ length: 3 }).map((_, i) => (
+            ? Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={`loading-mobile-${i}`}
-                  className="relative flex min-h-[110px] flex-col justify-between overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/50 p-4 shadow-lg backdrop-blur-md animate-pulse"
+                  className="relative flex min-h-[92px] flex-col justify-between overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/50 p-2.5 shadow-lg backdrop-blur-md animate-pulse"
                 >
-                  <div className="h-3 w-16 rounded bg-slate-700/80" />
-                  <div className="mt-4 h-6 w-12 rounded bg-slate-700/80" />
+                  <div className="h-3 w-20 rounded bg-slate-700/80" />
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div className="h-8 rounded bg-slate-800/80" />
+                    <div className="h-8 rounded bg-slate-800/80" />
+                  </div>
                 </div>
               ))
             : cards.map((card, i) => {
@@ -489,21 +686,39 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
                 return (
                   <div
                     key={`mobile-${i}`}
-                    className={`relative flex flex-col justify-between overflow-hidden rounded-xl border p-3.5 transition-all duration-300 min-h-[110px] ${card.color}`}
+                    className={`relative flex flex-col justify-between overflow-hidden rounded-xl border p-2.5 transition-all duration-300 min-h-[92px] ${card.color}`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 leading-tight">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 leading-tight block truncate">
                         {card.title}
                       </span>
-                      <Icon size={14} className="opacity-80 shrink-0" />
+                      <Icon size={12} className="opacity-80 shrink-0" />
                     </div>
-                    <div className="mt-2">
-                      <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-white block">
-                        {card.value}
+
+                    <div className="grid grid-cols-2 gap-2 mt-1.5">
+                      <div className="min-w-0 rounded border border-white/5 bg-black/25 px-1.5 py-0.5 text-center">
+                        <span className="block truncate text-[7.5px] font-bold uppercase text-slate-400">
+                          Shift A (Day)
+                        </span>
+                        <span className="block truncate text-sm font-extrabold tracking-tight text-white">
+                          {data.hasMobileData ? card.shiftA.toLocaleString() : "0"}
+                        </span>
+                      </div>
+                      <div className="min-w-0 rounded border border-white/5 bg-black/25 px-1.5 py-0.5 text-center">
+                        <span className="block truncate text-[7.5px] font-bold uppercase text-slate-400">
+                          Shift B (Night)
+                        </span>
+                        <span className="block truncate text-sm font-extrabold tracking-tight text-white">
+                          {data.hasMobileData ? card.shiftB.toLocaleString() : "0"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/5 pt-1 mt-1 text-[8px] px-0.5">
+                      <span className="text-slate-400 font-medium truncate">Total {card.shortLabel}:</span>
+                      <span className="font-extrabold text-white font-mono shrink-0">
+                        {data.hasMobileData ? card.total.toLocaleString() : "0"}
                       </span>
-                      <p className="mt-1 text-[8px] text-slate-500 font-medium truncate" title={card.change}>
-                        {card.change}
-                      </p>
                     </div>
                   </div>
                 );
@@ -536,26 +751,52 @@ export function MobileSummaryCards({ selectedDate, station }: { selectedDate: st
             </div>
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {cards.map((card, i) => {
                   const Icon = card.icon;
                   return (
                     <div
                       key={`modal-mobile-${i}`}
-                      className="relative flex flex-col justify-between rounded-xl border border-cyan-900/50 bg-[#0b2135]/30 p-5 shadow-md text-center"
+                      className="relative flex flex-col justify-between rounded-xl border border-cyan-900/50 bg-[#0b2135]/30 p-4 shadow-md"
                     >
-                      <div className="flex items-center justify-between gap-2 border-b border-cyan-950 pb-2 mb-4">
+                      <div className="flex items-center justify-between gap-2 border-b border-cyan-950 pb-2 mb-3">
                         <span className="text-xs font-bold uppercase tracking-wider text-cyan-200">
                           {card.title}
                         </span>
-                        <Icon size={18} className="text-cyan-400 shrink-0" />
+                        <Icon size={16} className="text-cyan-400 shrink-0" />
                       </div>
-                      <span className="text-3xl font-extrabold tracking-tight text-white block my-3">
-                        {card.value}
-                      </span>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        {card.change}
-                      </p>
+
+                      <div className="grid grid-cols-2 gap-3 py-2">
+                        <div className="rounded-lg border border-cyan-900/20 bg-black/30 p-2.5 text-center">
+                          <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                            Shift A (Day Shift)
+                          </span>
+                          <span className="block text-xl font-extrabold text-white">
+                            {data.hasMobileData ? card.shiftA.toLocaleString() : "0"}
+                          </span>
+                          <span className="block text-[9px] text-cyan-400/80 font-mono mt-0.5">
+                            {card.total > 0 ? `${((card.shiftA / card.total) * 100).toFixed(1)}%` : "0%"}
+                          </span>
+                        </div>
+                        <div className="rounded-lg border border-cyan-900/20 bg-black/30 p-2.5 text-center">
+                          <span className="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                            Shift B (Night Shift)
+                          </span>
+                          <span className="block text-xl font-extrabold text-white">
+                            {data.hasMobileData ? card.shiftB.toLocaleString() : "0"}
+                          </span>
+                          <span className="block text-[9px] text-cyan-400/80 font-mono mt-0.5">
+                            {card.total > 0 ? `${((card.shiftB / card.total) * 100).toFixed(1)}%` : "0%"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-cyan-900/30 pt-2 mt-1 px-1 text-xs">
+                        <span className="font-semibold text-slate-300">Total {card.title}:</span>
+                        <span className="font-extrabold text-white text-sm font-mono">
+                          {data.hasMobileData ? card.total.toLocaleString() : "0"}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}

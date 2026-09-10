@@ -18,6 +18,9 @@ import {
   Building2,
   KeyRound,
   ShieldAlert,
+  FileText,
+  Scale,
+  Truck,
 } from "lucide-react";
 
 import ReportsLayout from "@/app/reports/layout";
@@ -183,6 +186,8 @@ export default function AdminPage() {
 
         {activeTab === "status" && (
           <div className="space-y-6">
+            <ReportsGeneratedPanel />
+
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
               <SystemStatusPanel />
               <SessionDetailsPanel />
@@ -707,6 +712,165 @@ function UserManagementPanel({ currentUser }: { currentUser: any }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ReportsGeneratedPanel() {
+  const [stats, setStats] = useState<{
+    total: number;
+    staticCount: number;
+    mobileCount: number;
+    completed: number;
+    inProgress: number;
+    stations: Record<string, number>;
+  }>({
+    total: 0,
+    staticCount: 0,
+    mobileCount: 0,
+    completed: 0,
+    inProgress: 0,
+    stations: {},
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchStats() {
+      try {
+        const sessions = await getReportSessions();
+        if (!active) return;
+        let staticCount = 0;
+        let mobileCount = 0;
+        let completed = 0;
+        let inProgress = 0;
+        const stations: Record<string, number> = {};
+
+        for (const s of sessions) {
+          const bound = (s.metadata?.bound || "").toLowerCase();
+          const station = (s.metadata?.station || s.metadata?.weighbridge_name || "Unknown").trim();
+          const isMobile =
+            bound.includes("mobile") ||
+            station.toLowerCase().includes("mobile") ||
+            s.sections?.mobile_report?.status === "ready";
+
+          if (isMobile) {
+            mobileCount++;
+          } else {
+            staticCount++;
+          }
+
+          if (s.final_report?.status === "ready") {
+            completed++;
+          } else {
+            inProgress++;
+          }
+
+          const stName = station.replace(/weighbridge/i, "").trim() || "Juja";
+          stations[stName] = (stations[stName] || 0) + 1;
+        }
+
+        setStats({
+          total: sessions.length,
+          staticCount,
+          mobileCount,
+          completed,
+          inProgress,
+          stations,
+        });
+      } catch (err) {
+        console.error("Failed to load reports generated stats", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    fetchStats();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/80 p-5 shadow-xl">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-cyan-900/30 pb-4 mb-4">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-0.5 text-xs font-bold text-purple-300">
+            <FileText size={12} />
+            System Metrics Overview
+          </div>
+          <h2 className="mt-2 text-lg font-bold text-white">Reports Generated Overview</h2>
+          <p className="text-xs text-slate-400">
+            Comprehensive breakdown of all system-generated reports across static and mobile weighbridges.
+          </p>
+        </div>
+        <div className="text-left sm:text-right">
+          <span className="text-2xl font-black text-purple-300">
+            {loading ? "..." : stats.total.toLocaleString()}
+          </span>
+          <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Reports</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg border border-cyan-900/40 bg-[#071827]/70 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Static Reports</span>
+            <Scale size={14} className="text-cyan-400" />
+          </div>
+          <p className="mt-1 text-xl font-extrabold text-white">
+            {loading ? "..." : stats.staticCount.toLocaleString()}
+          </p>
+          <p className="text-[10px] text-cyan-400/80 mt-0.5">Fixed weighbridges</p>
+        </div>
+
+        <div className="rounded-lg border border-purple-900/40 bg-[#071827]/70 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mobile Reports</span>
+            <Truck size={14} className="text-purple-400" />
+          </div>
+          <p className="mt-1 text-xl font-extrabold text-white">
+            {loading ? "..." : stats.mobileCount.toLocaleString()}
+          </p>
+          <p className="text-[10px] text-purple-400/80 mt-0.5">Mobile patrol units</p>
+        </div>
+
+        <div className="rounded-lg border border-emerald-900/40 bg-[#071827]/70 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Completed</span>
+            <FileCheck2 size={14} className="text-emerald-400" />
+          </div>
+          <p className="mt-1 text-xl font-extrabold text-emerald-300">
+            {loading ? "..." : stats.completed.toLocaleString()}
+          </p>
+          <p className="text-[10px] text-emerald-400/80 mt-0.5">Final outputs built</p>
+        </div>
+
+        <div className="rounded-lg border border-amber-900/40 bg-[#071827]/70 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">In Progress</span>
+            <Zap size={14} className="text-amber-400" />
+          </div>
+          <p className="mt-1 text-xl font-extrabold text-amber-300">
+            {loading ? "..." : stats.inProgress.toLocaleString()}
+          </p>
+          <p className="text-[10px] text-amber-400/80 mt-0.5">Active workspaces</p>
+        </div>
+      </div>
+
+      {Object.keys(stats.stations).length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-cyan-900/30 pt-3">
+          <span className="text-[10px] font-bold uppercase text-slate-400">By Station:</span>
+          {Object.entries(stats.stations).map(([st, cnt]) => (
+            <span
+              key={st}
+              className="inline-flex items-center gap-1 rounded border border-cyan-800/40 bg-[#071827] px-2 py-0.5 text-[10px] text-slate-300 font-mono"
+            >
+              <Building2 size={10} className="text-cyan-400" />
+              {st}: <strong className="text-white">{cnt}</strong>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

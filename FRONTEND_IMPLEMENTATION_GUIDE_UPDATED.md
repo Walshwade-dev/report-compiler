@@ -25,6 +25,11 @@ The FastAPI backend is already frontend-ready and supports:
 - Password-gated report history and deletion via `X-Admin-Password`
 - Production persistence health checks for PostgreSQL and Render disk storage
 - Upload-through-build workflow tests
+- Station-scoped dashboard analytics and data isolation (Juja vs Kanyonyo)
+- Dual-shift Mobile Report KPI cards (Shift A / Shift B side-by-side with totals)
+- PSV Coaches Weighed with 2000KG concession allowance tracking
+- Axle Configuration breakdown KPI card
+- Mobile checklist scale test verification with 2000KG tolerance
 
 The frontend should be built in stages, starting with this implementation guide before writing code.
 

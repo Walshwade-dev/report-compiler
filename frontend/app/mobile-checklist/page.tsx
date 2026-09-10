@@ -150,10 +150,10 @@ export default function MobileChecklistPage() {
   }, [mobileScaleGvw, multideckScaleGvw]);
 
   const varianceComment = useMemo(() => {
-    if (calculatedVariance <= 200) {
-      return `Variance of ${calculatedVariance}kg is within acceptable calibration tolerance (<= 200kg).`;
+    if (calculatedVariance <= 2000) {
+      return `Variance of ${calculatedVariance}kg is within acceptable calibration tolerance (<= 2000kg).`;
     }
-    return `ALERT: Scale weight variance of ${calculatedVariance}kg exceeds 200kg threshold. Recalibration and technical inspection recommended.`;
+    return `ALERT: Scale weight variance of ${calculatedVariance}kg exceeds 2000kg threshold. Recalibration and technical inspection recommended.`;
   }, [calculatedVariance]);
 
   const handleItemStatusChange = (id: number, newStatus: string) => {
@@ -452,7 +452,7 @@ export default function MobileChecklistPage() {
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">GVW Variance (Kgs)</label>
                   <div className={`rounded-lg border px-3 py-2 text-sm font-mono font-bold ${
-                    calculatedVariance <= 200
+                    calculatedVariance <= 2000
                       ? "border-emerald-500/50 bg-emerald-950/30 text-emerald-300"
                       : "border-rose-500/50 bg-rose-950/30 text-rose-300"
                   }`}>
@@ -463,12 +463,12 @@ export default function MobileChecklistPage() {
 
               {/* Automated Variance Comment */}
               <div className={`mt-4 rounded-xl border p-4 ${
-                calculatedVariance <= 200
+                calculatedVariance <= 2000
                   ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-200"
                   : "border-rose-500/30 bg-rose-950/20 text-rose-200"
               }`}>
                 <p className="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  {calculatedVariance <= 200 ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                  {calculatedVariance <= 2000 ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
                   System Automated Calibration Analysis
                 </p>
                 <p className="text-sm font-medium">{varianceComment}</p>
@@ -658,7 +658,7 @@ export default function MobileChecklistPage() {
                         <td className="py-4 px-4 text-xs text-slate-300">{entry.technician_name}</td>
                         <td className="py-4 px-4">
                           <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
-                            entry.variance_gvw <= 200
+                            entry.variance_gvw <= 2000
                               ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
                               : "bg-rose-500/10 text-rose-300 border border-rose-500/20"
                           }`}>

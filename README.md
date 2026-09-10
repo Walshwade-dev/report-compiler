@@ -6,6 +6,12 @@ Frontend report-builder for the Daily Report Automation system.
 
 The app lets users create a report workspace, enter report metadata, upload required CSV/XLSX files, save manual inputs, preview generated report sections, build the final DOCX report, and download it.
 
+Key capabilities include:
+- **Station-Scoped Dashboard**: Data isolation by station (e.g. Juja vs Kanyonyo) with cross-station comparative traffic, compliance, and court metrics.
+- **Dual-Shift Mobile Report KPIs**: Side-by-side Shift A (Day Shift) and Shift B (Night Shift) metrics for Mobile Weighed, Mobile Warned, Mobile Legal, and Mobile Charged with totals.
+- **PSV Concession & Axle Breakdown**: PSV Coaches Weighed with 2000KG allowance breakdown (`withinAllowed`, `charged`, `redistributed`, `specialRelease`) and Axle Configuration Breakdown card.
+- **Mobile Checklist**: Scale test calibration verification with a 2000KG tolerance threshold between static multideck and mobile weighbridge scales.
+
 Administrative report history and deletion controls are isolated in the
 password-gated `/admin` page. Normal users can create and continue report
 workspaces without access to history/deletion controls.
