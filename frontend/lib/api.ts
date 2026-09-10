@@ -19,7 +19,7 @@ function getApiOrigin() {
     return ENV_API_ORIGIN;
   }
 
-  return isLocalBrowser() ? LOCAL_API_ORIGIN : "";
+  return isLocalBrowser() ? LOCAL_API_ORIGIN : DEPLOYED_API_ORIGIN;
 }
 
 export function isApiConnectionError(error: unknown) {
@@ -237,8 +237,11 @@ async function getErrorMessage(response: Response, fallback: string) {
 const apiCache = new Map<string, { data: any; expiry: number }>();
 const DEFAULT_CACHE_TTL_MS = 20000;
 
+const inFlightRequests = new Map<string, Promise<any>>();
+
 export function clearApiCache() {
   apiCache.clear();
+  inFlightRequests.clear();
 }
 
 async function fetchCached<T>(url: string, ttlMs: number = DEFAULT_CACHE_TTL_MS, options?: RequestInit): Promise<T> {
@@ -248,19 +251,33 @@ async function fetchCached<T>(url: string, ttlMs: number = DEFAULT_CACHE_TTL_MS,
     return cached.data as T;
   }
 
+  // Deduplicate concurrent in-flight requests for the exact same URL
+  const inFlight = inFlightRequests.get(url);
+  if (inFlight) {
+    return inFlight as Promise<T>;
+  }
+
   const reqOptions: RequestInit = {
     ...options,
     headers: authHeaders((options?.headers as Record<string, string>) || {}),
   };
 
-  const response = await fetch(url, reqOptions);
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response, `Fetch failed for ${url}`));
-  }
+  const promise = (async () => {
+    try {
+      const response = await fetch(url, reqOptions);
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response, `Fetch failed for ${url}`));
+      }
+      const data = await response.json();
+      apiCache.set(url, { data, expiry: Date.now() + ttlMs });
+      return data as T;
+    } finally {
+      inFlightRequests.delete(url);
+    }
+  })();
 
-  const data = await response.json();
-  apiCache.set(url, { data, expiry: now + ttlMs });
-  return data as T;
+  inFlightRequests.set(url, promise);
+  return promise;
 }
 
 export type CreateReportSessionPayload = {
@@ -703,15 +720,7 @@ export async function getDmsPerformance(date?: string, station?: string) {
     ? `report-sessions/analytics/dms-performance?${query.toString()}` 
     : "report-sessions/analytics/dms-performance";
 
-  const response = await fetch(apiUrl(urlPath));
-
-  if (!response.ok) {
-    throw new Error(
-      await getErrorMessage(response, "Failed to fetch DMS performance")
-    );
-  }
-
-  return response.json() as Promise<DmsPerformanceResponse>;
+  return fetchCached<DmsPerformanceResponse>(apiUrl(urlPath));
 }
 
 
