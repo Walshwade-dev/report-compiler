@@ -99,8 +99,8 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: res, isError } = useQuery({
-    queryKey: ["analyticsDashboard", selectedDate || "all"],
-    queryFn: () => getAnalyticsDashboard({ staticDate: selectedDate || undefined }),
+    queryKey: ["analyticsDashboard", selectedDate || "all", userStation || "all"],
+    queryFn: () => getAnalyticsDashboard({ staticDate: selectedDate || undefined, station: userStation || undefined }),
   });
 
   useEffect(() => {
@@ -144,8 +144,17 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
   );
 
   const getTrafficLabel = (stationCode: string, boundKey: "Bound A" | "Bound B") => {
+    if (stationCode.toLowerCase().includes("kanyonyo")) {
+      return "Nairobi Bound";
+    }
     if (stationCode === "Juja") {
       return boundKey === "Bound A" ? "Thika Bound" : "Nairobi Bound";
+    }
+    if (stationCode === "Athi River") {
+      return boundKey === "Bound A" ? "Mombasa Bound" : "Nairobi Bound";
+    }
+    if (stationCode === "Gilgil") {
+      return boundKey === "Bound A" ? "Nakuru Bound" : "Nairobi Bound";
     }
     return boundKey;
   };

@@ -143,6 +143,9 @@ export function useReportSession() {
           }
         }
         setWeighbridgeName(matched);
+        if (matched === "KANYONYO") {
+          setBoundName("NAIROBI BOUND");
+        }
       }
       
       setMetadata((prev) => ({
@@ -151,6 +154,12 @@ export function useReportSession() {
       }));
     }
   }, []);
+
+  useEffect(() => {
+    if (weighbridgeName.toUpperCase() === "KANYONYO") {
+      setBoundName("NAIROBI BOUND");
+    }
+  }, [weighbridgeName]);
 
   const [manualInputs, setManualInputs] = useState<ManualInputs>({
     casesCleared: 0,

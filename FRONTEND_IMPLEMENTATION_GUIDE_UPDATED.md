@@ -1955,3 +1955,31 @@ Implemented in `frontend/components/dashboard/DashboardSummaryCards.tsx`:
 - **Enlarged Totals Font Size**: In each child KPI card (Mobile Weighed, Mobile Warned, Mobile Legal, Mobile Charged), the totals font size was enlarged to `text-sm font-extrabold` with a `text-[10px] font-bold` label on a subtle background pill to make totals immediately clear and legible.
 - **Request Deduplication**: `StaticSummaryCards` and `MobileSummaryCards` synchronize their date query parameters (`staticDate: selectedDate, mobileDate: selectedDate`), allowing the browser in-flight request deduplicator in `lib/api.ts` to merge them into a single backend API call.
 
+---
+
+## 24. Implementation Update — 2026-07-28 Static KPI Legibility & Kanyonyo Single Bound ("Nairobi Bound")
+
+### Static Report KPIs Subcontainer Legibility
+Implemented in `frontend/components/dashboard/DashboardSummaryCards.tsx`:
+- **Subcontainer Titles**: Increased font size and contrast from `text-[9px] text-slate-400` to `text-[10.5px] sm:text-[11px] font-extrabold uppercase tracking-wide text-slate-100`.
+- **Bound Labels (Multi-Bound Stations)**: Upgraded from `text-[7px] text-slate-500` to high-contrast `text-[8px] sm:text-[8.5px] font-bold uppercase text-slate-200` with mono values `text-xs sm:text-[12.5px] font-black text-white font-mono`.
+- **Axle Configuration Breakdown**: Labels upgraded to `text-[8.5px] font-extrabold text-purple-200` with count values in `text-xs font-black text-white font-mono`.
+- **Expanded Modal View**: Enhanced font size and clarity across bound comparison tiles and axle configuration chips.
+
+### Kanyonyo Single Bound Operation ("Nairobi Bound")
+- **Kanyonyo Topology**: Kanyonyo only operates a single physical bound: **"Nairobi Bound"** (or `"NAIROBI BOUND"`).
+- **Dashboard Cards Single Bound Display**:
+  - When `isSingleBound` is active (Kanyonyo station scope): The 3-column grid is replaced by a single prominent row tile displaying `Nairobi Bound` with a cyan indicator (`text-[10px] sm:text-[10.5px] font-bold uppercase text-cyan-200`) and the large metric value (`text-sm sm:text-base font-black text-white font-mono`).
+  - The expanded details modal also renders a single-bound card layout with `text-xl sm:text-2xl font-black text-white font-mono`.
+- **Report Creation & Officer Scoping**:
+  - `frontend/components/report-builder/ReportHeader.tsx`: When `weighbridgeName` or the user's station is Kanyonyo, the bound dropdown displays only `NAIROBI BOUND` and is locked/disabled with tooltip guidance.
+  - `frontend/lib/hooks/useReportSession.ts`: Automatically sets and enforces `boundName = "NAIROBI BOUND"` whenever the station or weighbridge is Kanyonyo.
+- **Analytics Charts**:
+  - `frontend/components/dashboard/DashboardCharts.tsx`: Automatically resolves `getTrafficLabel` for Kanyonyo to `"Nairobi Bound"` and passes station scoping to the query hook.
+
+### Juja Station Bound Alignment ("Thika Bound" & "Nairobi Bound")
+- For Juja Station (`station=juja`), static report KPI cards display **"Thika Bound"** for Bound A and **"Nairobi Bound"** for Bound B to match the physical road directions and eliminate generic `"Bound A"` labels.
+- In the expanded modal view, axle configuration breakdowns display `"Thika"` and `"Nairobi"` counters respectively.
+
+
+

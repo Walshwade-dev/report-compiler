@@ -35,6 +35,16 @@ export function ReportHeader({
 
   const user = mounted ? getLoggedInUser() : null;
   const isAdmin = !user || user.role === "admin";
+  const isKanyonyo =
+    weighbridgeName?.toUpperCase() === "KANYONYO" ||
+    (user?.station && user.station.toUpperCase() === "KANYONYO");
+  const boundOptions = isKanyonyo ? ["NAIROBI BOUND"] : BOUND_OPTIONS;
+
+  useEffect(() => {
+    if (isKanyonyo && boundName !== "NAIROBI BOUND") {
+      setBoundName("NAIROBI BOUND");
+    }
+  }, [isKanyonyo, boundName, setBoundName]);
   
   return (
     <header className="mb-6">
@@ -90,13 +100,15 @@ export function ReportHeader({
         </select>
 
         <select
-          value={boundName}
+          disabled={isKanyonyo}
+          value={isKanyonyo ? "NAIROBI BOUND" : boundName}
           onChange={(e) =>
             setBoundName(e.target.value)
           }
-          className="rounded-lg border border-cyan-700 bg-[#0b2135] px-3 py-2 text-sm text-cyan-200"
+          className={`rounded-lg border border-cyan-700 bg-[#0b2135] px-3 py-2 text-sm text-cyan-200 ${isKanyonyo ? 'opacity-80 cursor-default' : ''}`}
+          title={isKanyonyo ? "Kanyonyo operates a single bound: Nairobi Bound" : undefined}
         >
-          {BOUND_OPTIONS.map((option) => (
+          {boundOptions.map((option) => (
             <option
               key={option}
               value={option}

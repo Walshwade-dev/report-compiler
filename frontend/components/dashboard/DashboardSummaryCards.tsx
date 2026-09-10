@@ -70,6 +70,8 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
       boundB: { ...emptyStaticKpis(), label: "Bound B" },
       total: { ...emptyStaticKpis(), label: "Total" },
     },
+    isSingleBound: false,
+    singleBoundName: null as string | null,
     mobileWeighed: 0,
     mobileWarned: 0,
     mobileLegal: 0,
@@ -96,6 +98,10 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
         const { getAnalyticsDashboard } = await import("@/lib/api");
         const res = await getAnalyticsDashboard({ staticDate, mobileDate, mobileBound, station });
         const byBound = res.static.byBound || {};
+        const isKanyonyo = Boolean(res.static?.isSingleBound || (station || "").toLowerCase().includes("kanyonyo"));
+        const singleBoundName = res.static?.singleBoundName || (isKanyonyo ? "Nairobi Bound" : null);
+
+        const isJuja = (station || "").toLowerCase().includes("juja");
 
         if (active) {
           setData({
@@ -110,10 +116,22 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
             staticDates: res.static.dates || [],
             selectedStaticDate: res.static.selectedDate || null,
             staticByBound: {
-              boundA: { ...emptyStaticKpis(), label: "Bound A", ...(byBound.boundA || {}) },
-              boundB: { ...emptyStaticKpis(), label: "Bound B", ...(byBound.boundB || {}) },
+              boundA: {
+                ...emptyStaticKpis(),
+                label: isKanyonyo ? "Nairobi Bound" : isJuja ? "Thika Bound" : "Bound A",
+                ...(byBound.boundA || {}),
+                ...(isJuja && (!byBound.boundA?.label || byBound.boundA.label === "Bound A" || byBound.boundA.label.toLowerCase().includes("thika")) ? { label: "Thika Bound" } : {}),
+              },
+              boundB: {
+                ...emptyStaticKpis(),
+                label: isJuja ? "Nairobi Bound" : "Bound B",
+                ...(byBound.boundB || {}),
+                ...(isJuja && (!byBound.boundB?.label || byBound.boundB.label === "Bound B" || byBound.boundB.label.toLowerCase().includes("nairobi")) ? { label: "Nairobi Bound" } : {}),
+              },
               total: { ...emptyStaticKpis(), label: "Total", ...(byBound.total || {}) },
             },
+            isSingleBound: isKanyonyo,
+            singleBoundName: singleBoundName,
             mobileWeighed: res.mobile.weighed,
             mobileWarned: res.mobile.warned,
             mobileLegal: res.mobile.legal || 0,
@@ -204,11 +222,14 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
       total: data.staticByBound.total.reportsGenerated,
     },
   };
+  const isJuja = Boolean((station || "").toLowerCase().includes("juja"));
   const staticLabels = {
-    boundA: data.staticByBound.boundA.label || "Bound A",
-    boundB: data.staticByBound.boundB.label || "Bound B",
+    boundA: isJuja ? "Thika Bound" : data.staticByBound.boundA.label || "Bound A",
+    boundB: isJuja ? "Nairobi Bound" : data.staticByBound.boundB.label || "Bound B",
     total: data.staticByBound.total.label || "Total",
   };
+  const isSingleBound = Boolean(data.isSingleBound || (station || "").toLowerCase().includes("kanyonyo"));
+  const singleBoundLabel = data.singleBoundName || (isSingleBound ? "Nairobi Bound" : staticLabels.boundA);
 
   const axleConfigs = data.axleConfigs || data.staticByBound.total.axleConfigs || {};
   const axleEntries = Object.entries(axleConfigs).sort((a, b) => b[1] - a[1]);
@@ -328,10 +349,10 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                     className={`relative flex min-h-[115px] flex-col justify-between overflow-hidden rounded-xl border p-2.5 transition-all duration-300 ${card.color}`}
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 leading-tight block truncate max-w-[85%]">
+                      <span className="text-[10.5px] sm:text-[11px] font-extrabold uppercase tracking-wide text-slate-100 leading-tight block truncate max-w-[85%]">
                         {card.title}
                       </span>
-                      <Icon size={12} className="opacity-80 shrink-0" />
+                      <Icon size={13} className="opacity-90 shrink-0" />
                     </div>
 
                     {card.isAxleConfig ? (
@@ -341,55 +362,76 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                             {topAxles.map(([cfg, count]) => (
                               <div
                                 key={cfg}
-                                className="min-w-0 rounded border border-purple-500/20 bg-purple-950/40 px-1 py-0.5 text-center"
+                                className="min-w-0 rounded border border-purple-500/30 bg-purple-950/50 px-1 py-0.5 text-center"
                               >
                                 <span
-                                  className="block truncate text-[7.5px] font-bold uppercase text-purple-300/80"
+                                  className="block truncate text-[8.5px] font-extrabold uppercase text-purple-200"
                                   title={cfg}
                                 >
                                   {cfg}
                                 </span>
-                                <span className="block truncate text-[11px] font-extrabold tracking-tight text-white">
+                                <span className="block truncate text-xs font-black tracking-tight text-white font-mono">
                                   {count.toLocaleString()}
                                 </span>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center py-2 text-center text-[10px] text-slate-500">
+                          <div className="flex items-center justify-center py-2 text-center text-[10px] text-slate-400">
                             {isLoading ? "Loading..." : "No axle records"}
                           </div>
                         )}
-                        <p className="mt-1 text-[8px] text-slate-400 font-medium truncate" title={card.change}>
+                        <p className="mt-1 text-[8.5px] sm:text-[9px] text-slate-300 font-medium truncate" title={card.change}>
                           {card.change}
                         </p>
                       </div>
                     ) : (
                       <>
-                        <div className="mt-2 grid grid-cols-3 gap-1">
-                          {[
-                            [staticLabels.boundA, card.metric.boundA],
-                            [staticLabels.boundB, card.metric.boundB],
-                            [staticLabels.total, card.metric.total],
-                          ].map(([label, value]) => (
-                            <div key={label} className="min-w-0 rounded border border-white/5 bg-black/20 px-1 py-0.5">
-                              <span
-                                className="block truncate text-[7px] font-bold uppercase text-slate-500 text-center"
-                                title={String(label)}
-                              >
-                                {label}
-                              </span>
-                              <span className="block truncate text-[11px] font-extrabold tracking-tight text-white text-center">
-                                {data.hasStaticData ? formatMetric(value) : "0"}
+                        {isSingleBound ? (
+                          <div className="mt-1.5 flex flex-col justify-center flex-1 min-h-0">
+                            <div className="rounded-lg border border-cyan-500/30 bg-[#061e33]/90 px-2.5 py-1.5 flex items-center justify-between shadow-inner">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0 shadow-sm shadow-cyan-400/50"></span>
+                                <span className="truncate text-[10px] sm:text-[10.5px] font-bold uppercase tracking-wider text-cyan-200" title={singleBoundLabel}>
+                                  {singleBoundLabel}
+                                </span>
+                              </div>
+                              <span className="text-sm sm:text-base font-black tracking-tight text-white font-mono ml-2 shrink-0">
+                                {data.hasStaticData ? formatMetric(card.metric.boundA || card.metric.total) : "0"}
                               </span>
                             </div>
-                          ))}
-                        </div>
-                        <div>
-                          <p className="mt-1 text-[8px] text-slate-500 font-medium truncate" title={card.change}>
-                            {card.change}
-                          </p>
-                        </div>
+                            <p className="mt-1 text-[8.5px] sm:text-[9px] text-slate-300 font-medium truncate" title={card.change}>
+                              {card.change}
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mt-2 grid grid-cols-3 gap-1">
+                              {[
+                                [staticLabels.boundA, card.metric.boundA],
+                                [staticLabels.boundB, card.metric.boundB],
+                                [staticLabels.total, card.metric.total],
+                              ].map(([label, value]) => (
+                                <div key={label} className="min-w-0 rounded border border-white/10 bg-black/30 px-1 py-1 text-center">
+                                  <span
+                                    className="block truncate text-[8px] sm:text-[8.5px] font-bold uppercase text-slate-200 text-center tracking-tight"
+                                    title={String(label)}
+                                  >
+                                    {label}
+                                  </span>
+                                  <span className="block truncate text-xs sm:text-[12.5px] font-black tracking-tight text-white text-center font-mono">
+                                    {data.hasStaticData ? formatMetric(value) : "0"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div>
+                              <p className="mt-1 text-[8.5px] sm:text-[9px] text-slate-300 font-medium truncate" title={card.change}>
+                                {card.change}
+                              </p>
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
@@ -464,9 +506,17 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                                   <div className="text-lg font-extrabold text-white text-center py-0.5">
                                     {count.toLocaleString()}
                                   </div>
-                                  <div className="grid grid-cols-2 gap-1 mt-1 text-[8px] text-slate-400 border-t border-white/5 pt-1">
-                                    <span className="truncate">A: <strong className="text-slate-300">{boundACount}</strong></span>
-                                    <span className="truncate text-right">B: <strong className="text-slate-300">{boundBCount}</strong></span>
+                                  <div className="grid grid-cols-2 gap-1 mt-1 text-[8.5px] text-slate-300 border-t border-white/10 pt-1">
+                                    {isSingleBound ? (
+                                      <span className="truncate col-span-2 text-center text-cyan-200">
+                                        {singleBoundLabel}: <strong className="text-white font-mono">{boundACount}</strong>
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <span className="truncate">{isJuja ? "Thika" : "A"}: <strong className="text-white font-mono">{boundACount}</strong></span>
+                                        <span className="truncate text-right">{isJuja ? "Nairobi" : "B"}: <strong className="text-white font-mono">{boundBCount}</strong></span>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -495,21 +545,35 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                         </span>
                         <Icon size={16} className="text-cyan-400 shrink-0" />
                       </div>
-                      <div className="grid grid-cols-3 gap-2 py-2">
-                        {[
-                          [staticLabels.boundA, card.metric.boundA],
-                          [staticLabels.boundB, card.metric.boundB],
-                          [staticLabels.total, card.metric.total],
-                        ].map(([label, value]) => (
-                          <div key={label} className="min-w-0 rounded-lg border border-cyan-900/20 bg-black/30 p-2 text-center">
-                            <span className="block truncate text-[9px] font-bold uppercase text-slate-500 mb-1">
-                              {label}
-                            </span>
-                            <span className="block truncate text-base font-extrabold text-white">
-                              {data.hasStaticData ? formatMetric(value) : "0"}
+                      <div className={isSingleBound ? "py-2" : "grid grid-cols-3 gap-2 py-2"}>
+                        {isSingleBound ? (
+                          <div className="rounded-lg border border-cyan-500/40 bg-cyan-950/40 p-3 flex items-center justify-between">
+                            <div>
+                              <span className="block text-xs font-bold uppercase tracking-wider text-cyan-300 mb-0.5">
+                                {singleBoundLabel}
+                              </span>
+                              <span className="text-[10px] text-slate-400">Sole Operational Bound</span>
+                            </div>
+                            <span className="text-xl sm:text-2xl font-black text-white font-mono">
+                              {data.hasStaticData ? formatMetric(card.metric.boundA || card.metric.total) : "0"}
                             </span>
                           </div>
-                        ))}
+                        ) : (
+                          [
+                            [staticLabels.boundA, card.metric.boundA],
+                            [staticLabels.boundB, card.metric.boundB],
+                            [staticLabels.total, card.metric.total],
+                          ].map(([label, value]) => (
+                            <div key={label} className="min-w-0 rounded-lg border border-cyan-900/30 bg-black/40 p-2 text-center">
+                              <span className="block truncate text-[10px] font-bold uppercase text-slate-300 mb-1">
+                                {label}
+                              </span>
+                              <span className="block truncate text-base font-extrabold text-white font-mono">
+                                {data.hasStaticData ? formatMetric(value) : "0"}
+                              </span>
+                            </div>
+                          ))
+                        )}
                       </div>
                       {card.id === "psv" && hasPsvBreakdown && (
                         <div className="flex flex-wrap items-center justify-between gap-1 text-[9px] bg-amber-950/30 border border-amber-900/30 rounded px-2 py-1 mt-1 text-amber-200/90 font-mono">
@@ -519,7 +583,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                           <span>Release: <strong>{psvBreakdown.specialRelease}</strong></span>
                         </div>
                       )}
-                      <p className="mt-2 text-[10px] text-slate-400 font-medium">
+                      <p className="mt-2 text-[10px] text-slate-300 font-medium">
                         {card.change}
                       </p>
                     </div>
