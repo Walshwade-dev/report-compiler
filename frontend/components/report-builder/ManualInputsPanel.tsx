@@ -16,6 +16,7 @@ import {
   TransgressionActionRow,
 } from "@/lib/types";
 import { extractTransgressionOcr } from "@/lib/api";
+import { processTransgressionFiles } from "@/lib/transgressionIngest";
 import { StatusBadge } from "./StatusBadge";
 
 type ManualInputsPanelProps = {
@@ -132,137 +133,24 @@ export function ManualInputsPanel({
       clearTimeout(feedbackTimeoutRef.current);
     }
 
-    const normalizePlate = (p?: string) =>
-      (p || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const result = await processTransgressionFiles(
+      files,
+      reportId,
+      manualInputs
+    );
 
-    const extractedDailyList: DailyTransgressionRow[] = [];
-    const extractedActionList: TransgressionActionRow[] = [];
-    const plates: string[] = [];
-    const duplicates: string[] = [];
-    const errors: string[] = [];
-
-    for (const file of files) {
-      try {
-        const result = await extractTransgressionOcr(reportId, file);
-        if (result.success && result.extracted) {
-          const newDaily = result.extracted.daily_transgression;
-          const newAction = result.extracted.action_report;
-          const plate =
-            newDaily.regNo ||
-            newAction.truckNo ||
-            "Vehicle";
-          const normCandidate = normalizePlate(plate);
-          const isValidPlate =
-            normCandidate !== "" && normCandidate !== "VEHICLE";
-
-          // Check if details have already been populated for this truck or Tag ID
-          const isAlreadyPopulated =
-            Boolean(
-              isValidPlate &&
-                (manualInputs.dailyTransgressions.some(
-                  (r) => normalizePlate(r.regNo) === normCandidate
-                ) ||
-                  manualInputs.transgressionActions.some(
-                    (r) => normalizePlate(r.truckNo) === normCandidate
-                  ) ||
-                  extractedDailyList.some(
-                    (r) => normalizePlate(r.regNo) === normCandidate
-                  ))
-            ) ||
-            Boolean(
-              newAction.attachEvidence &&
-                manualInputs.transgressionActions.some((r) => {
-                  const tagCandidate = newAction.attachEvidence
-                    .split(",")[0]
-                    .trim()
-                    .toUpperCase();
-                  return (
-                    tagCandidate.startsWith("TAG") &&
-                    r.attachEvidence &&
-                    r.attachEvidence.toUpperCase().includes(tagCandidate)
-                  );
-                })
-            );
-
-          if (isAlreadyPopulated) {
-            duplicates.push(plate);
-          } else {
-            extractedDailyList.push(newDaily);
-            extractedActionList.push(newAction);
-            plates.push(plate);
-          }
-        } else {
-          errors.push(`${file.name}: Extraction did not return records.`);
-        }
-      } catch (err) {
-        errors.push(
-          `${file.name}: ${err instanceof Error ? err.message : "Failed to extract"}`
-        );
-      }
-    }
-
-    // Handle duplicates alert
-    if (duplicates.length > 0) {
-      const uniqueDuplicates = Array.from(new Set(duplicates));
-      const dupPlatesText = uniqueDuplicates.map((p) => `"${p}"`).join(", ");
-      const alertMsg =
-        uniqueDuplicates.length === 1
-          ? `Transgression details for ${dupPlatesText} have already been populated and can not be repopulated for the same truck.`
-          : `Transgression details for ${dupPlatesText} have already been populated and can not be repopulated for the same trucks.`;
-
-      if (typeof window !== "undefined") {
-        window.alert(alertMsg);
-      }
-
-      if (extractedDailyList.length === 0) {
-        setOcrFeedback({
-          type: "error",
-          message: alertMsg,
-        });
-      }
-    }
-
-    if (extractedDailyList.length > 0) {
+    if (result.extractedCount > 0) {
       setManualInputsTouched(true);
-      setManualInputs((prev) => {
-        const nextDaily = [
-          ...prev.dailyTransgressions,
-          ...extractedDailyList,
-        ];
-        const nextAction = [
-          ...prev.transgressionActions,
-          ...extractedActionList,
-        ];
-        return {
-          ...prev,
-          dailyTransgressions: nextDaily,
-          transgressionActions: nextAction,
-          transgressions: nextDaily.length,
-        };
+      setManualInputs(result.updatedInputs);
+    }
+
+    if (result.feedbackMessage) {
+      setOcrFeedback({
+        type: result.feedbackType || "success",
+        message: result.feedbackMessage,
       });
 
-      const platesText = plates.map((p) => `"${p}"`).join(", ");
-      const successMsg = `successfully extracted transgression details for ${platesText}`;
-
-      if (duplicates.length > 0) {
-        const uniqueDuplicates = Array.from(new Set(duplicates));
-        const dupPlatesText = uniqueDuplicates.map((p) => `"${p}"`).join(", ");
-        setOcrFeedback({
-          type: "error",
-          message: `${successMsg}. Note: details for ${dupPlatesText} were already populated and skipped.`,
-        });
-      } else if (errors.length > 0) {
-        setOcrFeedback({
-          type: "error",
-          message: `${successMsg}. (Errors: ${errors.join("; ")})`,
-        });
-      } else {
-        setOcrFeedback({
-          type: "success",
-          message: successMsg,
-        });
-
-        // Heads up label: auto-disappear in less than a second (850ms)
+      if (result.feedbackType === "success") {
         if (feedbackTimeoutRef.current) {
           clearTimeout(feedbackTimeoutRef.current);
         }
@@ -270,13 +158,10 @@ export function ManualInputsPanel({
           setOcrFeedback(null);
         }, 850);
       }
-    } else if (duplicates.length === 0) {
+    } else if (result.duplicates.length === 0 && result.errors.length > 0) {
       setOcrFeedback({
         type: "error",
-        message:
-          errors.length > 0
-            ? errors.join("; ")
-            : "Failed to extract transgression data from document.",
+        message: result.errors.join("; "),
       });
     }
 

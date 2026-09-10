@@ -1996,3 +1996,36 @@ Implemented in `frontend/components/dashboard/DashboardSummaryCards.tsx`:
   );
   ```
 - **Result**: The container only displays when an authorized officer is actively on the report creation/compilation page for static or mobile weighbridges (`/reports/static-weighbridge/new` or `/reports/mobile-weighbridge/new`), keeping the main dashboard navigation clean and focused.
+
+---
+
+## 25. Implementation Update — September 2026: Transgression OCR, Unified Batch File Intake & Uppercase DOCX Formatting
+
+### Transgression OCR Pipeline & Session Reset
+- **OCR Ingestion**: Integrated `extractTransgressionOcr(reportId, file)` directly inside `ManualInputsPanel.tsx` and `BatchFileIngest.tsx` with support for multiple PDF/image ticket uploads.
+- **Duplicate Prevention**: Detects candidate truck plates and Tag IDs against existing rows. Re-uploading documents for an already populated truck is blocked with an alert: `Transgression details for "{vehicle reg}" have already been populated and can not be repopulated for the same truck.`
+- **Auto-Dismissing Feedback Label**: Successful OCR extraction labels automatically dismiss after 850ms as a brief heads-up notification.
+- **Report Reset**: Hitting **"New Report / Reset"** triggers `resetReportSession(reportId)` to purge backend session artifacts and manual inputs, clears local state, wipes transgression rows, and clears any active modal feedback.
+
+### Unified Batch File Intake and Auto Mapping
+Implemented in `frontend/components/report-builder/BatchFileIngest.tsx` and `frontend/lib/fileClassifier.ts`:
+- **Multi-Factor Heuristic Classifier**:
+  - Differentiates spreadsheet registers (`.csv`, `.xlsx`, `.xls`) from scanned tickets (`.pdf`, `.png`, `.jpg`, etc.).
+  - Matches filename keywords for `daily_hour`, `wideload`, `impounded_prohibited`, `impounded_overloaded`, and `transgression`.
+  - Implements client-side CSV column sniffing to accurately detect categories even with ambiguous filenames.
+  - Scaffolds future Traffic Census document OCR.
+- **Staging & Verification Table**:
+  - Displays file name, size, detected category, and reasoning.
+  - Dropdown selector allows operators to review, verify, and override any target category before building.
+  - Per-file live status indicators (`Staged`, `Uploading...`, `OCR Extracting...`, `Ingested`, `Error`).
+- **Batch Processing Action**:
+  - Uploads spreadsheets in canonical dependency order (`daily_hour` -> `wideload` -> `impounded_prohibited` -> `impounded_overloaded`).
+  - Concurrently processes transgression OCR scans.
+  - When all required sections are uploaded and manual inputs populated, displays a direct **"Build Report Now"** trigger button.
+- **New Report / Reset Clearing**:
+  - Clicking **"New Report / Reset"** triggers a complete reset of the batch intake container (clearing staged files, file inputs, feedback banners, and restoring empty dropzone state).
+
+### Transgression DOCX Table Uppercase & Date Standardization
+- **Uppercase Entries**: All cell values in both `DAILY TRANSGRESSIONS REPORT` and `TRANSGRESSIONS ACTION REPORT` tables on the generated Word report (`.docx`) are strictly rendered in uppercase.
+- **Date Separator**: Standardized to `/` across all transgression dates (e.g. `06/09/2026`).
+- **CamelCase Normalization**: Seamlessly maps frontend camelCase fields (`regNo`, `axleConfig`, `censusClerk`, `policeInCharge`, `actionTaken`, `truckNo`, `timeReceived`, etc.) to Word table columns.

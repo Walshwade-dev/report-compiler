@@ -3,6 +3,7 @@
 import { ReportHeader } from "@/components/report-builder/ReportHeader";
 import { SummaryCards } from "@/components/report-builder/SummaryCards";
 import { UploadChecklist } from "@/components/report-builder/UploadChecklist";
+import { BatchFileIngest } from "@/components/report-builder/BatchFileIngest";
 import { ReportMetadataForm } from "@/components/report-builder/ReportMetadataForm";
 import { SectionPreviewPanel } from "@/components/report-builder/SectionPreviewPanel";
 import { ManualInputsPanel } from "@/components/report-builder/ManualInputsPanel";
@@ -59,6 +60,7 @@ export default function NewReportPage() {
 
   const [selectedSection, setSelectedSection] = useState<ReportSection>(1);
   const [previewFormat, setPreviewFormat] = useState<PreviewFormat>("png");
+  const [batchResetKey, setBatchResetKey] = useState(0);
 
   const { setProgress } = useReportProgress();
 
@@ -131,7 +133,10 @@ export default function NewReportPage() {
             </button>
           )}
           <button
-            onClick={() => handleResetReport(resetUploads)}
+            onClick={() => {
+              setBatchResetKey((prev) => prev + 1);
+              handleResetReport(resetUploads);
+            }}
             className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500/10"
           >
             New Report / Reset
@@ -159,11 +164,34 @@ export default function NewReportPage() {
 
           {/* MAIN BUILDER */}
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2a45] p-5">
-            <UploadChecklist
+            <BatchFileIngest
+              reportId={reportId}
               uploads={uploads}
-              canUpload={Boolean(reportId)}
               onSectionUpload={handleSectionUpload}
+              manualInputs={manualInputs}
+              setManualInputs={setManualInputs}
+              setManualInputsTouched={setManualInputsTouched}
+              canBuild={canBuild}
+              onBuildReport={() => handleBuildReport(canBuild)}
+              buildStatus={buildStatus}
+              resetKey={batchResetKey}
             />
+
+            <div className="mt-6">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Individual Section Files Status & Manual Replacement
+                </p>
+                <span className="text-xs text-slate-500">
+                  {uploadCount}/4 data sections uploaded
+                </span>
+              </div>
+              <UploadChecklist
+                uploads={uploads}
+                canUpload={Boolean(reportId)}
+                onSectionUpload={handleSectionUpload}
+              />
+            </div>
 
             <div className="mt-6">
               <ReportMetadataForm

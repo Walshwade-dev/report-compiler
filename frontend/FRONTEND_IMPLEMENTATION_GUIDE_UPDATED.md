@@ -1,5 +1,7 @@
 # Daily Report Automation — Frontend Implementation Guide
 
+Last reviewed: 2026-07-19
+
 ## 1. Project Goal
 
 Build a frontend report-builder UI for the Daily Report Automation system.
@@ -8,7 +10,8 @@ The frontend should allow a user to create a report session, provide all require
 
 The FastAPI backend is already frontend-ready and supports:
 
-- Filesystem-backed report sessions
+- PostgreSQL-backed report metadata for dashboard/history persistence
+- Filesystem-backed uploads, processed data, previews, and generated outputs
 - Daily Hour CSV/XLSX uploads
 - Wideload CSV/XLSX uploads
 - Impounded/Prohibited CSV/XLSX uploads
@@ -19,7 +22,14 @@ The FastAPI backend is already frontend-ready and supports:
 - Sections 1–7 rendering into the final DOCX
 - Final A4 landscape DOCX generation
 - Final DOCX download
+- Password-gated report history and deletion via `X-Admin-Password`
+- Production persistence health checks for PostgreSQL and Render disk storage
 - Upload-through-build workflow tests
+- Station-scoped dashboard analytics and data isolation (Juja vs Kanyonyo)
+- Dual-shift Mobile Report KPI cards (Shift A / Shift B side-by-side with totals)
+- PSV Coaches Weighed with 2000KG concession allowance tracking
+- Axle Configuration breakdown KPI card
+- Mobile checklist scale test verification with 2000KG tolerance
 
 The frontend should be built in stages, starting with this implementation guide before writing code.
 
@@ -82,6 +92,8 @@ Recommended usage:
 frontend/
 ├── app/
 │   ├── page.tsx
+│   ├── admin/
+│   │   └── page.tsx
 │   ├── reports/
 │   │   └── new/
 │   │       └── page.tsx
@@ -116,6 +128,19 @@ Primary route:
 ```
 
 This page should contain the full report builder workflow.
+
+Admin route:
+
+```txt
+/admin
+```
+
+This page prompts for the backend `ADMIN_PASSWORD`, stores it only in browser
+session storage for the current tab, and sends it as `X-Admin-Password` when
+listing report history or deleting a report workspace. Report history and
+delete controls should not appear in ordinary user settings. System status,
+session/debug details, and developer prompt access for submitted tickets also
+belong in this admin route, not in ordinary settings or the public tickets page.
 
 ### Preferred Layout
 
@@ -172,6 +197,7 @@ Possible fields:
 - Report date
 - Station / site / location
 - Prepared by
+- Confirmed By / Approved By (Locked to "Faith Njani" and disabled for editing)
 - Optional notes
 
 Responsibilities:
@@ -444,6 +470,8 @@ Exact endpoint paths should be copied from `BACKEND_FRONTEND_INTEGRATION_GUIDE.m
 | Fetch section preview | Retrieve PNG/PDF/DOCX preview for selected section | `GET` | `getSectionPreview(sessionId, sectionNumber, format)` |
 | Build final DOCX | Generate final A4 landscape DOCX | `POST` | `buildFinalReport(sessionId)` |
 | Download final DOCX | Download completed report | `GET` | `downloadFinalReport(sessionId)` |
+| Fetch SMS dates | Retrieve unique dates having SMS summaries | `GET` | `getSmsSummaryDates()` |
+| Fetch SMS summaries | Retrieve SMS summary objects by date | `GET` | `getSmsSummariesByDate(reportDate)` |
 
 Suggested `lib/api.ts` shape:
 
@@ -482,6 +510,10 @@ export async function getSectionPreview(
 export async function buildFinalReport(sessionId: string) {}
 
 export async function downloadFinalReport(sessionId: string) {}
+
+export async function getSmsSummaryDates() {}
+
+export async function getSmsSummariesByDate(reportDate: string) {}
 ```
 
 ---
@@ -734,6 +766,8 @@ Completion criteria:
 - Progress summary cards are implemented via `ProgressSummary.tsx` and `SummaryCards.tsx` to surface metadata, upload, manual input, and build readiness.
 - Input controls now use semantic browser UI: report date uses `type="date"`, and numeric manual inputs use `type="number"` with `min={0}` and `step={1}` validations.
 - A reusable `SectionCard` wrapper now provides consistent panel styling for report sections.
+
+- Documentation updated: 2026-07-19 — review and minor clarifications; no behavioral changes.
 
 ## Architecture Notes
 
@@ -1873,13 +1907,125 @@ Progress made:
 - Mobile Excel generation depends on backend support for `/uploads/mobile-report` and `/download-mobile-excel-report`.
 - The next frontend pass should live-test mobile upload/download against the deployed or local backend and then tighten any response-shape mismatches.
 
-### Transgression OCR & Session Reset (September 2026)
+---
 
-- **Transgression OCR Pipeline**: Integrated `extractTransgressionOcr(reportId, file)` directly inside `ManualInputsPanel.tsx`.
-- **Multi-File Upload**: Supports selecting multiple scanned files (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.tiff`, `.webp`) simultaneously with no limit.
-- **24-Hour Time Format**: Configured `time` and `timeReceived` inputs as `type="text"` with `placeholder="0000hrs"` to enforce four-digit 24-hour style format.
-- **Dropdown Selects**: Rendered `OCS Reported To`, `Weight noted`, and `Tagged in system` as `<select>` elements with `"YES"` and `"NO"` options.
-- **Action Taken Suggestions**: Added datalist suggestions for `"chased and returned"` and `"chased not found"` while allowing custom officer action notes.
+## 22. Implementation Update — 2026-06-29 Developer Portal, SMS Summaries & Signatory Lock
+
+### Developer Ticket & Prompt Portal
+
+Implemented at route:
+```txt
+/tickets
+```
+Component: `frontend/app/tickets/page.tsx`
+
+- A dedicated page allowing users to submit system bugs/flaws or enhancement requests.
+- Inputs: Title, Category (Bug/Feature/Enhancement), Severity (Low/Medium/High/Critical), Affected Area/File, Observed Description, Expected Behavior.
+- Compiled developer prompts are generated dynamically using standard AI prompt instructions format.
+- Tickets are persisted client-side in the browser's `localStorage` (key: `dev-tickets`).
+- Provides one-click action buttons to copy the prompt to the clipboard or download it as a markdown file (`.md`).
+
+### SMS Summary Dashboard Panel
+
+Implemented in `frontend/components/dashboard/SmsSummaryPanel.tsx` and integrated on the `/analytics` page:
+- Dynamically fetches dates having generated reports from the backend (`GET /api/report-sessions/sms-summaries/dates`).
+- Fetches and displays formatted SMS summary text payloads (`GET /api/report-sessions/sms-summaries/{report_date}`) for static and mobile weighbridge sessions.
+- Displays calculated fields including total weighed, charged, warned, and impounded/prohibited.
+- Allows copying the SMS summary payload directly to the clipboard.
+
+### Locked signatory "Faith Njani"
+
+- Across the metadata form and final report templates, the signatory field `confirmed_by` is locked to **"Faith Njani"**.
+- In `ReportMetadataForm.tsx`, this field is hardcoded and disabled to prevent manual overrides.
+
+### Impounded & Prohibited Formula
+
+- The impounded and prohibited metric on the dashboards and generated documents is computed using the formula `P = Z + R`, where `Z` is the charged count and `R` is the count of cases cleared/released in court.
+
+---
+
+## 23. Implementation Update — 2026-07-28 Mobile Report KPIs: Shift Alignment, Dropdown Removal & Legibility
+
+### Mobile Shift A & B Alignment with SMS KPIs
+Implemented in `frontend/components/dashboard/DashboardSummaryCards.tsx`:
+- **Shift A (Day)**: Directly presents metrics (`weighed`, `warned`, `legal`, `charged`) from Mobile Shift 1 (Team 1) matching the exact SMS KPI text.
+- **Shift B (Night)**: Directly presents metrics from Mobile Team 2 matching the exact SMS KPI text.
+- **Total**: Accurately sums Shift A + Shift B.
+- **Removed Dropdown Selector**: The bound `<select>` dropdown was removed from the header of `MobileSummaryCards` since both shifts are displayed simultaneously side-by-side.
+- **Enlarged Totals Font Size**: In each child KPI card (Mobile Weighed, Mobile Warned, Mobile Legal, Mobile Charged), the totals font size was enlarged to `text-sm font-extrabold` with a `text-[10px] font-bold` label on a subtle background pill to make totals immediately clear and legible.
+- **Request Deduplication**: `StaticSummaryCards` and `MobileSummaryCards` synchronize their date query parameters (`staticDate: selectedDate, mobileDate: selectedDate`), allowing the browser in-flight request deduplicator in `lib/api.ts` to merge them into a single backend API call.
+
+---
+
+## 24. Implementation Update — 2026-07-28 Static KPI Legibility & Kanyonyo Single Bound ("Nairobi Bound")
+
+### Static Report KPIs Subcontainer Legibility
+Implemented in `frontend/components/dashboard/DashboardSummaryCards.tsx`:
+- **Subcontainer Titles**: Increased font size and contrast from `text-[9px] text-slate-400` to `text-[10.5px] sm:text-[11px] font-extrabold uppercase tracking-wide text-slate-100`.
+- **Bound Labels (Multi-Bound Stations)**: Upgraded from `text-[7px] text-slate-500` to high-contrast `text-[8px] sm:text-[8.5px] font-bold uppercase text-slate-200` with mono values `text-xs sm:text-[12.5px] font-black text-white font-mono`.
+- **Axle Configuration Breakdown**: Labels upgraded to `text-[8.5px] font-extrabold text-purple-200` with count values in `text-xs font-black text-white font-mono`.
+- **Expanded Modal View**: Enhanced font size and clarity across bound comparison tiles and axle configuration chips.
+
+### Kanyonyo Single Bound Operation ("Nairobi Bound")
+- **Kanyonyo Topology**: Kanyonyo only operates a single physical bound: **"Nairobi Bound"** (or `"NAIROBI BOUND"`).
+- **Dashboard Cards Single Bound Display**:
+  - When `isSingleBound` is active (Kanyonyo station scope): The 3-column grid is replaced by a single prominent row tile displaying `Nairobi Bound` with a cyan indicator (`text-[10px] sm:text-[10.5px] font-bold uppercase text-cyan-200`) and the large metric value (`text-sm sm:text-base font-black text-white font-mono`).
+  - The expanded details modal also renders a single-bound card layout with `text-xl sm:text-2xl font-black text-white font-mono`.
+- **Report Creation & Officer Scoping**:
+  - `frontend/components/report-builder/ReportHeader.tsx`: When `weighbridgeName` or the user's station is Kanyonyo, the bound dropdown displays only `NAIROBI BOUND` and is locked/disabled with tooltip guidance.
+  - `frontend/lib/hooks/useReportSession.ts`: Automatically sets and enforces `boundName = "NAIROBI BOUND"` whenever the station or weighbridge is Kanyonyo.
+- **Analytics Charts**:
+  - `frontend/components/dashboard/DashboardCharts.tsx`: Automatically resolves `getTrafficLabel` for Kanyonyo to `"Nairobi Bound"` and passes station scoping to the query hook.
+
+### Juja Station Bound Alignment ("Thika Bound" & "Nairobi Bound")
+- For Juja Station (`station=juja`), static report KPI cards display **"Thika Bound"** for Bound A and **"Nairobi Bound"** for Bound B to match the physical road directions and eliminate generic `"Bound A"` labels.
+- In the expanded modal view, axle configuration breakdowns display `"Thika"` and `"Nairobi"` counters respectively.
+
+### Visual Contrast & Tone-Down Tuning
+- Tuned down harsh pure white (`#ffffff`) metric values by ~10% to smooth `text-slate-200` across Static and Mobile KPI cards and modals.
+- Bound titles softened to `text-slate-300` and `text-cyan-300`, and subcontainer titles tuned to `text-slate-200 font-bold` for reduced glare and balanced visual hierarchy.
+
+### Sidebar Project Summary Visibility Scoping
+- **Dashboard Visibility**: The side menu `ProgressSummary` container ("Project Summary" workflow checklist showing Session/Metadata, Uploads, Manual, Build readiness) is hidden on the main dashboard (`/`), analytics page, and general navigation views.
+- **Report Creation Scoping**: In `frontend/components/report-builder/ReportSidebar.tsx`, `ProgressSummary` is explicitly conditioned on `isReportCreationPage`:
+  ```tsx
+  const isReportCreationPage = Boolean(
+    pathname &&
+      (pathname.startsWith("/reports/static-weighbridge") ||
+        pathname.startsWith("/reports/mobile-weighbridge"))
+  );
+  ```
+- **Result**: The container only displays when an authorized officer is actively on the report creation/compilation page for static or mobile weighbridges (`/reports/static-weighbridge/new` or `/reports/mobile-weighbridge/new`), keeping the main dashboard navigation clean and focused.
+
+---
+
+## 25. Implementation Update — September 2026: Transgression OCR, Unified Batch File Intake & Uppercase DOCX Formatting
+
+### Transgression OCR Pipeline & Session Reset
+- **OCR Ingestion**: Integrated `extractTransgressionOcr(reportId, file)` directly inside `ManualInputsPanel.tsx` and `BatchFileIngest.tsx` with support for multiple PDF/image ticket uploads.
 - **Duplicate Prevention**: Detects candidate truck plates and Tag IDs against existing rows. Re-uploading documents for an already populated truck is blocked with an alert: `Transgression details for "{vehicle reg}" have already been populated and can not be repopulated for the same truck.`
 - **Auto-Dismissing Feedback Label**: Successful OCR extraction labels automatically dismiss after 850ms as a brief heads-up notification.
 - **Report Reset**: Hitting **"New Report / Reset"** triggers `resetReportSession(reportId)` to purge backend session artifacts and manual inputs, clears local state, wipes transgression rows, and clears any active modal feedback.
+
+### Unified Batch File Intake and Auto Mapping
+Implemented in `frontend/components/report-builder/BatchFileIngest.tsx` and `frontend/lib/fileClassifier.ts`:
+- **Multi-Factor Heuristic Classifier**:
+  - Differentiates spreadsheet registers (`.csv`, `.xlsx`, `.xls`) from scanned tickets (`.pdf`, `.png`, `.jpg`, etc.).
+  - Matches filename keywords for `daily_hour`, `wideload`, `impounded_prohibited`, `impounded_overloaded`, and `transgression`.
+  - Implements client-side CSV column sniffing to accurately detect categories even with ambiguous filenames.
+  - Scaffolds future Traffic Census document OCR.
+- **Staging & Verification Table**:
+  - Displays file name, size, detected category, and reasoning.
+  - Dropdown selector allows operators to review, verify, and override any target category before building.
+  - Per-file live status indicators (`Staged`, `Uploading...`, `OCR Extracting...`, `Ingested`, `Error`).
+- **Batch Processing Action**:
+  - Uploads spreadsheets in canonical dependency order (`daily_hour` -> `wideload` -> `impounded_prohibited` -> `impounded_overloaded`).
+  - Concurrently processes transgression OCR scans.
+  - When all required sections are uploaded and manual inputs populated, displays a direct **"Build Report Now"** trigger button.
+- **New Report / Reset Clearing**:
+  - Clicking **"New Report / Reset"** triggers a complete reset of the batch intake container (clearing staged files, file inputs, feedback banners, and restoring empty dropzone state).
+
+### Transgression DOCX Table Uppercase & Date Standardization
+- **Uppercase Entries**: All cell values in both `DAILY TRANSGRESSIONS REPORT` and `TRANSGRESSIONS ACTION REPORT` tables on the generated Word report (`.docx`) are strictly rendered in uppercase.
+- **Date Separator**: Standardized to `/` across all transgression dates (e.g. `06/09/2026`).
+- **CamelCase Normalization**: Seamlessly maps frontend camelCase fields (`regNo`, `axleConfig`, `censusClerk`, `policeInCharge`, `actionTaken`, `truckNo`, `timeReceived`, etc.) to Word table columns.
