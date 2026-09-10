@@ -2047,3 +2047,18 @@ Implemented in `frontend/app/reports/mobile-weighbridge/new/page.tsx` and `backe
 - **Backend Station Alignment**:
   - `create_report_session` and `update_report_session_metadata` preserve the `f"{station} mobile"` format for mobile reports created by non-admin users, keeping Excel builder titles and download filenames synchronized with frontend state.
 
+## 27. Implementation Update — Weekly Report Officer Station Locking & Download Scoping
+
+Implemented in `frontend/app/reports/weekly/new/page.tsx` and `backend/app/routes/weekly_reports.py`:
+- **Officer Station Locking**:
+  - `resolveUserStaticStation(user)` inspects `user.station`, falling back to `user.username` or `user.full_name` across canonical station keys (`JUJA`, `KANYONYO`, `ISINYA`, `ATHI RIVER`, `GILGIL`, `SUSWA`).
+  - For non-admin officers, the Station selector and `preparedBy` field are disabled with high-contrast locked styling and a `"Station Locked"` badge.
+- **Backend Authorization Enforcement (`/api/reports/weekly/generate`)**:
+  - Validates caller JWT credentials via `get_authenticated_user(authorization, db)`.
+  - Rejects mismatched station report requests with `403 Forbidden` (`"Access denied: You are only authorized to generate weekly reports for {assigned_station} station."`).
+  - Automatically overwrites query parameters to the officer's assigned station and officer name.
+  - Alphanumeric-normalized matching (`re.sub(r"[^a-z0-9]", "", ...)`) eliminates case mismatches with stored daily sessions.
+- **Auth Token Transmission**:
+  - `handleDownload` leverages `authHeaders()` to ensure `dnk-auth-token` is passed as `Authorization: Bearer <token>` on report downloads.
+
+
