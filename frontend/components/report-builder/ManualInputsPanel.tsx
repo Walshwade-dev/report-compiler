@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FileSpreadsheet,
   FileText,
   Save,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 import {
   BuildStatus,
   ManualInputs,
   CCRecordRow,
+  DailyTransgressionRow,
+  TransgressionActionRow,
 } from "@/lib/types";
+import { extractTransgressionOcr } from "@/lib/api";
 import { StatusBadge } from "./StatusBadge";
 
 type ManualInputsPanelProps = {
@@ -26,11 +32,12 @@ type ManualInputsPanelProps = {
   finalReportDownloadUrl: string | null;
   excelReportDownloadUrl: string | null;
   onSaveManualInputs?: () => void;
+  reportId?: string | null;
 };
 
 const emptyDailyTransgression = {
   date: "",
-  time: "",
+  time: "0000hrs",
   regNo: "",
   axleConfig: "",
   transporter: "",
@@ -38,21 +45,21 @@ const emptyDailyTransgression = {
   policeInCharge: "",
   actionTaken: "",
   caught: "",
-  nextWbReportSent: "",
-  nextWb: "",
+  nextWbReportSent: "-",
+  nextWb: "-",
 };
 
 const emptyActionReport = {
   date: "",
-  timeReceived: "",
+  timeReceived: "0000hrs",
   truckNo: "",
   sendingWbStation: "",
-  ocsReportedTo: "",
+  ocsReportedTo: "NO",
   action1: "",
   action2: "",
   attachEvidence: "",
-  weightNoted: "",
-  taggedInSystem: "",
+  weightNoted: "NO",
+  taggedInSystem: "NO",
 };
 
 export function ManualInputsPanel({
@@ -67,9 +74,214 @@ export function ManualInputsPanel({
   finalReportDownloadUrl,
   excelReportDownloadUrl,
   onSaveManualInputs,
+  reportId,
 }: ManualInputsPanelProps) {
   const [transgressionModalOpen, setTransgressionModalOpen] =
     useState(false);
+  const [ocrUploading, setOcrUploading] = useState(false);
+  const [ocrFeedback, setOcrFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear feedback and close modal when session is reset or when transgression entries are cleared
+  useEffect(() => {
+    if (
+      !reportId ||
+      (manualInputs.dailyTransgressions.length === 0 &&
+        manualInputs.transgressionActions.length === 0)
+    ) {
+      setOcrFeedback(null);
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    }
+    if (!reportId) {
+      setTransgressionModalOpen(false);
+    }
+  }, [
+    reportId,
+    manualInputs.dailyTransgressions.length,
+    manualInputs.transgressionActions.length,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleOcrFilesUpload = async (files: File[]) => {
+    if (!reportId) {
+      setOcrFeedback({
+        type: "error",
+        message: "Please initialize or select a report session before uploading documents.",
+      });
+      return;
+    }
+
+    if (files.length === 0) return;
+
+    setOcrUploading(true);
+    setOcrFeedback(null);
+    if (feedbackTimeoutRef.current) {
+      clearTimeout(feedbackTimeoutRef.current);
+    }
+
+    const normalizePlate = (p?: string) =>
+      (p || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    const extractedDailyList: DailyTransgressionRow[] = [];
+    const extractedActionList: TransgressionActionRow[] = [];
+    const plates: string[] = [];
+    const duplicates: string[] = [];
+    const errors: string[] = [];
+
+    for (const file of files) {
+      try {
+        const result = await extractTransgressionOcr(reportId, file);
+        if (result.success && result.extracted) {
+          const newDaily = result.extracted.daily_transgression;
+          const newAction = result.extracted.action_report;
+          const plate =
+            newDaily.regNo ||
+            newAction.truckNo ||
+            "Vehicle";
+          const normCandidate = normalizePlate(plate);
+          const isValidPlate =
+            normCandidate !== "" && normCandidate !== "VEHICLE";
+
+          // Check if details have already been populated for this truck or Tag ID
+          const isAlreadyPopulated =
+            Boolean(
+              isValidPlate &&
+                (manualInputs.dailyTransgressions.some(
+                  (r) => normalizePlate(r.regNo) === normCandidate
+                ) ||
+                  manualInputs.transgressionActions.some(
+                    (r) => normalizePlate(r.truckNo) === normCandidate
+                  ) ||
+                  extractedDailyList.some(
+                    (r) => normalizePlate(r.regNo) === normCandidate
+                  ))
+            ) ||
+            Boolean(
+              newAction.attachEvidence &&
+                manualInputs.transgressionActions.some((r) => {
+                  const tagCandidate = newAction.attachEvidence
+                    .split(",")[0]
+                    .trim()
+                    .toUpperCase();
+                  return (
+                    tagCandidate.startsWith("TAG") &&
+                    r.attachEvidence &&
+                    r.attachEvidence.toUpperCase().includes(tagCandidate)
+                  );
+                })
+            );
+
+          if (isAlreadyPopulated) {
+            duplicates.push(plate);
+          } else {
+            extractedDailyList.push(newDaily);
+            extractedActionList.push(newAction);
+            plates.push(plate);
+          }
+        } else {
+          errors.push(`${file.name}: Extraction did not return records.`);
+        }
+      } catch (err) {
+        errors.push(
+          `${file.name}: ${err instanceof Error ? err.message : "Failed to extract"}`
+        );
+      }
+    }
+
+    // Handle duplicates alert
+    if (duplicates.length > 0) {
+      const uniqueDuplicates = Array.from(new Set(duplicates));
+      const dupPlatesText = uniqueDuplicates.map((p) => `"${p}"`).join(", ");
+      const alertMsg =
+        uniqueDuplicates.length === 1
+          ? `Transgression details for ${dupPlatesText} have already been populated and can not be repopulated for the same truck.`
+          : `Transgression details for ${dupPlatesText} have already been populated and can not be repopulated for the same trucks.`;
+
+      if (typeof window !== "undefined") {
+        window.alert(alertMsg);
+      }
+
+      if (extractedDailyList.length === 0) {
+        setOcrFeedback({
+          type: "error",
+          message: alertMsg,
+        });
+      }
+    }
+
+    if (extractedDailyList.length > 0) {
+      setManualInputsTouched(true);
+      setManualInputs((prev) => {
+        const nextDaily = [
+          ...prev.dailyTransgressions,
+          ...extractedDailyList,
+        ];
+        const nextAction = [
+          ...prev.transgressionActions,
+          ...extractedActionList,
+        ];
+        return {
+          ...prev,
+          dailyTransgressions: nextDaily,
+          transgressionActions: nextAction,
+          transgressions: nextDaily.length,
+        };
+      });
+
+      const platesText = plates.map((p) => `"${p}"`).join(", ");
+      const successMsg = `successfully extracted transgression details for ${platesText}`;
+
+      if (duplicates.length > 0) {
+        const uniqueDuplicates = Array.from(new Set(duplicates));
+        const dupPlatesText = uniqueDuplicates.map((p) => `"${p}"`).join(", ");
+        setOcrFeedback({
+          type: "error",
+          message: `${successMsg}. Note: details for ${dupPlatesText} were already populated and skipped.`,
+        });
+      } else if (errors.length > 0) {
+        setOcrFeedback({
+          type: "error",
+          message: `${successMsg}. (Errors: ${errors.join("; ")})`,
+        });
+      } else {
+        setOcrFeedback({
+          type: "success",
+          message: successMsg,
+        });
+
+        // Heads up label: auto-disappear in less than a second (850ms)
+        if (feedbackTimeoutRef.current) {
+          clearTimeout(feedbackTimeoutRef.current);
+        }
+        feedbackTimeoutRef.current = setTimeout(() => {
+          setOcrFeedback(null);
+        }, 850);
+      }
+    } else if (duplicates.length === 0) {
+      setOcrFeedback({
+        type: "error",
+        message:
+          errors.length > 0
+            ? errors.join("; ")
+            : "Failed to extract transgression data from document.",
+      });
+    }
+
+    setOcrUploading(false);
+  };
 
   const handleCellChange = (rowIndex: number, colKey: keyof CCRecordRow, value: number) => {
     setManualInputsTouched(true);
@@ -380,6 +592,75 @@ export function ManualInputsPanel({
               </button>
             </div>
 
+            {/* Quick Ingest from Document / Ticket (OCR) */}
+            <div className="mt-4 rounded-xl border border-cyan-800/60 bg-[#071827] p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100">
+                    Auto-Extract via Document OCR
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    upload scanned transgression form.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label
+                    className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-bold transition-colors cursor-pointer ${
+                      ocrUploading
+                        ? "bg-slate-800 text-slate-400 cursor-not-allowed"
+                        : "bg-cyan-600 hover:bg-cyan-500 text-slate-950 shadow-md shadow-cyan-950/40"
+                    }`}
+                  >
+                    {ocrUploading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Extracting OCR...
+                      </>
+                    ) : (
+                      "Upload transgression file"
+                    )}
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.png,.jpg,.jpeg,.tiff,.webp"
+                      disabled={ocrUploading}
+                      onChange={(e) => {
+                        const files = e.target.files ? Array.from(e.target.files) : [];
+                        if (files.length > 0) {
+                          handleOcrFilesUpload(files);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {ocrFeedback && (
+                <div
+                  className={`mt-3 flex items-start gap-2 rounded-lg p-2.5 text-xs ${
+                    ocrFeedback.type === "success"
+                      ? "border border-lime-500/40 bg-lime-950/30 text-lime-300"
+                      : "border border-red-500/40 bg-red-950/30 text-red-300"
+                  }`}
+                >
+                  {ocrFeedback.type === "success" ? (
+                    <CheckCircle2 size={15} className="shrink-0 mt-0.5 text-lime-400" />
+                  ) : (
+                    <AlertCircle size={15} className="shrink-0 mt-0.5 text-red-400" />
+                  )}
+                  <span>{ocrFeedback.message}</span>
+                </div>
+              )}
+            </div>
+
+            <datalist id="actionTakenSuggestions">
+              <option value="chased and returned" />
+              <option value="chased not found" />
+            </datalist>
+
             <div className="mt-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold uppercase text-cyan-200">
@@ -410,27 +691,29 @@ export function ManualInputsPanel({
                     className="grid gap-2 rounded-lg border border-cyan-900/50 bg-[#071827] p-3 md:grid-cols-2"
                   >
                     {[
-                      ["date", "Date", "date"],
-                      ["time", "Time", "time"],
-                      ["regNo", "Reg No", "text"],
-                      ["axleConfig", "Axle Config", "text"],
-                      ["transporter", "Transporter", "text"],
-                      ["censusClerk", "Census Clerk", "text"],
-                      ["policeInCharge", "Police In charge", "text"],
-                      ["actionTaken", "Action Taken", "text"],
-                      ["caught", "Caught", "text"],
-                      ["nextWbReportSent", "Next WB report sent", "text"],
-                      ["nextWb", "Next WB", "text"],
-                    ].map(([field, label, type]) => (
+                      ["date", "Date", "date", ""],
+                      ["time", "Time", "text", "0000hrs"],
+                      ["regNo", "Reg No", "text", ""],
+                      ["axleConfig", "Axle Config", "text", ""],
+                      ["transporter", "Transporter", "text", ""],
+                      ["censusClerk", "Census Clerk", "text", ""],
+                      ["policeInCharge", "Police In charge", "text", ""],
+                      ["actionTaken", "Action Taken", "text", ""],
+                      ["caught", "Caught", "text", ""],
+                      ["nextWbReportSent", "Next WB report sent", "text", ""],
+                      ["nextWb", "Next WB", "text", ""],
+                    ].map(([field, label, type, placeholder]) => (
                       <label key={field} className="block">
                         <span className="text-xs text-slate-400">{label}</span>
                         <input
                           type={type}
-                          value={String(row[field as keyof typeof row])}
+                          placeholder={placeholder || undefined}
+                          list={field === "actionTaken" ? "actionTakenSuggestions" : undefined}
+                          value={String(row[field as keyof typeof row] ?? "")}
                           onChange={(e) => {
                             const value =
-                              type === "text"
-                                ? e.target.value.toUpperCase()
+                              type === "text" && field !== "time" && field !== "nextWbReportSent" && field !== "nextWb"
+                                ? (field === "actionTaken" ? e.target.value : e.target.value.toUpperCase())
                                 : e.target.value;
                             setManualInputsTouched(true);
                             setManualInputs((prev) => {
@@ -501,42 +784,67 @@ export function ManualInputsPanel({
                     className="grid gap-2 rounded-lg border border-cyan-900/50 bg-[#071827] p-3 md:grid-cols-2"
                   >
                     {[
-                      ["date", "Date", "date"],
-                      ["timeReceived", "Time Received", "time"],
-                      ["truckNo", "Truck No.", "text"],
-                      ["sendingWbStation", "Sending WB station", "text"],
-                      ["ocsReportedTo", "OCS Reported To", "text"],
-                      ["action1", "Action 1", "text"],
-                      ["action2", "Action 2", "text"],
-                      ["attachEvidence", "Attach evidence", "text"],
-                      ["weightNoted", "Weight noted", "text"],
-                      ["taggedInSystem", "Tagged in system", "text"],
-                    ].map(([field, label, type]) => (
+                      ["date", "Date", "date", ""],
+                      ["timeReceived", "Time Received", "text", "0000hrs"],
+                      ["truckNo", "Truck No.", "text", ""],
+                      ["sendingWbStation", "Sending WB station", "text", ""],
+                      ["ocsReportedTo", "OCS Reported To", "select", ""],
+                      ["action1", "Action 1", "text", ""],
+                      ["action2", "Action 2", "text", ""],
+                      ["attachEvidence", "Attach evidence", "text", ""],
+                      ["weightNoted", "Weight noted", "select", ""],
+                      ["taggedInSystem", "Tagged in system", "select", ""],
+                    ].map(([field, label, type, placeholder]) => (
                       <label key={field} className="block">
                         <span className="text-xs text-slate-400">{label}</span>
-                        <input
-                          type={type}
-                          value={String(row[field as keyof typeof row])}
-                          onChange={(e) => {
-                            const value =
-                              type === "text"
-                                ? e.target.value.toUpperCase()
-                                : e.target.value;
-                            setManualInputsTouched(true);
-                            setManualInputs((prev) => {
-                              const rows = [...prev.transgressionActions];
-                              rows[index] = {
-                                ...rows[index],
-                                [field]: value,
-                              };
-                              return {
-                                ...prev,
-                                transgressionActions: rows,
-                              };
-                            });
-                          }}
-                          className="mt-1 w-full rounded-md border border-cyan-700 bg-[#0b2a45] px-3 py-2 text-sm"
-                        />
+                        {type === "select" ? (
+                          <select
+                            value={String(row[field as keyof typeof row] || "NO")}
+                            onChange={(e) => {
+                              setManualInputsTouched(true);
+                              setManualInputs((prev) => {
+                                const rows = [...prev.transgressionActions];
+                                rows[index] = {
+                                  ...rows[index],
+                                  [field]: e.target.value,
+                                };
+                                return {
+                                  ...prev,
+                                  transgressionActions: rows,
+                                };
+                              });
+                            }}
+                            className="mt-1 w-full rounded-md border border-cyan-700 bg-[#0b2a45] px-3 py-2 text-sm text-slate-100 outline-none"
+                          >
+                            <option value="YES">YES</option>
+                            <option value="NO">NO</option>
+                          </select>
+                        ) : (
+                          <input
+                            type={type}
+                            placeholder={placeholder || undefined}
+                            value={String(row[field as keyof typeof row] ?? "")}
+                            onChange={(e) => {
+                              const value =
+                                type === "text" && field !== "timeReceived"
+                                  ? e.target.value.toUpperCase()
+                                  : e.target.value;
+                              setManualInputsTouched(true);
+                              setManualInputs((prev) => {
+                                const rows = [...prev.transgressionActions];
+                                rows[index] = {
+                                  ...rows[index],
+                                  [field]: value,
+                                };
+                                return {
+                                  ...prev,
+                                  transgressionActions: rows,
+                                };
+                              });
+                            }}
+                            className="mt-1 w-full rounded-md border border-cyan-700 bg-[#0b2a45] px-3 py-2 text-sm"
+                          />
+                        )}
                       </label>
                     ))}
                     <div className="flex justify-end md:col-span-2">

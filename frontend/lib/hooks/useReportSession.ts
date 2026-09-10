@@ -10,6 +10,7 @@ import {
   getExcelReportDownloadUrl,
   ReportSessionResponse,
   getLoggedInUser,
+  resetReportSession,
 } from "../api";
 
 
@@ -472,9 +473,21 @@ export function useReportSession() {
   }, [reportId]);
 
   const handleResetReport = useCallback((resetUploadsCallback?: () => void) => {
+    if (reportId) {
+      resetReportSession(reportId).catch((err) => {
+        console.error("Failed to reset session on backend:", err);
+      });
+    }
+
+    const user = getLoggedInUser();
+    const defaultPreparedBy =
+      user && user.role !== "admin"
+        ? user.full_name || user.username || ""
+        : "";
+
     setMetadata({
       date: "",
-      preparedBy: "",
+      preparedBy: defaultPreparedBy,
       approvedBy: "Faith Njani",
     });
 
@@ -501,13 +514,14 @@ export function useReportSession() {
     setFinalReportDownloadUrl(null);
     setExcelReportDownloadUrl(null);
     setReportId(null);
+    setSessionData(null);
     initialSaveDone.current = false;
 
     localStorage.removeItem("active-report-id");
     if (resetUploadsCallback) {
       resetUploadsCallback();
     }
-  }, []);
+  }, [reportId]);
 
   // Save metadata changes to localStorage
   useEffect(() => {

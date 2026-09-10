@@ -143,3 +143,21 @@ export type ReportSection =
   | 5
   | 6
   | 7;
+
+export type TransgressionOcrResponse = {
+  success: boolean;
+  filename: string;
+  extracted: {
+    daily_transgression: DailyTransgressionRow;
+    action_report: TransgressionActionRow;
+  };
+  meta: {
+    reg_no: string;
+    tag_id: string;
+    ob_no: string;
+    date: string;
+    time: string;
+    station?: string;
+  };
+  raw_text_summary: string;
+};

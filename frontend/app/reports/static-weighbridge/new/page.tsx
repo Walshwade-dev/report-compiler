@@ -199,6 +199,7 @@ export default function NewReportPage() {
             finalReportDownloadUrl={finalReportDownloadUrl}
             excelReportDownloadUrl={excelReportDownloadUrl}
             onSaveManualInputs={handleSaveManualInputs}
+            reportId={reportId}
           />
         </div>
       </div>

@@ -1872,3 +1872,14 @@ Progress made:
 - Mobile weighbridge workflow is now present as an application route and wired to the backend session/upload/download flow.
 - Mobile Excel generation depends on backend support for `/uploads/mobile-report` and `/download-mobile-excel-report`.
 - The next frontend pass should live-test mobile upload/download against the deployed or local backend and then tighten any response-shape mismatches.
+
+### Transgression OCR & Session Reset (September 2026)
+
+- **Transgression OCR Pipeline**: Integrated `extractTransgressionOcr(reportId, file)` directly inside `ManualInputsPanel.tsx`.
+- **Multi-File Upload**: Supports selecting multiple scanned files (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.tiff`, `.webp`) simultaneously with no limit.
+- **24-Hour Time Format**: Configured `time` and `timeReceived` inputs as `type="text"` with `placeholder="0000hrs"` to enforce four-digit 24-hour style format.
+- **Dropdown Selects**: Rendered `OCS Reported To`, `Weight noted`, and `Tagged in system` as `<select>` elements with `"YES"` and `"NO"` options.
+- **Action Taken Suggestions**: Added datalist suggestions for `"chased and returned"` and `"chased not found"` while allowing custom officer action notes.
+- **Duplicate Prevention**: Detects candidate truck plates and Tag IDs against existing rows. Re-uploading documents for an already populated truck is blocked with an alert: `Transgression details for "{vehicle reg}" have already been populated and can not be repopulated for the same truck.`
+- **Auto-Dismissing Feedback Label**: Successful OCR extraction labels automatically dismiss after 850ms as a brief heads-up notification.
+- **Report Reset**: Hitting **"New Report / Reset"** triggers `resetReportSession(reportId)` to purge backend session artifacts and manual inputs, clears local state, wipes transgression rows, and clears any active modal feedback.

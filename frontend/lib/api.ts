@@ -1,4 +1,5 @@
 import { UPLOAD_ENDPOINTS } from "./constants";
+import type { TransgressionOcrResponse } from "./types";
 
 const DEPLOYED_API_ORIGIN = "https://report-app-px6c.onrender.com";
 const LOCAL_API_ORIGIN = "http://127.0.0.1:8000";
@@ -529,6 +530,48 @@ export async function uploadMobileReportFile(
   }
 
   return response.json() as Promise<MobileReportUploadResponse>;
+}
+
+export async function extractTransgressionOcr(
+  reportId: string,
+  file: File
+): Promise<TransgressionOcrResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(
+    apiUrl(`report-sessions/${reportId}/transgressions/ocr-extract`),
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to extract transgression data from document")
+    );
+  }
+
+  return response.json() as Promise<TransgressionOcrResponse>;
+}
+
+export async function resetReportSession(
+  reportId: string
+): Promise<ReportSessionResponse> {
+  const response = await fetch(apiUrl(`report-sessions/${reportId}/reset`), {
+    method: "POST",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response, "Failed to reset report session")
+    );
+  }
+
+  return response.json() as Promise<ReportSessionResponse>;
 }
 
 
