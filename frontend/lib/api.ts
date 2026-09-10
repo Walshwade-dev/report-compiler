@@ -637,6 +637,7 @@ export async function getAnalyticsDashboard(filters?: {
   staticDate?: string;
   mobileDate?: string;
   mobileBound?: string;
+  station?: string;
 }): Promise<any> {
   const query = new URLSearchParams();
 
@@ -652,6 +653,10 @@ export async function getAnalyticsDashboard(filters?: {
     query.set("mobile_bound", filters.mobileBound);
   }
 
+  if (filters?.station) {
+    query.set("station", filters.station);
+  }
+
   const path = query.size
     ? `report-sessions/analytics/dashboard?${query.toString()}`
     : "report-sessions/analytics/dashboard";
@@ -659,8 +664,11 @@ export async function getAnalyticsDashboard(filters?: {
   return fetchCached(apiUrl(path));
 }
 
-export async function getAnalyticsDetails(): Promise<any> {
-  return fetchCached(apiUrl("report-sessions/analytics/details"));
+export async function getAnalyticsDetails(station?: string): Promise<any> {
+  const url = station
+    ? apiUrl(`report-sessions/analytics/details?station=${encodeURIComponent(station)}`)
+    : apiUrl("report-sessions/analytics/details");
+  return fetchCached(url);
 }
 
 export type DmsPerformanceRow = {
@@ -683,10 +691,13 @@ export type DmsPerformanceResponse = {
   selectedDate?: string;
 };
 
-export async function getDmsPerformance(date?: string) {
+export async function getDmsPerformance(date?: string, station?: string) {
   const query = new URLSearchParams();
   if (date) {
     query.set("date", date);
+  }
+  if (station) {
+    query.set("station", station);
   }
   const urlPath = query.size 
     ? `report-sessions/analytics/dms-performance?${query.toString()}` 
@@ -766,8 +777,11 @@ export type SmsSummaryItem = {
   text: string;
 };
 
-export async function getSmsSummaryDates(): Promise<string[]> {
-  return fetchCached<string[]>(apiUrl("report-sessions/sms-summaries/dates"));
+export async function getSmsSummaryDates(station?: string): Promise<string[]> {
+  const url = station
+    ? apiUrl(`report-sessions/sms-summaries/dates?station=${encodeURIComponent(station)}`)
+    : apiUrl("report-sessions/sms-summaries/dates");
+  return fetchCached<string[]>(url);
 }
 
 export async function getSmsSummariesByDate(reportDate: string, station?: string): Promise<SmsSummaryItem[]> {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import ReportsLayout from "../reports/layout";
 import { BarChart3, Scale, Gavel, TrendingUp, Award, MapPin } from "lucide-react";
-import { getAnalyticsDetails } from "@/lib/api";
+import { getAnalyticsDetails, getLoggedInUser } from "@/lib/api";
 
 interface HoveredBarType {
   label: string;
@@ -16,12 +16,16 @@ interface TrafficDataItem {
   day: string;
   thikaBound: number;
   nairobiBound: number;
+  boundA?: number;
+  boundB?: number;
 }
 
 interface CourtCasesDataItem {
   day: string;
   thikaBound: number;
   nairobiBound: number;
+  boundA?: number;
+  boundB?: number;
 }
 
 interface CrossStationDataItem {
@@ -35,6 +39,10 @@ export default function AnalyticsPage() {
   const [hoveredBar, setHoveredBar] = useState<HoveredBarType | null>(null);
   const [hasData, setHasData] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [stationName, setStationName] = useState("Station");
+  const [boundALabel, setBoundALabel] = useState("Bound A");
+  const [boundBLabel, setBoundBLabel] = useState("Bound B");
+  const [user, setUser] = useState<any>(null);
   const [kpis, setKpis] = useState({
     totalTraffic: 0,
     thikaTraffic: 0,
@@ -54,15 +62,24 @@ export default function AnalyticsPage() {
     async function fetchData() {
       try {
         setIsLoading(true);
-        const res = await getAnalyticsDetails();
+        const loggedUser = getLoggedInUser();
+        setUser(loggedUser);
+        const userStation = loggedUser?.station || null;
+
+        const res = await getAnalyticsDetails(userStation || undefined);
         if (!active) return;
 
-        if (res && res.kpis) {
-          setKpis(res.kpis);
-          setTrafficData(res.trafficData || []);
-          setCourtCasesData(res.courtCasesData || []);
-          setCrossStationData(res.crossStationData || []);
-          setHasData((res.kpis.totalTraffic || 0) > 0 || (res.kpis.totalCourtCases || 0) > 0);
+        if (res) {
+          if (res.stationName) setStationName(res.stationName);
+          if (res.boundALabel) setBoundALabel(res.boundALabel);
+          if (res.boundBLabel) setBoundBLabel(res.boundBLabel);
+          if (res.kpis) {
+            setKpis(res.kpis);
+            setTrafficData(res.trafficData || []);
+            setCourtCasesData(res.courtCasesData || []);
+            setCrossStationData(res.crossStationData || []);
+            setHasData((res.kpis.totalTraffic || 0) > 0 || (res.kpis.totalCourtCases || 0) > 0);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch analytics details:", err);
@@ -107,17 +124,17 @@ export default function AnalyticsPage() {
                 <MapPin size={12} className="animate-pulse" /> Station-Locked Scope
               </span>
               <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-white">
-                Juja Weighbridge Analytics Workspace
+                {stationName} Analytics Workspace
               </h1>
               <p className="mt-1 text-sm text-slate-300">
-                Authorized station role scope: comparing bounds and compliance details for Juja.
+                Authorized station role scope: comparing bounds and compliance details for {stationName}.
               </p>
             </div>
             <div className="flex items-center gap-2 rounded-xl bg-cyan-950/40 border border-cyan-900/60 p-3">
               <Award size={18} className="text-cyan-400" />
               <div>
                 <p className="text-xs font-bold text-white">Assigned Officer</p>
-                <p className="text-[10px] text-slate-400">Station Role: Juja Operator</p>
+                <p className="text-[10px] text-slate-400">Station Role: {user?.station || stationName} Operator</p>
               </div>
             </div>
           </div>
@@ -126,17 +143,17 @@ export default function AnalyticsPage() {
         {/* Station-specific KPIs */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Juja Total Traffic</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{stationName} Total Traffic</span>
             {isLoading ? (
               <div className="mt-3 h-8 w-24 animate-pulse rounded bg-cyan-950/60" />
             ) : (
               <p className="mt-3 text-3xl font-extrabold text-white">{hasData ? kpis.totalTraffic.toLocaleString() : "0"}</p>
             )}
-            <p className="mt-1 text-xs text-slate-500">{hasData ? `${kpis.thikaTraffic.toLocaleString()} Thika / ${kpis.nairobiTraffic.toLocaleString()} Nairobi` : "No active session"}</p>
+            <p className="mt-1 text-xs text-slate-500">{hasData ? `${kpis.thikaTraffic.toLocaleString()} ${boundALabel} / ${kpis.nairobiTraffic.toLocaleString()} ${boundBLabel}` : "No active session"}</p>
           </div>
 
           <div className="rounded-xl border border-cyan-900/50 bg-[#0b2135]/60 p-5 shadow-lg backdrop-blur-md">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Juja Total Court Cases</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{stationName} Total Court Cases</span>
             {isLoading ? (
               <div className="mt-3 h-8 w-24 animate-pulse rounded bg-cyan-950/60" />
             ) : (
@@ -172,10 +189,10 @@ export default function AnalyticsPage() {
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <BarChart3 className="text-cyan-400" size={20} />
-                Juja Bi-directional Statistics & Court Scope
+                {stationName} Bi-directional Statistics & Court Scope
               </h2>
               <p className="text-xs text-slate-400">
-                Detailed comparison of bounds and performance tracking for Juja Weighbridge.
+                Detailed comparison of bounds and performance tracking for {stationName}.
               </p>
             </div>
 
@@ -190,7 +207,7 @@ export default function AnalyticsPage() {
                 }`}
               >
                 <Scale size={14} />
-                Juja Bounds Traffic
+                {stationName} Bounds Traffic
               </button>
               <button
                 onClick={() => setActiveTab("court")}
@@ -201,7 +218,7 @@ export default function AnalyticsPage() {
                 }`}
               >
                 <Gavel size={14} />
-                Juja Bounds Court Cases
+                {stationName} Bounds Court Cases
               </button>
               <button
                 onClick={() => setActiveTab("cross")}
@@ -222,7 +239,7 @@ export default function AnalyticsPage() {
               <div className="flex h-[260px] items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
-                  <p className="text-xs font-semibold text-cyan-300">Loading Juja analytics workspace...</p>
+                  <p className="text-xs font-semibold text-cyan-300">Loading {stationName} analytics workspace...</p>
                 </div>
               </div>
             ) : (
@@ -238,10 +255,10 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="flex gap-4 text-xs">
                         <span className="flex items-center gap-1.5 text-slate-300">
-                          <span className="h-3 w-3 rounded bg-cyan-400"></span> Thika Bound
+                          <span className="h-3 w-3 rounded bg-cyan-400"></span> {boundALabel}
                         </span>
                         <span className="flex items-center gap-1.5 text-slate-300">
-                          <span className="h-3 w-3 rounded bg-indigo-500"></span> Nairobi Bound
+                          <span className="h-3 w-3 rounded bg-indigo-500"></span> {boundBLabel}
                         </span>
                       </div>
                     </div>
@@ -265,13 +282,13 @@ export default function AnalyticsPage() {
                           <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
                             <div className="flex items-end gap-1.5 h-[160px]">
                               <div
-                                onMouseEnter={() => setHoveredBar({ label: "Thika Bound", value: hasData ? thikaVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseEnter={() => setHoveredBar({ label: boundALabel, value: hasData ? thikaVal : 0, title: stationName, date: getFormattedDate(d.day) })}
                                 onMouseLeave={() => setHoveredBar(null)}
                                 style={{ height: `${thikaHeight}px` }}
                                 className="w-5 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_10px_rgba(34,211,238,0.2)]"
                               />
                               <div
-                                onMouseEnter={() => setHoveredBar({ label: "Nairobi Bound", value: hasData ? nairobiVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseEnter={() => setHoveredBar({ label: boundBLabel, value: hasData ? nairobiVal : 0, title: stationName, date: getFormattedDate(d.day) })}
                                 onMouseLeave={() => setHoveredBar(null)}
                                 style={{ height: `${nairobiHeight}px` }}
                                 className="w-5 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_10px_rgba(99,102,241,0.2)]"
@@ -296,10 +313,10 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="flex gap-4 text-xs">
                         <span className="flex items-center gap-1.5 text-slate-300">
-                          <span className="h-3 w-3 rounded bg-cyan-400"></span> Thika Bound Cases
+                          <span className="h-3 w-3 rounded bg-cyan-400"></span> {boundALabel} Cases
                         </span>
                         <span className="flex items-center gap-1.5 text-slate-300">
-                          <span className="h-3 w-3 rounded bg-indigo-500"></span> Nairobi Bound Cases
+                          <span className="h-3 w-3 rounded bg-indigo-500"></span> {boundBLabel} Cases
                         </span>
                       </div>
                     </div>
@@ -323,13 +340,13 @@ export default function AnalyticsPage() {
                           <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
                             <div className="flex items-end gap-1.5 h-[160px]">
                               <div
-                                onMouseEnter={() => setHoveredBar({ label: "Thika Bound Cases", value: hasData ? thikaVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseEnter={() => setHoveredBar({ label: `${boundALabel} Cases`, value: hasData ? thikaVal : 0, title: stationName, date: getFormattedDate(d.day) })}
                                 onMouseLeave={() => setHoveredBar(null)}
                                 style={{ height: `${thikaHeight}px` }}
                                 className="w-5 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer"
                               />
                               <div
-                                onMouseEnter={() => setHoveredBar({ label: "Nairobi Bound Cases", value: hasData ? nairobiVal : 0, title: "Juja Weighbridge", date: getFormattedDate(d.day) })}
+                                onMouseEnter={() => setHoveredBar({ label: `${boundBLabel} Cases`, value: hasData ? nairobiVal : 0, title: stationName, date: getFormattedDate(d.day) })}
                                 onMouseLeave={() => setHoveredBar(null)}
                                 style={{ height: `${nairobiHeight}px` }}
                                 className="w-5 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer"
@@ -350,7 +367,7 @@ export default function AnalyticsPage() {
                         <h3 className="text-sm font-bold text-cyan-200 uppercase tracking-wider">
                           Cross-Station Court Cases Cleared Comparison
                         </h3>
-                        <p className="text-xs text-slate-500">Comparison across allowed stations whose data is available (Juja highlighted).</p>
+                        <p className="text-xs text-slate-500">Comparison across allowed stations whose data is available ({stationName} highlighted).</p>
                       </div>
                     </div>
 

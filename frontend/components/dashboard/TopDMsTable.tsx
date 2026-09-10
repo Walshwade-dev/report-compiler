@@ -15,22 +15,21 @@ type DMSTableRow = {
   monthCharged: number;
 };
 
-export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
+export function TopDMsTable({ selectedDate, station }: { selectedDate: string; station?: string | null }) {
   const [data, setData] = useState<DMSTableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dataDate, setDataDate] = useState<string>("");
 
   useEffect(() => {
-    if (!selectedDate) return;
     let active = true;
     async function fetchData() {
       setLoading(true);
       try {
-        const performance = await getDmsPerformance(selectedDate);
+        const performance = await getDmsPerformance(selectedDate || undefined, station || undefined);
         if (!active) return;
 
-        setData(performance.rows);
+        setData(performance.rows || []);
         if (performance.selectedDate) {
           setDataDate(performance.selectedDate);
         }
@@ -46,7 +45,7 @@ export function TopDMsTable({ selectedDate }: { selectedDate: string }) {
     return () => {
       active = false;
     };
-  }, [selectedDate]);
+  }, [selectedDate, station]);
 
   useEffect(() => {
     if (!isModalOpen) return;

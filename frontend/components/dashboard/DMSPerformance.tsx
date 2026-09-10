@@ -22,27 +22,26 @@ const COLORS = [
   "#ef4444", // red-500
 ];
 
-export function DMSPerformance({ selectedDate }: { selectedDate: string }) {
+export function DMSPerformance({ selectedDate, station }: { selectedDate: string; station?: string | null }) {
   const [dmsData, setDmsData] = useState<DMSStats[]>([]);
   const [totalCharged, setTotalCharged] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dataDate, setDataDate] = useState<string>("");
 
   useEffect(() => {
-    if (!selectedDate) return;
     let active = true;
     async function fetchData() {
       try {
-        const performance = await getDmsPerformance(selectedDate);
+        const performance = await getDmsPerformance(selectedDate || undefined, station || undefined);
         if (!active) return;
 
-        const sortedData = performance.rows.map((item, i) => ({
+        const sortedData = (performance.rows || []).map((item, i) => ({
           ...item,
           color: COLORS[i % COLORS.length],
         }));
 
         setDmsData(sortedData);
-        setTotalCharged(performance.totalCharged);
+        setTotalCharged(performance.totalCharged || 0);
         if (performance.selectedDate) {
           setDataDate(performance.selectedDate);
         }
@@ -56,7 +55,7 @@ export function DMSPerformance({ selectedDate }: { selectedDate: string }) {
     return () => {
       active = false;
     };
-  }, [selectedDate]);
+  }, [selectedDate, station]);
 
   useEffect(() => {
     if (!isModalOpen) return;

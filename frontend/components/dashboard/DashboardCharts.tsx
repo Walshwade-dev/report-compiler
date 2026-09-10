@@ -91,7 +91,7 @@ const initialStations: StationType[] = [
   },
 ];
 
-export function DashboardCharts({ selectedDate }: { selectedDate: string }) {
+export function DashboardCharts({ selectedDate, userStation }: { selectedDate: string; userStation?: string | null }) {
   const [activeTab, setActiveTab] = useState<"traffic" | "court" | "compliance">("traffic");
   const [hoveredBar, setHoveredBar] = useState<HoveredBarType | null>(null);
   const [stations, setStations] = useState<StationType[]>(initialStations);
@@ -99,9 +99,8 @@ export function DashboardCharts({ selectedDate }: { selectedDate: string }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: res, isError } = useQuery({
-    queryKey: ["analyticsDashboard", selectedDate],
-    queryFn: () => getAnalyticsDashboard({ staticDate: selectedDate }),
-    enabled: !!selectedDate,
+    queryKey: ["analyticsDashboard", selectedDate || "all"],
+    queryFn: () => getAnalyticsDashboard({ staticDate: selectedDate || undefined }),
   });
 
   useEffect(() => {
@@ -151,7 +150,10 @@ export function DashboardCharts({ selectedDate }: { selectedDate: string }) {
     return boundKey;
   };
 
-  const activeStation = stations.find(s => s.compliance.boundA.weighed > 0 || s.compliance.boundB.weighed > 0);
+  const activeStation =
+    (userStation ? stations.find(s => s.code.toLowerCase() === userStation.toLowerCase()) : null) ||
+    stations.find(s => s.compliance.boundA.weighed > 0 || s.compliance.boundB.weighed > 0) ||
+    stations[0];
   
   const totalCalled = activeStation ? (activeStation.compliance.boundA.calledIn + activeStation.compliance.boundB.calledIn) : 0;
   const totalCompliant = activeStation ? (activeStation.compliance.boundA.compliant + activeStation.compliance.boundB.compliant) : 0;

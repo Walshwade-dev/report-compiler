@@ -9,13 +9,29 @@ import {
 } from "@/lib/api";
 import { WEIGHBRIDGE_OPTIONS } from "@/lib/constants";
 
-export function SmsSummaryPanel({ selectedDate }: { selectedDate: string }) {
-  const [selectedStation, setSelectedStation] = useState<string>("JUJA");
+export function SmsSummaryPanel({
+  selectedDate,
+  defaultStation,
+  lockStation,
+}: {
+  selectedDate: string;
+  defaultStation?: string | null;
+  lockStation?: boolean;
+}) {
+  const [selectedStation, setSelectedStation] = useState<string>(
+    (defaultStation || "JUJA").toUpperCase()
+  );
   const [summaries, setSummaries] = useState<SmsSummaryItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [modalItem, setModalItem] = useState<SmsSummaryItem | null>(null);
+
+  useEffect(() => {
+    if (defaultStation) {
+      setSelectedStation(defaultStation.toUpperCase());
+    }
+  }, [defaultStation]);
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -112,17 +128,23 @@ export function SmsSummaryPanel({ selectedDate }: { selectedDate: string }) {
             {/* Weighbridge Selector */}
             <div className="flex items-center gap-1.5 bg-[#071827]/80 border border-cyan-900/60 rounded-lg px-2 py-1 shadow-sm">
               <MapPin size={11} className="text-cyan-400 shrink-0" />
-              <select
-                value={selectedStation}
-                onChange={(e) => setSelectedStation(e.target.value)}
-                className="bg-transparent text-[11px] font-bold text-white outline-none cursor-pointer w-auto"
-              >
-                {WEIGHBRIDGE_OPTIONS.map((option) => (
-                  <option key={option} value={option} className="bg-[#071827] text-white">
-                    {option}
-                  </option>
-                ))}
-              </select>
+              {lockStation ? (
+                <span className="text-[11px] font-bold text-cyan-300 tracking-wider">
+                  {selectedStation}
+                </span>
+              ) : (
+                <select
+                  value={selectedStation}
+                  onChange={(e) => setSelectedStation(e.target.value)}
+                  className="bg-transparent text-[11px] font-bold text-white outline-none cursor-pointer w-auto"
+                >
+                  {WEIGHBRIDGE_OPTIONS.map((option) => (
+                    <option key={option} value={option} className="bg-[#071827] text-white">
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div className="text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity ml-1">

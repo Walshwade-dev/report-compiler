@@ -33,10 +33,11 @@ function emptyStaticKpis(): StaticKpis {
   };
 }
 
-function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; mobileBound?: string }) {
+function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; mobileBound?: string; station?: string }) {
   const staticDate = filters?.staticDate;
   const mobileDate = filters?.mobileDate;
   const mobileBound = filters?.mobileBound;
+  const station = filters?.station;
   const [data, setData] = useState({
     weighed: 0,
     overloads: 0,
@@ -69,14 +70,14 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
       setIsLoading(true);
       try {
         const { getAnalyticsDashboard } = await import("@/lib/api");
-        const res = await getAnalyticsDashboard({ staticDate, mobileDate, mobileBound });
+        const res = await getAnalyticsDashboard({ staticDate, mobileDate, mobileBound, station });
         const byBound = res.static.byBound || {};
 
         if (active) {
           setData({
             weighed: res.static.weighed,
             overloads: res.static.overloads,
-            psvOverloads: 0,
+            psvOverloads: res.static.psvOverloads || 0,
             minGross: res.static.minGross,
             chargedRedist: res.static.chargedRedist,
             reportsGenerated: res.static.reportsGenerated,
@@ -112,13 +113,13 @@ function useDashboardData(filters?: { staticDate?: string; mobileDate?: string; 
     return () => {
       active = false;
     };
-  }, [mobileBound, mobileDate, staticDate]);
+  }, [mobileBound, mobileDate, staticDate, station]);
 
   return { data, isLoading };
 }
 
-export function StaticSummaryCards({ selectedDate }: { selectedDate: string }) {
-  const { data, isLoading } = useDashboardData({ staticDate: selectedDate });
+export function StaticSummaryCards({ selectedDate, station }: { selectedDate: string; station?: string | null }) {
+  const { data, isLoading } = useDashboardData({ staticDate: selectedDate, station: station || undefined });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const effectiveDate = selectedDate || data.selectedStaticDate || "";
 
@@ -364,7 +365,7 @@ export function StaticSummaryCards({ selectedDate }: { selectedDate: string }) {
   );
 }
 
-export function MobileSummaryCards({ selectedDate }: { selectedDate: string }) {
+export function MobileSummaryCards({ selectedDate, station }: { selectedDate: string; station?: string | null }) {
   const [selectedBound, setSelectedBound] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const mobileBoundSelectRef = useRef<HTMLSelectElement>(null);
@@ -372,6 +373,7 @@ export function MobileSummaryCards({ selectedDate }: { selectedDate: string }) {
   const { data, isLoading } = useDashboardData({
     mobileDate: selectedDate,
     mobileBound: selectedBound,
+    station: station || undefined,
   });
 
   const effectiveDate = selectedDate || data.selectedMobileReport?.date || "";

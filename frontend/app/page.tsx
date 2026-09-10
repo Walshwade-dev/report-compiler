@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar } from "lucide-react";
-import { getSmsSummaryDates, isApiConnectionError } from "@/lib/api";
+import { Calendar, MapPin } from "lucide-react";
+import { getSmsSummaryDates, isApiConnectionError, getLoggedInUser } from "@/lib/api";
 import ReportsLayout from "./reports/layout";
 import { StaticSummaryCards, MobileSummaryCards } from "@/components/dashboard/DashboardSummaryCards";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
@@ -11,16 +11,25 @@ import { TopDMsTable } from "@/components/dashboard/TopDMsTable";
 import { SmsSummaryPanel } from "@/components/dashboard/SmsSummaryPanel";
 
 export default function HomePage() {
+  const [user, setUser] = useState<any>(null);
   const [dates, setDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
 
   useEffect(() => {
+    setUser(getLoggedInUser());
+  }, []);
+
+  const userStation = user?.station || null;
+
+  useEffect(() => {
     async function loadDates() {
       try {
-        const dateList = await getSmsSummaryDates();
+        const dateList = await getSmsSummaryDates(userStation || undefined);
         setDates(dateList);
         if (dateList.length > 0) {
           setSelectedDate(dateList[0]);
+        } else {
+          setSelectedDate("");
         }
       } catch (err) {
         if (!isApiConnectionError(err)) {
@@ -29,7 +38,7 @@ export default function HomePage() {
       }
     }
     loadDates();
-  }, []);
+  }, [userStation]);
 
   return (
     <ReportsLayout>
@@ -39,11 +48,18 @@ export default function HomePage() {
           <div className="absolute right-0 top-0 h-full w-1/3 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-400 via-blue-500 to-transparent"></div>
           <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
+              {userStation && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300 border border-cyan-500/20 mb-2">
+                  <MapPin size={12} className="animate-pulse" /> {userStation} Station Scope
+                </span>
+              )}
               <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                 Report Dashboard
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
-                Monitor traffic, compliance and reporting activity.
+                {userStation
+                  ? `Monitoring traffic, compliance and activity for ${userStation} Station.`
+                  : "Monitor traffic, compliance and reporting activity across stations."}
               </p>
             </div>
 
@@ -79,33 +95,37 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch">
           {/* Static Report KPIs: Span 1 on md (tablet), 4 on lg/larger */}
           <div className="md:col-span-1 lg:col-span-4 h-full">
-            <StaticSummaryCards selectedDate={selectedDate} />
+            <StaticSummaryCards selectedDate={selectedDate} station={userStation} />
           </div>
 
           {/* Mobile Report KPIs: Span 1 on md (tablet), 2 on lg/larger */}
           <div className="md:col-span-1 lg:col-span-2 h-full">
-            <MobileSummaryCards selectedDate={selectedDate} />
+            <MobileSummaryCards selectedDate={selectedDate} station={userStation} />
           </div>
 
           {/* Daily KPI SMS summaries: Span 1 on md (tablet), 3 on lg/larger */}
           <div className="md:col-span-1 lg:col-span-3 h-full">
-            <SmsSummaryPanel selectedDate={selectedDate} />
+            <SmsSummaryPanel
+              selectedDate={selectedDate}
+              defaultStation={userStation}
+              lockStation={Boolean(userStation && user?.role !== "admin")}
+            />
           </div>
 
           {/* DMS Performance Tracker: Span 1 on md (tablet), 3 on lg/larger */}
           <div className="md:col-span-1 lg:col-span-3 h-full flex flex-col">
-            <DMSPerformance selectedDate={selectedDate} />
+            <DMSPerformance selectedDate={selectedDate} station={userStation} />
           </div>
         </div>
 
         {/* Bottom Section: Analytics + DMs Performance Table */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-9">
-            <DashboardCharts selectedDate={selectedDate} />
+            <DashboardCharts selectedDate={selectedDate} userStation={userStation} />
           </div>
 
           <div className="lg:col-span-3 min-w-0 h-full">
-            <TopDMsTable selectedDate={selectedDate} />
+            <TopDMsTable selectedDate={selectedDate} station={userStation} />
           </div>
         </div>
       </div>
