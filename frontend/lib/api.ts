@@ -749,12 +749,131 @@ export async function getAnalyticsDashboard(filters?: {
   return fetchCached(apiUrl(path));
 }
 
-export async function getAnalyticsDetails(station?: string): Promise<any> {
-  const url = station
-    ? apiUrl(`report-sessions/analytics/details?station=${encodeURIComponent(station)}`)
+export type AvailableMonthItem = {
+  value: string;
+  label: string;
+  year: number;
+  month: number;
+};
+
+export type RouteChargingStat = {
+  route: string;
+  routeType: string;
+  totalWeighed: number;
+  chargedCount: number;
+  warnedCount: number;
+  legalCount: number;
+  chargeRate: number;
+  riskLevel: "High Risk" | "Moderate" | "Low Risk";
+  topChargedCargos: string[];
+  activeDaysCount: number;
+};
+
+export type CrossWeighedVehicle = {
+  date: string;
+  registration: string;
+  cargo: string;
+  mobile: {
+    station: string;
+    bound: string;
+    totalGvwKg: number;
+    differenceKg: number;
+    remarks: string;
+    origin?: string;
+    destination?: string;
+  };
+  static: {
+    station: string;
+    bound: string;
+    gvwOverloadKg: number;
+    axleOverloadKg: number;
+    status: string;
+    ticketNo?: string;
+  };
+  fieldPerspective: string;
+};
+
+export type CargoOverloadStat = {
+  cargo: string;
+  incidentCount: number;
+  totalExcessKg: number;
+  averageExcessKg: number;
+  maxExcessKg: number;
+  percentageShare: number;
+};
+
+export type AnalyticsDetailsResponse = {
+  selectedMonth: string;
+  selectedMonthLabel: string;
+  selectedMonthName: string;
+  selectedYear: number;
+  availableMonths: AvailableMonthItem[];
+  station: string;
+  stationName: string;
+  boundALabel: string;
+  boundBLabel: string;
+  kpis: {
+    totalTraffic: number;
+    thikaTraffic: number;
+    nairobiTraffic: number;
+    boundATraffic: number;
+    boundBTraffic: number;
+    totalCourtCases: number;
+    thikaCourtCases: number;
+    nairobiCourtCases: number;
+    boundACourtCases: number;
+    boundBCourtCases: number;
+    complianceRate: number;
+    overloadsIntercepted: number;
+    totalMobileWeighed: number;
+    totalMobileCharged: number;
+    totalMobileWarned: number;
+    totalMobileLegal: number;
+    mobileChargeRate: number;
+  };
+  trafficData: Array<{
+    day: string;
+    thikaBound: number;
+    nairobiBound: number;
+    boundA?: number;
+    boundB?: number;
+  }>;
+  courtCasesData: Array<{
+    day: string;
+    thikaBound: number;
+    nairobiBound: number;
+    boundA?: number;
+    boundB?: number;
+  }>;
+  crossStationData: Array<{
+    name: string;
+    cases: number;
+    active: boolean;
+  }>;
+  routesProneToCharging: RouteChargingStat[];
+  crossWeighedVehicles: CrossWeighedVehicle[];
+  cargoOverloadStats: CargoOverloadStat[];
+};
+
+export async function getAnalyticsDetails(
+  optionsOrStation?: string | { station?: string; month?: string; year?: number }
+): Promise<AnalyticsDetailsResponse> {
+  const query = new URLSearchParams();
+  if (typeof optionsOrStation === "string") {
+    if (optionsOrStation) query.set("station", optionsOrStation);
+  } else if (optionsOrStation && typeof optionsOrStation === "object") {
+    if (optionsOrStation.station) query.set("station", optionsOrStation.station);
+    if (optionsOrStation.month) query.set("month", optionsOrStation.month);
+    if (optionsOrStation.year) query.set("year", String(optionsOrStation.year));
+  }
+
+  const url = query.size
+    ? apiUrl(`report-sessions/analytics/details?${query.toString()}`)
     : apiUrl("report-sessions/analytics/details");
+
   return fetchCached(url);
 }
+
 
 export type DmsPerformanceRow = {
   name: string;

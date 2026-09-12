@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { BarChart3, ShieldAlert, FileText, Scale, Gavel, Bus, Truck, CheckCircle2, Maximize2, X } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { BarChart3, ShieldAlert, FileText, Scale, Gavel, Bus, Truck, CheckCircle2, Maximize2, X, Table, LayoutGrid } from "lucide-react";
 
 type MobileReportOption = {
   date: string;
@@ -179,6 +179,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
     station: station || undefined,
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAxleViewMode, setModalAxleViewMode] = useState<"table" | "grid">("table");
   const effectiveDate = selectedDate || data.selectedStaticDate || "";
 
   useEffect(() => {
@@ -231,11 +232,46 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
   const isSingleBound = Boolean(data.isSingleBound || (station || "").toLowerCase().includes("kanyonyo"));
   const singleBoundLabel = data.singleBoundName || (isSingleBound ? "Nairobi Bound" : staticLabels.boundA);
 
-  const axleConfigs = data.axleConfigs || data.staticByBound.total.axleConfigs || {};
-  const axleEntries = Object.entries(axleConfigs).sort((a, b) => b[1] - a[1]);
-  const topAxles = axleEntries.slice(0, 6);
-  const totalAxleCount = axleEntries.reduce((acc, [, c]) => acc + c, 0);
-  const remainingAxleCount = axleEntries.slice(6).reduce((acc, [, c]) => acc + c, 0);
+  const boundAShortLabel = isJuja ? "Thika" : staticLabels.boundA.replace(/bound/i, "").trim() || "Bound A";
+  const boundBShortLabel = isJuja ? "Nairobi" : staticLabels.boundB.replace(/bound/i, "").trim() || "Bound B";
+
+  const allAxleMap = useMemo(() => {
+    const boundAConfigs = data.staticByBound.boundA.axleConfigs || {};
+    const boundBConfigs = data.staticByBound.boundB.axleConfigs || {};
+    const totalConfigs = data.staticByBound.total.axleConfigs || data.axleConfigs || {};
+
+    const allKeys = Array.from(new Set([
+      ...Object.keys(boundAConfigs),
+      ...Object.keys(boundBConfigs),
+      ...Object.keys(totalConfigs),
+    ]));
+
+    return allKeys
+      .map((cfg) => {
+        const boundA = Number(boundAConfigs[cfg] || 0);
+        const boundB = Number(boundBConfigs[cfg] || 0);
+        const total = Number(totalConfigs[cfg] ?? (boundA + boundB));
+        return { cfg, boundA, boundB, total };
+      })
+      .sort((a, b) => b.total - a.total || a.cfg.localeCompare(b.cfg));
+  }, [data.axleConfigs, data.staticByBound]);
+
+  const totalAxleCount = useMemo(() => {
+    return allAxleMap.reduce((acc, item) => acc + item.total, 0);
+  }, [allAxleMap]);
+
+  const boundATotalAxles = useMemo(() => {
+    return allAxleMap.reduce((acc, item) => acc + item.boundA, 0);
+  }, [allAxleMap]);
+
+  const boundBTotalAxles = useMemo(() => {
+    return allAxleMap.reduce((acc, item) => acc + item.boundB, 0);
+  }, [allAxleMap]);
+
+  const topAxles = useMemo(() => allAxleMap.slice(0, 2), [allAxleMap]);
+  const remainingAxleCount = useMemo(() => {
+    return allAxleMap.slice(2).reduce((acc, item) => acc + item.total, 0);
+  }, [allAxleMap]);
 
   const psvBreakdown = data.psvBreakdown || { charged: 0, redistributed: 0, specialRelease: 0, withinAllowed: 0 };
   const hasPsvBreakdown =
@@ -293,10 +329,10 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
       id: "axle_config",
       title: "Axle Config Breakdown",
       metric: staticMetric.weighed,
-      change: data.hasStaticData && topAxles.length > 0
-        ? remainingAxleCount > 0
-          ? `+${axleEntries.length - 6} other configs (${remainingAxleCount} trucks)`
-          : `${axleEntries.length} axle configurations`
+      change: data.hasStaticData && allAxleMap.length > 0
+        ? allAxleMap.length > 2
+          ? `+${allAxleMap.length - 2} other configs (${remainingAxleCount} trucks)`
+          : `${allAxleMap.length} axle configurations`
         : "No active session",
       icon: Truck,
       color: "bg-transparent border-purple-500/20 text-purple-300 hover:border-purple-500/40 hover:bg-[#071827]/40",
@@ -356,34 +392,65 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                     </div>
 
                     {card.isAxleConfig ? (
-                      <div className="mt-1.5 flex flex-col justify-between flex-1 min-h-0">
-                        {data.hasStaticData && topAxles.length > 0 ? (
-                          <div className="grid grid-cols-3 gap-1">
-                            {topAxles.map(([cfg, count]) => (
-                              <div
-                                key={cfg}
-                                className="min-w-0 rounded border border-purple-500/30 bg-purple-950/50 px-1 py-0.5 text-center"
-                              >
-                                <span
-                                  className="block truncate text-[8.5px] font-bold uppercase text-purple-300"
-                                  title={cfg}
-                                >
-                                  {cfg}
+                      <div className="mt-1 flex flex-col justify-between flex-1 min-h-0">
+                        {data.hasStaticData && allAxleMap.length > 0 ? (
+                          <div className="flex flex-col flex-1 min-h-0 justify-between">
+                            {/* Compact tabular form with distinct bound outlines & hover backgrounds */}
+                            <div className="overflow-hidden rounded-md border border-purple-500/30 bg-slate-950/40">
+                              <div className="grid grid-cols-4 gap-x-2.5 items-center border-b border-purple-900/30 bg-purple-950/20 px-1.5 py-1 text-[8px] sm:text-[8.5px] font-extrabold uppercase tracking-wider">
+                                <span className="text-purple-300 truncate">Config</span>
+                                <span className="text-cyan-300 text-center truncate" title={staticLabels.boundA}>
+                                  {isSingleBound ? (singleBoundLabel.replace(/bound/i, "").trim() || "Bound") : boundAShortLabel}
                                 </span>
-                                <span className="block truncate text-xs font-bold tracking-tight text-slate-200 font-mono">
-                                  {count.toLocaleString()}
+                                {!isSingleBound && (
+                                  <span className="text-indigo-300 text-center truncate" title={staticLabels.boundB}>
+                                    {boundBShortLabel}
+                                  </span>
+                                )}
+                                <span className={`text-slate-300 text-center truncate ${isSingleBound ? "col-span-2" : ""}`}>
+                                  Total
                                 </span>
                               </div>
-                            ))}
+                              <div className="space-y-1 p-1">
+                                {topAxles.map((item) => (
+                                  <div
+                                    key={item.cfg}
+                                    className="grid grid-cols-4 gap-x-2.5 items-center"
+                                  >
+                                    <span className="rounded border border-purple-500/30 bg-transparent py-0.5 font-mono text-[9px] font-bold text-purple-200 text-center transition-colors hover:bg-purple-950/40 truncate">
+                                      {item.cfg}
+                                    </span>
+                                    <span className="rounded border border-cyan-500/50 bg-transparent font-mono text-[9px] font-bold text-cyan-300 text-center py-0.5 transition-colors hover:bg-cyan-950/40">
+                                      {item.boundA.toLocaleString()}
+                                    </span>
+                                    {!isSingleBound && (
+                                      <span className="rounded border border-indigo-500/50 bg-transparent font-mono text-[9px] font-bold text-indigo-300 text-center py-0.5 transition-colors hover:bg-indigo-950/40">
+                                        {item.boundB.toLocaleString()}
+                                      </span>
+                                    )}
+                                    <span className={`rounded border border-slate-700/60 bg-transparent font-mono text-[9.5px] font-black text-white text-center py-0.5 transition-colors hover:bg-slate-800/40 ${isSingleBound ? "col-span-2" : ""}`}>
+                                      {item.total.toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Footer indicator */}
+                            <div className="mt-1 flex items-center justify-between text-[8px] sm:text-[8.5px] text-slate-400">
+                              <span className="truncate">
+                                {allAxleMap.length > 2
+                                  ? `+${allAxleMap.length - 2} more (${remainingAxleCount} trucks)`
+                                  : `${allAxleMap.length} axle configs`}
+                              </span>
+                              <span className="text-cyan-400 font-semibold shrink-0 ml-1">View all →</span>
+                            </div>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center py-2 text-center text-[10px] text-slate-400">
+                          <div className="flex items-center justify-center py-3 text-center text-[10px] text-slate-400">
                             {isLoading ? "Loading..." : "No axle records"}
                           </div>
                         )}
-                        <p className="mt-1 text-[8.5px] sm:text-[9px] text-slate-300 font-medium truncate" title={card.change}>
-                          {card.change}
-                        </p>
                       </div>
                     ) : (
                       <>
@@ -473,63 +540,254 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                     return (
                       <div
                         key={`modal-static-${i}`}
-                        className="relative flex flex-col justify-between rounded-xl border border-purple-900/50 bg-[#0b2135]/30 p-4 shadow-md md:col-span-2 lg:col-span-3"
+                        className="relative flex flex-col justify-between rounded-xl border border-purple-900/50 bg-[#0b2135]/40 p-4 shadow-xl md:col-span-2 lg:col-span-3"
                       >
-                        <div className="flex items-center justify-between gap-2 border-b border-purple-950 pb-2 mb-3">
+                        {/* Header with Title & View Mode Toggle */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-950/80 pb-3 mb-4">
                           <div>
-                            <span className="text-xs font-bold uppercase tracking-wider text-purple-200">
-                              Axle Configuration Breakdown ({totalAxleCount.toLocaleString()} Total Vehicles)
-                            </span>
-                            <p className="text-[10px] text-slate-400 mt-0.5">
-                              Count of vehicles by axle configuration from Impounded & Overloaded records
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-500/20 text-purple-300">
+                                <Icon size={14} />
+                              </span>
+                              <h4 className="text-sm font-bold uppercase tracking-wider text-purple-200">
+                                Axle Configuration Breakdown ({totalAxleCount.toLocaleString()} Total Vehicles)
+                              </h4>
+                            </div>
+                            <p className="text-[10.5px] text-slate-400 mt-1">
+                              Comprehensive vehicle counts by axle configuration categorized across operational bounds
                             </p>
                           </div>
-                          <Icon size={18} className="text-purple-400 shrink-0" />
+
+                          {/* View Toggle */}
+                          <div className="inline-flex items-center rounded-lg border border-cyan-900/50 bg-black/40 p-0.5 shrink-0 self-start sm:self-auto">
+                            <button
+                              type="button"
+                              onClick={() => setModalAxleViewMode("table")}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                                modalAxleViewMode === "table"
+                                  ? "bg-purple-600/40 text-purple-200 border border-purple-400/40 shadow-sm"
+                                  : "text-slate-400 hover:text-slate-200"
+                              }`}
+                            >
+                              <Table size={13} />
+                              <span>Table View</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setModalAxleViewMode("grid")}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                                modalAxleViewMode === "grid"
+                                  ? "bg-purple-600/40 text-purple-200 border border-purple-400/40 shadow-sm"
+                                  : "text-slate-400 hover:text-slate-200"
+                              }`}
+                            >
+                              <LayoutGrid size={13} />
+                              <span>Card View</span>
+                            </button>
+                          </div>
                         </div>
 
-                        {data.hasStaticData && axleEntries.length > 0 ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
-                            {axleEntries.map(([cfg, count]) => {
-                              const boundACount = data.staticByBound.boundA.axleConfigs?.[cfg] || 0;
-                              const boundBCount = data.staticByBound.boundB.axleConfigs?.[cfg] || 0;
-                              const pct = totalAxleCount > 0 ? ((count / totalAxleCount) * 100).toFixed(1) : "0";
-
-                              return (
-                                <div
-                                  key={cfg}
-                                  className="rounded-lg border border-purple-900/30 bg-purple-950/20 p-2.5 flex flex-col justify-between hover:border-purple-500/40 transition"
-                                >
-                                  <div className="flex items-center justify-between border-b border-purple-900/20 pb-1 mb-1.5">
-                                    <span className="font-mono text-xs font-bold text-purple-200">{cfg}</span>
-                                    <span className="text-[9px] font-semibold text-purple-400/80">{pct}%</span>
-                                  </div>
-                                  <div className="text-lg font-extrabold text-white text-center py-0.5">
-                                    {count.toLocaleString()}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-1 mt-1 text-[8.5px] text-slate-300 border-t border-white/10 pt-1">
-                                    {isSingleBound ? (
-                                      <span className="truncate col-span-2 text-center text-cyan-200">
-                                        {singleBoundLabel}: <strong className="text-white font-mono">{boundACount}</strong>
-                                      </span>
-                                    ) : (
-                                      <>
-                                        <span className="truncate">{isJuja ? "Thika" : "A"}: <strong className="text-white font-mono">{boundACount}</strong></span>
-                                        <span className="truncate text-right">{isJuja ? "Nairobi" : "B"}: <strong className="text-white font-mono">{boundBCount}</strong></span>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                        {/* Top Bound Summary Cards - Outlined with hover fills */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                          {/* Bound A Tile */}
+                          <div className="rounded-xl border border-cyan-500/50 bg-transparent p-3 shadow-sm transition-all duration-300 hover:bg-cyan-950/30 hover:border-cyan-400">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50"></span>
+                                {isSingleBound ? singleBoundLabel : staticLabels.boundA}
+                              </span>
+                              <span className="text-[9px] font-semibold text-cyan-400/80">
+                                {totalAxleCount > 0 ? `${((boundATotalAxles / totalAxleCount) * 100).toFixed(1)}%` : "0%"}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex items-baseline justify-between">
+                              <span className="text-2xl font-black text-cyan-200 font-mono tracking-tight">
+                                {boundATotalAxles.toLocaleString()}
+                              </span>
+                              <span className="text-[10px] text-slate-400">vehicles</span>
+                            </div>
                           </div>
+
+                          {/* Bound B Tile (if dual-bound) */}
+                          {!isSingleBound ? (
+                            <div className="rounded-xl border border-indigo-500/50 bg-transparent p-3 shadow-sm transition-all duration-300 hover:bg-indigo-950/30 hover:border-indigo-400">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400/50"></span>
+                                  {staticLabels.boundB}
+                                </span>
+                                <span className="text-[9px] font-semibold text-indigo-400/80">
+                                  {totalAxleCount > 0 ? `${((boundBTotalAxles / totalAxleCount) * 100).toFixed(1)}%` : "0%"}
+                                </span>
+                              </div>
+                              <div className="mt-2 flex items-baseline justify-between">
+                                <span className="text-2xl font-black text-indigo-200 font-mono tracking-tight">
+                                  {boundBTotalAxles.toLocaleString()}
+                                </span>
+                                <span className="text-[10px] text-slate-400">vehicles</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="rounded-xl border border-slate-700/50 bg-transparent p-3 flex flex-col justify-between hover:border-slate-500 hover:bg-slate-900/30 transition-all duration-300">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                                Operational Bound
+                              </span>
+                              <span className="text-xs text-slate-300 mt-2">Single Bound Operation</span>
+                            </div>
+                          )}
+
+                          {/* Total Tile */}
+                          <div className="rounded-xl border border-purple-500/50 bg-transparent p-3 shadow-sm transition-all duration-300 hover:bg-purple-950/30 hover:border-purple-400">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400/50"></span>
+                                Total Classified
+                              </span>
+                              <span className="text-[9px] font-semibold text-purple-400/80">100%</span>
+                            </div>
+                            <div className="mt-2 flex items-baseline justify-between">
+                              <span className="text-2xl font-black text-white font-mono tracking-tight">
+                                {totalAxleCount.toLocaleString()}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                {allAxleMap.length} configs
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Content Area: Table View vs Card Grid View */}
+                        {data.hasStaticData && allAxleMap.length > 0 ? (
+                          modalAxleViewMode === "table" ? (
+                            <div className="overflow-hidden rounded-xl border border-cyan-900/40 bg-black/40 shadow-inner">
+                              <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <table className="w-full border-collapse text-left text-xs">
+                                  <thead className="sticky top-0 z-10 border-b border-cyan-900/50 bg-[#061928] text-[10px] font-extrabold uppercase tracking-wider text-slate-300 shadow-sm">
+                                    <tr>
+                                      <th className="py-2 px-3 text-slate-400 w-10 text-center">#</th>
+                                      <th className="py-2 px-3 text-purple-300">Axle Configuration</th>
+                                      <th className="py-2 px-3 text-cyan-300 text-center bg-cyan-950/30 border-x border-cyan-900/30">
+                                        {isSingleBound ? singleBoundLabel : staticLabels.boundA}
+                                      </th>
+                                      {!isSingleBound && (
+                                        <th className="py-2 px-3 text-indigo-300 text-center bg-indigo-950/30 border-x border-indigo-900/30">
+                                          {staticLabels.boundB}
+                                        </th>
+                                      )}
+                                      <th className="py-2 px-3 text-white text-center bg-slate-900/40 border-r border-white/5">
+                                        Total
+                                      </th>
+                                      <th className="py-2 px-3 text-right">Share</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5 font-mono">
+                                    {allAxleMap.map((item, idx) => {
+                                      const pct = totalAxleCount > 0 ? ((item.total / totalAxleCount) * 100).toFixed(1) : "0.0";
+                                      return (
+                                        <tr
+                                          key={item.cfg}
+                                          className="hover:bg-white/[0.04] transition-colors"
+                                        >
+                                          <td className="py-2 px-3 text-center text-[10px] font-sans text-slate-500">
+                                            {idx + 1}
+                                          </td>
+                                          <td className="py-2 px-3">
+                                            <span className="inline-flex items-center rounded-md border border-purple-500/30 bg-purple-950/60 px-2 py-0.5 text-xs font-bold text-purple-200">
+                                              {item.cfg}
+                                            </span>
+                                          </td>
+                                          <td className="py-2 px-3 text-center bg-cyan-950/20 border-x border-cyan-900/20 font-bold text-cyan-300">
+                                            {item.boundA.toLocaleString()}
+                                          </td>
+                                          {!isSingleBound && (
+                                            <td className="py-2 px-3 text-center bg-indigo-950/20 border-x border-indigo-900/20 font-bold text-indigo-300">
+                                              {item.boundB.toLocaleString()}
+                                            </td>
+                                          )}
+                                          <td className="py-2 px-3 text-center bg-slate-900/30 border-r border-white/5 font-extrabold text-white">
+                                            {item.total.toLocaleString()}
+                                          </td>
+                                          <td className="py-2 px-3 text-right">
+                                            <div className="inline-flex items-center justify-end gap-2">
+                                              <div className="w-16 sm:w-24 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                                                <div
+                                                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400"
+                                                  style={{ width: `${Math.min(Number(pct), 100)}%` }}
+                                                />
+                                              </div>
+                                              <span className="text-[10px] font-semibold text-slate-300 w-10 text-right">
+                                                {pct}%
+                                              </span>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Card Grid View */
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                              {allAxleMap.map((item) => {
+                                const pct = totalAxleCount > 0 ? ((item.total / totalAxleCount) * 100).toFixed(1) : "0";
+
+                                return (
+                                  <div
+                                    key={item.cfg}
+                                    className="rounded-xl border border-purple-500/30 bg-transparent p-2.5 flex flex-col justify-between hover:border-purple-400 hover:bg-[#0b2135]/60 transition-all duration-300 shadow-md"
+                                  >
+                                    <div className="flex items-center justify-between border-b border-purple-900/30 pb-1 mb-1.5">
+                                      <span className="font-mono text-xs font-bold text-purple-200 bg-transparent px-1.5 py-0.5 rounded border border-purple-500/30 hover:bg-purple-950/40 transition-colors">
+                                        {item.cfg}
+                                      </span>
+                                      <span className="text-[9px] font-bold text-purple-300 font-mono">
+                                        {pct}%
+                                      </span>
+                                    </div>
+
+                                    <div className="text-xl font-black text-white text-center py-1 font-mono">
+                                      {item.total.toLocaleString()}
+                                    </div>
+
+                                    {/* Dual shaded bound metrics with outlines and hover fills */}
+                                    <div className="mt-1.5 space-y-1.5 pt-1.5 border-t border-white/5">
+                                      <div className="flex items-center justify-between rounded border border-cyan-500/40 bg-transparent px-1.5 py-0.5 text-[8.5px] transition-colors hover:bg-cyan-950/40">
+                                        <span className="text-cyan-300 font-semibold truncate max-w-[55%]">
+                                          {isSingleBound ? (singleBoundLabel.replace(/bound/i, "").trim() || "Bound") : boundAShortLabel}
+                                        </span>
+                                        <span className="font-mono font-bold text-cyan-200">
+                                          {item.boundA.toLocaleString()}
+                                        </span>
+                                      </div>
+
+                                      {!isSingleBound && (
+                                        <div className="flex items-center justify-between rounded border border-indigo-500/40 bg-transparent px-1.5 py-0.5 text-[8.5px] transition-colors hover:bg-indigo-950/40">
+                                          <span className="text-indigo-300 font-semibold truncate max-w-[55%]">
+                                            {boundBShortLabel}
+                                          </span>
+                                          <span className="font-mono font-bold text-indigo-200">
+                                            {item.boundB.toLocaleString()}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )
                         ) : (
-                          <div className="py-6 text-center text-xs text-slate-500">
+                          <div className="py-8 text-center text-xs text-slate-500">
                             No axle configuration records for selected date
                           </div>
                         )}
-                        <p className="mt-3 text-[10px] text-slate-400 font-medium">
-                          {card.change}
-                        </p>
+
+                        <div className="mt-3 flex items-center justify-between border-t border-purple-950/50 pt-2 text-[10px] text-slate-400">
+                          <span>Showing all {allAxleMap.length} detected axle configurations</span>
+                          <span className="text-purple-300 font-mono font-medium">{card.change}</span>
+                        </div>
                       </div>
                     );
                   }
