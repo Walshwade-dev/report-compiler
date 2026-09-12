@@ -335,7 +335,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
           : `${allAxleMap.length} axle configurations`
         : "No active session",
       icon: Truck,
-      color: "bg-transparent border-purple-500/20 text-purple-300 hover:border-purple-500/40 hover:bg-[#071827]/40",
+      color: "bg-transparent border-slate-700/40 text-slate-300 hover:border-slate-500/60 hover:bg-[#071827]/40",
       isAxleConfig: true,
     },
   ];
@@ -395,15 +395,15 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                       <div className="mt-1 flex flex-col justify-between flex-1 min-h-0">
                         {data.hasStaticData && allAxleMap.length > 0 ? (
                           <div className="flex flex-col flex-1 min-h-0 justify-between">
-                            {/* Compact tabular form with distinct bound outlines & hover backgrounds */}
-                            <div className="overflow-hidden rounded-md border border-purple-500/30 bg-slate-950/40">
-                              <div className="grid grid-cols-4 gap-x-2.5 items-center border-b border-purple-900/30 bg-purple-950/20 px-1.5 py-1 text-[8px] sm:text-[8.5px] font-extrabold uppercase tracking-wider">
-                                <span className="text-purple-300 truncate">Config</span>
-                                <span className="text-cyan-300 text-center truncate" title={staticLabels.boundA}>
+                            {/* Compact tabular form with settled neutral slate outlines & hover backgrounds */}
+                            <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-950/40">
+                              <div className="grid grid-cols-4 gap-x-2.5 items-center border-b border-slate-800 bg-slate-900/60 px-1.5 py-1 text-[8px] sm:text-[8.5px] font-extrabold uppercase tracking-wider">
+                                <span className="text-slate-400 truncate">Config</span>
+                                <span className="text-slate-400 text-center truncate" title={staticLabels.boundA}>
                                   {isSingleBound ? (singleBoundLabel.replace(/bound/i, "").trim() || "Bound") : boundAShortLabel}
                                 </span>
                                 {!isSingleBound && (
-                                  <span className="text-indigo-300 text-center truncate" title={staticLabels.boundB}>
+                                  <span className="text-slate-400 text-center truncate" title={staticLabels.boundB}>
                                     {boundBShortLabel}
                                   </span>
                                 )}
@@ -417,18 +417,18 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                                     key={item.cfg}
                                     className="grid grid-cols-4 gap-x-2.5 items-center"
                                   >
-                                    <span className="rounded border border-purple-500/30 bg-transparent py-0.5 font-mono text-[9px] font-bold text-purple-200 text-center transition-colors hover:bg-purple-950/40 truncate">
+                                    <span className="rounded border border-slate-700/60 bg-slate-900/40 py-0.5 font-mono text-[9px] font-semibold text-slate-300 text-center truncate">
                                       {item.cfg}
                                     </span>
-                                    <span className="rounded border border-cyan-500/50 bg-transparent font-mono text-[9px] font-bold text-cyan-300 text-center py-0.5 transition-colors hover:bg-cyan-950/40">
+                                    <span className="rounded border border-slate-800/60 bg-transparent font-mono text-[9px] font-medium text-slate-300 text-center py-0.5 transition-colors hover:bg-slate-800/40">
                                       {item.boundA.toLocaleString()}
                                     </span>
                                     {!isSingleBound && (
-                                      <span className="rounded border border-indigo-500/50 bg-transparent font-mono text-[9px] font-bold text-indigo-300 text-center py-0.5 transition-colors hover:bg-indigo-950/40">
+                                      <span className="rounded border border-slate-800/60 bg-transparent font-mono text-[9px] font-medium text-slate-300 text-center py-0.5 transition-colors hover:bg-slate-800/40">
                                         {item.boundB.toLocaleString()}
                                       </span>
                                     )}
-                                    <span className={`rounded border border-slate-700/60 bg-transparent font-mono text-[9.5px] font-black text-white text-center py-0.5 transition-colors hover:bg-slate-800/40 ${isSingleBound ? "col-span-2" : ""}`}>
+                                    <span className={`rounded border border-slate-700/60 bg-slate-900/40 font-mono text-[9.5px] font-bold text-white text-center py-0.5 ${isSingleBound ? "col-span-2" : ""}`}>
                                       {item.total.toLocaleString()}
                                     </span>
                                   </div>
@@ -443,7 +443,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                                   ? `+${allAxleMap.length - 2} more (${remainingAxleCount} trucks)`
                                   : `${allAxleMap.length} axle configs`}
                               </span>
-                              <span className="text-cyan-400 font-semibold shrink-0 ml-1">View all →</span>
+                              <span className="text-slate-400 font-semibold hover:text-white transition-colors shrink-0 ml-1">View all →</span>
                             </div>
                           </div>
                         ) : (
@@ -543,13 +543,13 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                         className="relative flex flex-col justify-between rounded-xl border border-purple-900/50 bg-[#0b2135]/40 p-4 shadow-xl md:col-span-2 lg:col-span-3"
                       >
                         {/* Header with Title & View Mode Toggle */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-950/80 pb-3 mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-500/20 text-purple-300">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-800 text-slate-300">
                                 <Icon size={14} />
                               </span>
-                              <h4 className="text-sm font-bold uppercase tracking-wider text-purple-200">
+                              <h4 className="text-sm font-bold uppercase tracking-wider text-white">
                                 Axle Configuration Breakdown ({totalAxleCount.toLocaleString()} Total Vehicles)
                               </h4>
                             </div>
@@ -559,13 +559,13 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                           </div>
 
                           {/* View Toggle */}
-                          <div className="inline-flex items-center rounded-lg border border-cyan-900/50 bg-black/40 p-0.5 shrink-0 self-start sm:self-auto">
+                          <div className="inline-flex items-center rounded-lg border border-slate-800 bg-black/40 p-0.5 shrink-0 self-start sm:self-auto">
                             <button
                               type="button"
                               onClick={() => setModalAxleViewMode("table")}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                                 modalAxleViewMode === "table"
-                                  ? "bg-purple-600/40 text-purple-200 border border-purple-400/40 shadow-sm"
+                                  ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
                                   : "text-slate-400 hover:text-slate-200"
                               }`}
                             >
@@ -577,7 +577,7 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                               onClick={() => setModalAxleViewMode("grid")}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                                 modalAxleViewMode === "grid"
-                                  ? "bg-purple-600/40 text-purple-200 border border-purple-400/40 shadow-sm"
+                                  ? "bg-slate-800 text-white border border-slate-700 shadow-sm"
                                   : "text-slate-400 hover:text-slate-200"
                               }`}
                             >
@@ -587,21 +587,21 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                           </div>
                         </div>
 
-                        {/* Top Bound Summary Cards - Outlined with hover fills */}
+                        {/* Top Bound Summary Cards - Settled neutral framing */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                           {/* Bound A Tile */}
-                          <div className="rounded-xl border border-cyan-500/50 bg-transparent p-3 shadow-sm transition-all duration-300 hover:bg-cyan-950/30 hover:border-cyan-400">
+                          <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-3 shadow-sm transition-all duration-300 hover:bg-slate-900/50 hover:border-slate-700">
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50"></span>
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                                 {isSingleBound ? singleBoundLabel : staticLabels.boundA}
                               </span>
-                              <span className="text-[9px] font-semibold text-cyan-400/80">
+                              <span className="text-[9px] font-semibold text-slate-400">
                                 {totalAxleCount > 0 ? `${((boundATotalAxles / totalAxleCount) * 100).toFixed(1)}%` : "0%"}
                               </span>
                             </div>
                             <div className="mt-2 flex items-baseline justify-between">
-                              <span className="text-2xl font-black text-cyan-200 font-mono tracking-tight">
+                              <span className="text-2xl font-black text-white font-mono tracking-tight">
                                 {boundATotalAxles.toLocaleString()}
                               </span>
                               <span className="text-[10px] text-slate-400">vehicles</span>
@@ -610,25 +610,25 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
 
                           {/* Bound B Tile (if dual-bound) */}
                           {!isSingleBound ? (
-                            <div className="rounded-xl border border-indigo-500/50 bg-transparent p-3 shadow-sm transition-all duration-300 hover:bg-indigo-950/30 hover:border-indigo-400">
+                            <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-3 shadow-sm transition-all duration-300 hover:bg-slate-900/50 hover:border-slate-700">
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400/50"></span>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                                   {staticLabels.boundB}
                                 </span>
-                                <span className="text-[9px] font-semibold text-indigo-400/80">
+                                <span className="text-[9px] font-semibold text-slate-400">
                                   {totalAxleCount > 0 ? `${((boundBTotalAxles / totalAxleCount) * 100).toFixed(1)}%` : "0%"}
                                 </span>
                               </div>
                               <div className="mt-2 flex items-baseline justify-between">
-                                <span className="text-2xl font-black text-indigo-200 font-mono tracking-tight">
+                                <span className="text-2xl font-black text-white font-mono tracking-tight">
                                   {boundBTotalAxles.toLocaleString()}
                                 </span>
                                 <span className="text-[10px] text-slate-400">vehicles</span>
                               </div>
                             </div>
                           ) : (
-                            <div className="rounded-xl border border-slate-700/50 bg-transparent p-3 flex flex-col justify-between hover:border-slate-500 hover:bg-slate-900/30 transition-all duration-300">
+                            <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-3 flex flex-col justify-between hover:border-slate-700 transition-all duration-300">
                               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                                 Operational Bound
                               </span>
@@ -637,13 +637,13 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                           )}
 
                           {/* Total Tile */}
-                          <div className="rounded-xl border border-purple-500/50 bg-transparent p-3 shadow-sm transition-all duration-300 hover:bg-purple-950/30 hover:border-purple-400">
+                          <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-3 shadow-sm transition-all duration-300 hover:bg-slate-900/50 hover:border-slate-700">
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400/50"></span>
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                                 Total Classified
                               </span>
-                              <span className="text-[9px] font-semibold text-purple-400/80">100%</span>
+                              <span className="text-[9px] font-semibold text-slate-400">100%</span>
                             </div>
                             <div className="mt-2 flex items-baseline justify-between">
                               <span className="text-2xl font-black text-white font-mono tracking-tight">
@@ -659,28 +659,28 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                         {/* Content Area: Table View vs Card Grid View */}
                         {data.hasStaticData && allAxleMap.length > 0 ? (
                           modalAxleViewMode === "table" ? (
-                            <div className="overflow-hidden rounded-xl border border-cyan-900/40 bg-black/40 shadow-inner">
+                            <div className="overflow-hidden rounded-xl border border-slate-800 bg-black/40 shadow-inner">
                               <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 <table className="w-full border-collapse text-left text-xs">
-                                  <thead className="sticky top-0 z-10 border-b border-cyan-900/50 bg-[#061928] text-[10px] font-extrabold uppercase tracking-wider text-slate-300 shadow-sm">
+                                  <thead className="sticky top-0 z-10 border-b border-slate-800 bg-[#061928] text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shadow-sm">
                                     <tr>
                                       <th className="py-2 px-3 text-slate-400 w-10 text-center">#</th>
-                                      <th className="py-2 px-3 text-purple-300">Axle Configuration</th>
-                                      <th className="py-2 px-3 text-cyan-300 text-center bg-cyan-950/30 border-x border-cyan-900/30">
+                                      <th className="py-2 px-3 text-slate-300">Axle Configuration</th>
+                                      <th className="py-2 px-3 text-slate-300 text-center bg-slate-900/30 border-x border-slate-800">
                                         {isSingleBound ? singleBoundLabel : staticLabels.boundA}
                                       </th>
                                       {!isSingleBound && (
-                                        <th className="py-2 px-3 text-indigo-300 text-center bg-indigo-950/30 border-x border-indigo-900/30">
+                                        <th className="py-2 px-3 text-slate-300 text-center bg-slate-900/30 border-x border-slate-800">
                                           {staticLabels.boundB}
                                         </th>
                                       )}
-                                      <th className="py-2 px-3 text-white text-center bg-slate-900/40 border-r border-white/5">
+                                      <th className="py-2 px-3 text-white text-center bg-slate-900/40 border-r border-slate-800">
                                         Total
                                       </th>
-                                      <th className="py-2 px-3 text-right">Share</th>
+                                      <th className="py-2 px-3 text-right text-slate-400">Share</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-white/5 font-mono">
+                                  <tbody className="divide-y divide-white/5 font-mono text-slate-300">
                                     {allAxleMap.map((item, idx) => {
                                       const pct = totalAxleCount > 0 ? ((item.total / totalAxleCount) * 100).toFixed(1) : "0.0";
                                       return (
@@ -692,30 +692,30 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                                             {idx + 1}
                                           </td>
                                           <td className="py-2 px-3">
-                                            <span className="inline-flex items-center rounded-md border border-purple-500/30 bg-purple-950/60 px-2 py-0.5 text-xs font-bold text-purple-200">
+                                            <span className="inline-flex items-center rounded-md border border-slate-700/60 bg-slate-900/60 px-2 py-0.5 text-xs font-semibold text-slate-200">
                                               {item.cfg}
                                             </span>
                                           </td>
-                                          <td className="py-2 px-3 text-center bg-cyan-950/20 border-x border-cyan-900/20 font-bold text-cyan-300">
+                                          <td className="py-2 px-3 text-center border-x border-slate-800/40 font-bold text-slate-300">
                                             {item.boundA.toLocaleString()}
                                           </td>
                                           {!isSingleBound && (
-                                            <td className="py-2 px-3 text-center bg-indigo-950/20 border-x border-indigo-900/20 font-bold text-indigo-300">
+                                            <td className="py-2 px-3 text-center border-x border-slate-800/40 font-bold text-slate-300">
                                               {item.boundB.toLocaleString()}
                                             </td>
                                           )}
-                                          <td className="py-2 px-3 text-center bg-slate-900/30 border-r border-white/5 font-extrabold text-white">
+                                          <td className="py-2 px-3 text-center bg-slate-900/20 border-r border-slate-800/40 font-extrabold text-white">
                                             {item.total.toLocaleString()}
                                           </td>
                                           <td className="py-2 px-3 text-right">
                                             <div className="inline-flex items-center justify-end gap-2">
                                               <div className="w-16 sm:w-24 h-1.5 rounded-full bg-slate-800 overflow-hidden">
                                                 <div
-                                                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400"
+                                                  className="h-full rounded-full bg-slate-500"
                                                   style={{ width: `${Math.min(Number(pct), 100)}%` }}
                                                 />
                                               </div>
-                                              <span className="text-[10px] font-semibold text-slate-300 w-10 text-right">
+                                              <span className="text-[10px] font-semibold text-slate-400 w-10 text-right">
                                                 {pct}%
                                               </span>
                                             </div>
@@ -736,13 +736,13 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                                 return (
                                   <div
                                     key={item.cfg}
-                                    className="rounded-xl border border-purple-500/30 bg-transparent p-2.5 flex flex-col justify-between hover:border-purple-400 hover:bg-[#0b2135]/60 transition-all duration-300 shadow-md"
+                                    className="rounded-xl border border-slate-800 bg-slate-900/20 p-2.5 flex flex-col justify-between hover:border-slate-700 hover:bg-slate-900/40 transition-all duration-300 shadow-md"
                                   >
-                                    <div className="flex items-center justify-between border-b border-purple-900/30 pb-1 mb-1.5">
-                                      <span className="font-mono text-xs font-bold text-purple-200 bg-transparent px-1.5 py-0.5 rounded border border-purple-500/30 hover:bg-purple-950/40 transition-colors">
+                                    <div className="flex items-center justify-between border-b border-slate-800 pb-1 mb-1.5">
+                                      <span className="font-mono text-xs font-semibold text-slate-200 bg-slate-900/40 px-1.5 py-0.5 rounded border border-slate-700/60">
                                         {item.cfg}
                                       </span>
-                                      <span className="text-[9px] font-bold text-purple-300 font-mono">
+                                      <span className="text-[9px] font-bold text-slate-400 font-mono">
                                         {pct}%
                                       </span>
                                     </div>
@@ -751,23 +751,23 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                                       {item.total.toLocaleString()}
                                     </div>
 
-                                    {/* Dual shaded bound metrics with outlines and hover fills */}
+                                    {/* Settled bound metrics */}
                                     <div className="mt-1.5 space-y-1.5 pt-1.5 border-t border-white/5">
-                                      <div className="flex items-center justify-between rounded border border-cyan-500/40 bg-transparent px-1.5 py-0.5 text-[8.5px] transition-colors hover:bg-cyan-950/40">
-                                        <span className="text-cyan-300 font-semibold truncate max-w-[55%]">
+                                      <div className="flex items-center justify-between rounded border border-slate-800/80 bg-slate-950/40 px-1.5 py-0.5 text-[8.5px] transition-colors hover:bg-slate-800/40">
+                                        <span className="text-slate-400 font-semibold truncate max-w-[55%]">
                                           {isSingleBound ? (singleBoundLabel.replace(/bound/i, "").trim() || "Bound") : boundAShortLabel}
                                         </span>
-                                        <span className="font-mono font-bold text-cyan-200">
+                                        <span className="font-mono font-bold text-slate-200">
                                           {item.boundA.toLocaleString()}
                                         </span>
                                       </div>
 
                                       {!isSingleBound && (
-                                        <div className="flex items-center justify-between rounded border border-indigo-500/40 bg-transparent px-1.5 py-0.5 text-[8.5px] transition-colors hover:bg-indigo-950/40">
-                                          <span className="text-indigo-300 font-semibold truncate max-w-[55%]">
+                                        <div className="flex items-center justify-between rounded border border-slate-800/80 bg-slate-950/40 px-1.5 py-0.5 text-[8.5px] transition-colors hover:bg-slate-800/40">
+                                          <span className="text-slate-400 font-semibold truncate max-w-[55%]">
                                             {boundBShortLabel}
                                           </span>
-                                          <span className="font-mono font-bold text-indigo-200">
+                                          <span className="font-mono font-bold text-slate-200">
                                             {item.boundB.toLocaleString()}
                                           </span>
                                         </div>
@@ -784,9 +784,9 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
                           </div>
                         )}
 
-                        <div className="mt-3 flex items-center justify-between border-t border-purple-950/50 pt-2 text-[10px] text-slate-400">
+                        <div className="mt-3 flex items-center justify-between border-t border-slate-800 pt-2 text-[10px] text-slate-400">
                           <span>Showing all {allAxleMap.length} detected axle configurations</span>
-                          <span className="text-purple-300 font-mono font-medium">{card.change}</span>
+                          <span className="text-slate-400 font-mono font-medium">{card.change}</span>
                         </div>
                       </div>
                     );
