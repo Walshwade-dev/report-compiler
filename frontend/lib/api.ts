@@ -288,6 +288,7 @@ export type CreateReportSessionPayload = {
   weighbridge_name: string;
   prepared_by?: string;
   confirmed_by?: string;
+  reset_existing?: boolean;
 };
 
 export type UpdateReportSessionMetadataPayload = {
@@ -654,6 +655,35 @@ export async function getReportSession(
     throw new Error(
       await getErrorMessage(response, "Failed to fetch report session")
     );
+  }
+
+  return response.json() as Promise<ReportSessionResponse>;
+}
+
+export async function getReportSessionBySlot(
+  reportDate: string,
+  station: string,
+  bound: string
+): Promise<ReportSessionResponse | null> {
+  if (!reportDate || !station || !bound) return null;
+  const params = new URLSearchParams({
+    report_date: reportDate,
+    station: station,
+    bound: bound,
+  });
+  const response = await fetch(
+    apiUrl(`report-sessions/slot?${params.toString()}`),
+    {
+      headers: authHeaders(),
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    return null;
   }
 
   return response.json() as Promise<ReportSessionResponse>;

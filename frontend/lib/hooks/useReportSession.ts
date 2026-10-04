@@ -3,6 +3,7 @@ import { ReportMetadata, ManualInputs, BuildStatus } from "../types";
 import {
   createReportSession,
   getReportSession,
+  getReportSessionBySlot,
   updateReportSessionMetadata,
   updateManualInputs,
   buildFinalReport,
@@ -188,6 +189,15 @@ export function useReportSession() {
   const [manualSaveStatus, setManualSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const initialSaveDone = useRef(false);
+  const reportIdRef = useRef<string | null>(null);
+  const sessionBoundRef = useRef<string | null>(null);
+  const sessionStationRef = useRef<string | null>(null);
+  const lastSyncedDateRef = useRef<string | null>(null);
+  const pendingDateSyncRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    reportIdRef.current = reportId;
+  }, [reportId]);
 
   const metadataComplete =
     metadata.date.trim() !== "" &&
@@ -204,12 +214,29 @@ export function useReportSession() {
   // Function to load session details from backend response
   const loadSessionData = useCallback(async (session: ReportSessionResponse) => {
     setSessionData(session);
+    sessionBoundRef.current = session.metadata?.bound || null;
+    sessionStationRef.current = session.metadata?.weighbridge_name || session.metadata?.station || null;
 
-    setMetadata({
-      date: session.metadata?.report_date || "",
-      preparedBy: session.metadata?.prepared_by || "",
-      approvedBy: session.metadata?.confirmed_by || "Faith Njani",
-    });
+    const backendDate = session.metadata?.report_date || "";
+    const activeUserDate =
+      pendingDateSyncRef.current ||
+      (lastSyncedDateRef.current && lastSyncedDateRef.current !== backendDate
+        ? lastSyncedDateRef.current
+        : null);
+    const dateToUse =
+      session.report_id === reportIdRef.current && activeUserDate
+        ? activeUserDate
+        : backendDate;
+
+    if (dateToUse && !lastSyncedDateRef.current) {
+      lastSyncedDateRef.current = dateToUse;
+    }
+
+    setMetadata((prev) => ({
+      date: dateToUse,
+      preparedBy: session.metadata?.prepared_by || prev.preparedBy || "",
+      approvedBy: session.metadata?.confirmed_by || prev.approvedBy || "Faith Njani",
+    }));
 
     setWeighbridgeName(
       session.metadata?.weighbridge_name ||
@@ -344,6 +371,11 @@ export function useReportSession() {
       });
 
       setReportId(response.report_id);
+      reportIdRef.current = response.report_id;
+      sessionBoundRef.current = response.metadata?.bound || boundName;
+      sessionStationRef.current = response.metadata?.station || response.metadata?.weighbridge_name || weighbridgeName;
+      lastSyncedDateRef.current = response.metadata?.report_date || metadata.date;
+      pendingDateSyncRef.current = null;
       localStorage.setItem("active-report-id", response.report_id);
       setCreateStatus("ready");
       await loadSessionData(response);
@@ -474,12 +506,8 @@ export function useReportSession() {
   }, [reportId]);
 
   const handleResetReport = useCallback((resetUploadsCallback?: () => void) => {
-    if (reportId) {
-      resetReportSession(reportId).catch((err) => {
-        console.error("Failed to reset session on backend:", err);
-      });
-    }
-
+    // Only resets local editor workspace; does NOT call resetReportSession on backend
+    // to preserve completed reports and avoid wiping user data.
     const user = getLoggedInUser();
     const defaultPreparedBy =
       user && user.role !== "admin"
@@ -515,6 +543,11 @@ export function useReportSession() {
     setFinalReportDownloadUrl(null);
     setExcelReportDownloadUrl(null);
     setReportId(null);
+    reportIdRef.current = null;
+    sessionBoundRef.current = null;
+    sessionStationRef.current = null;
+    lastSyncedDateRef.current = null;
+    pendingDateSyncRef.current = null;
     setSessionData(null);
     initialSaveDone.current = false;
 
@@ -522,7 +555,7 @@ export function useReportSession() {
     if (resetUploadsCallback) {
       resetUploadsCallback();
     }
-  }, [reportId]);
+  }, []);
 
   // Save metadata changes to localStorage
   useEffect(() => {
@@ -533,17 +566,27 @@ export function useReportSession() {
     localStorage.setItem(ACTIVE_BOUND_KEY, boundName);
   }, [boundName]);
 
-  // Debounce metadata updates
+  // Debounce metadata updates (only syncs editable fields for the active session, never mutates bound)
   useEffect(() => {
     if (!reportId) return;
+
+    if (metadata.date && metadata.date !== lastSyncedDateRef.current) {
+      pendingDateSyncRef.current = metadata.date;
+    }
 
     const timeout = setTimeout(async () => {
       try {
         const response = await updateReportSessionMetadata(reportId, {
-          station: weighbridgeName,
-          bound: boundName,
-          weighbridge_name: weighbridgeName,
+          station: sessionStationRef.current || weighbridgeName,
+          bound: sessionBoundRef.current || boundName,
+          weighbridge_name: sessionStationRef.current || weighbridgeName,
+          report_date: metadata.date,
         });
+
+        lastSyncedDateRef.current = response.metadata?.report_date || metadata.date;
+        if (pendingDateSyncRef.current === metadata.date) {
+          pendingDateSyncRef.current = null;
+        }
 
         if (response.final_report?.status === "ready") {
           setBuildStatus("completed");
@@ -561,7 +604,96 @@ export function useReportSession() {
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [reportId, weighbridgeName, boundName]);
+  }, [reportId, metadata.date]);
+
+  // Switch workspace when boundName or weighbridgeName changes away from active session slot
+  useEffect(() => {
+    if (!reportId || !sessionData) return;
+
+    const currentBound = sessionBoundRef.current || sessionData.metadata?.bound;
+    const currentStation = sessionStationRef.current || sessionData.metadata?.station || sessionData.metadata?.weighbridge_name;
+
+    const boundChanged = Boolean(
+      currentBound && boundName.toUpperCase().trim() !== currentBound.toUpperCase().trim()
+    );
+    const stationChanged = Boolean(
+      currentStation && weighbridgeName.toUpperCase().trim() !== currentStation.toUpperCase().trim()
+    );
+
+    if (!boundChanged && !stationChanged) {
+      return;
+    }
+
+    let active = true;
+
+    async function switchSlotWorkspace() {
+      try {
+        const targetDate = metadata.date || lastSyncedDateRef.current || "";
+        const targetStation = weighbridgeName;
+        const targetBound = boundName;
+
+        if (targetDate) {
+          const existing = await getReportSessionBySlot(targetDate, targetStation, targetBound);
+          if (!active) return;
+          if (existing) {
+            setReportId(existing.report_id);
+            reportIdRef.current = existing.report_id;
+            sessionBoundRef.current = existing.metadata?.bound || targetBound;
+            sessionStationRef.current = existing.metadata?.station || targetStation;
+            lastSyncedDateRef.current = existing.metadata?.report_date || targetDate;
+            pendingDateSyncRef.current = null;
+            localStorage.setItem("active-report-id", existing.report_id);
+            setCreateStatus("ready");
+            setCreateError(null);
+            await loadSessionData(existing);
+            return;
+          }
+        }
+
+        // No existing session for the new slot: detach workspace for clean creation
+        if (!active) return;
+        setReportId(null);
+        reportIdRef.current = null;
+        sessionBoundRef.current = null;
+        sessionStationRef.current = null;
+        setSessionData(null);
+        lastSyncedDateRef.current = metadata.date || null;
+        pendingDateSyncRef.current = null;
+        localStorage.removeItem("active-report-id");
+
+        setManualInputs({
+          casesCleared: 0,
+          transgressions: 0,
+          buses3500: 0,
+          vehicles3500to7000: 0,
+          vehicles7000: 0,
+          ccRecords: [
+            { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+            { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+            { buses_gte_3500kg: 0, vehicles_3500_to_7000_excluding_buses: 0, vehicles_gte_7000_excluding_buses: 0 },
+          ],
+          dailyTransgressions: [],
+          transgressionActions: [],
+        });
+        setManualInputsTouched(false);
+        setBuildStatus("not_ready");
+        setBuildError(null);
+        setFinalReportDownloadUrl(null);
+        setExcelReportDownloadUrl(null);
+        setCreateStatus("idle");
+        setCreateError(null);
+        initialSaveDone.current = false;
+      } catch (err) {
+        console.error("Error switching slot workspace:", err);
+      }
+    }
+
+    switchSlotWorkspace();
+
+    return () => {
+      active = false;
+    };
+  }, [boundName, weighbridgeName, metadata.date, reportId, sessionData, loadSessionData]);
 
   // Initial save of manual inputs
   useEffect(() => {
@@ -609,6 +741,11 @@ export function useReportSession() {
 
         const session = await getReportSession(savedReportId);
         setReportId(savedReportId);
+        reportIdRef.current = savedReportId;
+        sessionBoundRef.current = session.metadata?.bound || null;
+        sessionStationRef.current = session.metadata?.weighbridge_name || session.metadata?.station || null;
+        lastSyncedDateRef.current = session.metadata?.report_date || null;
+        pendingDateSyncRef.current = null;
         setCreateStatus("ready");
         setCreateError(null);
         await loadSessionData(session);

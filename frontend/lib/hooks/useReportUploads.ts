@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { UploadKey, UploadState } from "../types";
 import { uploadSectionFile, ReportSessionResponse } from "../api";
 import { BACKEND_SECTION_KEYS, BACKEND_SECTION_STATUS_MAP } from "../constants";
@@ -21,8 +21,16 @@ export function useReportUploads(
 
   const uploadsComplete = uploadCount === 4;
 
-  const setUploadsStateFromSession = useCallback((session: ReportSessionResponse) => {
-    if (!session) return;
+  const setUploadsStateFromSession = useCallback((session: ReportSessionResponse | null) => {
+    if (!session) {
+      setUploads({
+        daily_hour: { status: "missing" },
+        wideload: { status: "missing" },
+        impounded_prohibited: { status: "missing" },
+        impounded_overloaded: { status: "missing" },
+      });
+      return;
+    }
 
     const restoredUploads: Record<UploadKey, UploadState> = {
       daily_hour: { status: "missing" },
@@ -50,6 +58,17 @@ export function useReportUploads(
 
     setUploads(restoredUploads);
   }, []);
+
+  useEffect(() => {
+    if (!reportId) {
+      setUploads({
+        daily_hour: { status: "missing" },
+        wideload: { status: "missing" },
+        impounded_prohibited: { status: "missing" },
+        impounded_overloaded: { status: "missing" },
+      });
+    }
+  }, [reportId]);
 
   const handleSectionUpload = useCallback(async (section: UploadKey, file: File) => {
     if (!isSupportedSpreadsheetFile(file)) {

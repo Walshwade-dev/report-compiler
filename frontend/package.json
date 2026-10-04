@@ -7,7 +7,8 @@
     "dev:local": "next dev --hostname 127.0.0.1 --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node scripts/test_classifier.mjs && node scripts/test_metadata_date_sync.mjs && node scripts/test_bound_lifecycle.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
