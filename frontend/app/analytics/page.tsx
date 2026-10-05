@@ -397,7 +397,7 @@ export default function AnalyticsPage() {
                     No traffic records for {selectedMonthLabel}
                   </div>
                 ) : (
-                  <div className="relative w-full h-[200px] border-b border-l border-cyan-950 flex items-end justify-between px-4 pt-4">
+                  <div className="relative w-full h-[240px] border-b border-l border-cyan-950 flex items-end justify-between px-4 pt-12">
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-3">
                       {[0, 1, 2, 3].map((val) => (
                         <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5 font-mono">
@@ -471,7 +471,7 @@ export default function AnalyticsPage() {
                     No court records for {selectedMonthLabel}
                   </div>
                 ) : (
-                  <div className="relative w-full h-[200px] border-b border-l border-cyan-950 flex items-end justify-between px-4 pt-4">
+                  <div className="relative w-full h-[240px] border-b border-l border-cyan-950 flex items-end justify-between px-4 pt-12">
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-3">
                       {[0, 1, 2, 3].map((val) => (
                         <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5 font-mono">
@@ -531,7 +531,7 @@ export default function AnalyticsPage() {
                 <span className="text-[10px] text-slate-400">{stationName} highlighted in Cyan</span>
               </div>
 
-              <div className="relative w-full h-[150px] border-b border-l border-cyan-950 flex items-end justify-around px-6 pt-3">
+              <div className="relative w-full h-[200px] border-b border-l border-cyan-950 flex items-end justify-around px-6 pt-12">
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-0.5 pt-2">
                   {[0, 1, 2].map((val) => (
                     <div key={val} className="w-full border-t border-cyan-950/40 text-[9px] text-slate-600 pt-0.5 font-mono">

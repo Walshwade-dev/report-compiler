@@ -163,12 +163,12 @@ export function Prism3DBar({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Abbreviation and Value absolute positioned above the halo by 4em with matching bar shade */}
+      {/* Abbreviation and Value absolute positioned above the halo with matching bar shade */}
       {showLabel && (
         <div
           className="absolute left-1/2 -translate-x-1/2 pointer-events-none select-none font-black tracking-wider whitespace-nowrap z-20 flex flex-col items-center transition-transform duration-200 group-hover/prism:scale-110"
           style={{
-            bottom: "calc(100% + 4em)",
+            bottom: "calc(100% + 1.5em)",
             color: palette.labelColor,
             textShadow: `0 0 4px ${palette.glow}`,
             fontSize: `${labelFontSize}px`,
