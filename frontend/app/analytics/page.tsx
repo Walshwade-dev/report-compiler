@@ -702,7 +702,7 @@ export default function AnalyticsPage() {
 
             {routesProneToCharging.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-500 border border-dashed border-purple-900/30 rounded-lg">
-                No mobile route records detected for {selectedMonthLabel}. Select June 2026 or July 2026 from the month selector above.
+                No mobile route records detected for {selectedMonthLabel}. Upload mobile weighbridge reports or select a different month from the selector above.
               </div>
             ) : (
               <div className="overflow-hidden rounded-lg border border-purple-900/40 bg-black/40 shadow-inner">
@@ -846,8 +846,7 @@ export default function AnalyticsPage() {
               <div className="py-12 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg space-y-1.5">
                 <p>No vehicles with matching registration plates on both mobile and static on the same day in {selectedMonthLabel}.</p>
                 <p className="text-[11px] text-sky-400">
-                  Select <strong className="underline cursor-pointer" onClick={() => setSelectedMonth("2026-06")}>June 2026</strong> or{" "}
-                  <strong className="underline cursor-pointer" onClick={() => setSelectedMonth("2026-07")}>July 2026</strong> from the month selector above to view verified dual weighings.
+                  Select a different active month from the selector above or upload matching static and mobile daily reports to view verified dual weighings.
                 </p>
               </div>
             ) : (
