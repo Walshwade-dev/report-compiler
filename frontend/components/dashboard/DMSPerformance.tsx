@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getDmsPerformance, isApiConnectionError } from "@/lib/api";
 import { UserRound, X, Award, Maximize2 } from "lucide-react";
+import { DonutChart3D, type DonutSlice } from "./DonutChart3D";
 
 type DMSStats = {
   name: string;
@@ -13,20 +14,23 @@ type DMSStats = {
   color: string;
 };
 
-const COLORS = [
-  "#06b6d4", // cyan-500
-  "#3b82f6", // blue-500
-  "#8b5cf6", // violet-500
-  "#10b981", // emerald-500
-  "#f59e0b", // amber-500
-  "#ef4444", // red-500
+const PALETTE: [string, string][] = [
+  ["#22d3ee", "#0891b2"], // cyan
+  ["#38bdf8", "#0284c7"], // sky blue
+  ["#818cf8", "#4f46e5"], // indigo
+  ["#60a5fa", "#2563eb"], // blue
+  ["#34d399", "#059669"], // emerald (for a slight pop, but still cool)
+  ["#a78bfa", "#7c3aed"], // violet
 ];
+const OTHERS_COLORS: [string, string] = ["#94a3b8", "#475569"];
+const MAX_SLICES = 5;
 
 export function DMSPerformance({ selectedDate, station }: { selectedDate: string; station?: string | null }) {
   const [dmsData, setDmsData] = useState<DMSStats[]>([]);
   const [totalCharged, setTotalCharged] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dataDate, setDataDate] = useState<string>("");
+  const [hoveredTeam, setHoveredTeam] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -37,7 +41,7 @@ export function DMSPerformance({ selectedDate, station }: { selectedDate: string
 
         const sortedData = (performance.rows || []).map((item, i) => ({
           ...item,
-          color: COLORS[i % COLORS.length],
+          color: PALETTE[i % PALETTE.length][0],
         }));
 
         setDmsData(sortedData);
@@ -71,37 +75,64 @@ export function DMSPerformance({ selectedDate, station }: { selectedDate: string
   // Total Weighed
   const totalWeighed = dmsData.reduce((acc, curr) => acc + curr.weighed, 0);
 
-  // Generate conic gradient stops using all data (Charged)
-  let currentPercentage = 0;
-  const gradientStops = dmsData
-    .map((dms) => {
-      const percentage = totalCharged > 0 ? (dms.charged / totalCharged) * 100 : 0;
-      const stop = `${dms.color} ${currentPercentage}% ${currentPercentage + percentage}%`;
-      currentPercentage += percentage;
-      return stop;
-    })
-    .join(", ");
+  const shortName = (name: string) => name.replace(/^DM\s+/i, "");
 
-  const conicGradient =
-    dmsData.length > 0 && totalCharged > 0
-      ? `conic-gradient(${gradientStops})`
-      : "conic-gradient(#0f2b46 0% 100%)";
+  // Each team keeps the same gradient in both donuts, the list and the modal.
+  const buildSlices = (
+    metric: "charged" | "weighed",
+    grandTotal: number,
+    withBadges = false,
+  ): DonutSlice[] => {
+    const ranked = dmsData
+      .map((dms, index) => ({ dms, index }))
+      .filter(({ dms }) => dms[metric] > 0)
+      .sort((a, b) => b.dms[metric] - a.dms[metric]);
 
-  // Generate conic gradient stops using all data (Weighed)
-  let currentWeighedPercentage = 0;
-  const weighedGradientStops = dmsData
-    .map((dms) => {
-      const percentage = totalWeighed > 0 ? (dms.weighed / totalWeighed) * 100 : 0;
-      const stop = `${dms.color} ${currentWeighedPercentage}% ${currentWeighedPercentage + percentage}%`;
-      currentWeighedPercentage += percentage;
-      return stop;
-    })
-    .join(", ");
+    const toSlice = ({ dms, index }: { dms: DMSStats; index: number }): DonutSlice => {
+      let badge: string | undefined;
+      if (withBadges && totalCharged > 0 && totalWeighed > 0) {
+        const ratio = dms.charged / totalCharged / (dms.weighed / totalWeighed || 1);
+        if (dms.charged > 0 && ratio >= 1.2) badge = `${ratio.toFixed(1)}× workload`;
+        else if (dms.charged > 0 && ratio <= 0.8) badge = `${ratio.toFixed(1)}× workload`;
+      }
+      return {
+        key: dms.name,
+        label: shortName(dms.name),
+        value: dms[metric],
+        sub: metric === "charged" ? `${dms.charged} of ${dms.weighed} weighed` : `${dms.weighed} weighed`,
+        badge,
+        colors: PALETTE[index % PALETTE.length],
+      };
+    };
 
-  const weighedConicGradient =
-    dmsData.length > 0 && totalWeighed > 0
-      ? `conic-gradient(${weighedGradientStops})`
-      : "conic-gradient(#0f2b46 0% 100%)";
+    if (ranked.length <= MAX_SLICES) return ranked.map(toSlice);
+
+    const head = ranked.slice(0, MAX_SLICES - 1).map(toSlice);
+    const rest = ranked.slice(MAX_SLICES - 1);
+    const restValue = rest.reduce((acc, { dms }) => acc + dms[metric], 0);
+    if (grandTotal <= 0) return head;
+    return [
+      ...head,
+      {
+        key: "__others__",
+        label: `Others (${rest.length})`,
+        value: restValue,
+        sub: `${restValue} ${metric}`,
+        colors: OTHERS_COLORS,
+      },
+    ];
+  };
+
+  const chargeSlices = buildSlices("charged", totalCharged);
+  const chargeSlicesLarge = buildSlices("charged", totalCharged, true);
+  const weighedSlices = buildSlices("weighed", totalWeighed);
+
+  const ariaFor = (title: string, slices: DonutSlice[], total: number) =>
+    total > 0
+      ? `${title}: ${slices.map((s) => `${s.label} ${Math.round((s.value / total) * 100)}%`).join(", ")}`
+      : `${title}: no data`;
+  const chargeAria = ariaFor("Charge distribution", chargeSlices, totalCharged);
+  const weighedAria = ariaFor("Weighed distribution", weighedSlices, totalWeighed);
 
   const isDifferentDate = Boolean(dataDate && selectedDate && dataDate !== selectedDate);
 
@@ -191,46 +222,36 @@ export function DMSPerformance({ selectedDate, station }: { selectedDate: string
             )}
           </div>
 
-          {/* Bottom: Donut Charts - Side by Side */}
-          <div className="flex items-center justify-around border-t border-cyan-950/50 pt-3 shrink-0 gap-2">
-            {/* Charge Distribution Donut */}
+          {/* Bottom: 3D Donut Charts - Side by Side */}
+          <div className="flex items-start justify-around border-t border-cyan-950/50 pt-3 shrink-0 gap-2">
             <div className="flex flex-col items-center">
-              <h3 className="text-[9px] font-bold text-cyan-200 uppercase tracking-wider mb-2 text-center">Charge Dist.</h3>
-              <div
-                className="relative w-24 h-24 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.05)] flex items-center justify-center transition-all duration-300"
-                style={{ background: conicGradient }}
-              >
-                <div className="absolute w-[70px] h-[70px] bg-[#0b2135] rounded-full flex items-center justify-center border border-cyan-950/50 shadow-inner">
-                  <div className="text-center">
-                    <p className="text-base font-black text-white">{totalCharged}</p>
-                    <p className="text-[7px] uppercase font-bold text-slate-400 tracking-wider leading-tight">
-                      Total
-                      <br />
-                      Charged
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <h3 className="text-[9px] font-bold text-cyan-200 uppercase tracking-wider mb-1 text-center">
+                Charge Dist. <span className="text-slate-400">· {totalCharged}</span>
+              </h3>
+              <DonutChart3D
+                size="sm"
+                slices={chargeSlices}
+                total={totalCharged}
+                hovered={hoveredTeam}
+                onHover={setHoveredTeam}
+                emptyText="No charges recorded"
+                ariaLabel={chargeAria}
+              />
             </div>
 
-            {/* Weighed Distribution Donut */}
             <div className="flex flex-col items-center">
-              <h3 className="text-[9px] font-bold text-cyan-200 uppercase tracking-wider mb-2 text-center">Weighed Dist.</h3>
-              <div
-                className="relative w-24 h-24 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.05)] flex items-center justify-center transition-all duration-300"
-                style={{ background: weighedConicGradient }}
-              >
-                <div className="absolute w-[70px] h-[70px] bg-[#0b2135] rounded-full flex items-center justify-center border border-cyan-950/50 shadow-inner">
-                  <div className="text-center">
-                    <p className="text-base font-black text-white">{totalWeighed}</p>
-                    <p className="text-[7px] uppercase font-bold text-slate-400 tracking-wider leading-tight">
-                      Total
-                      <br />
-                      Weighed
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <h3 className="text-[9px] font-bold text-cyan-200 uppercase tracking-wider mb-1 text-center">
+                Weighed Dist. <span className="text-slate-400">· {totalWeighed}</span>
+              </h3>
+              <DonutChart3D
+                size="sm"
+                slices={weighedSlices}
+                total={totalWeighed}
+                hovered={hoveredTeam}
+                onHover={setHoveredTeam}
+                emptyText="Nothing weighed"
+                ariaLabel={weighedAria}
+              />
             </div>
           </div>
         </div>
@@ -284,7 +305,11 @@ export function DMSPerformance({ selectedDate, station }: { selectedDate: string
                   {dmsData.map((dms, idx) => (
                     <div
                       key={dms.name}
-                      className="flex items-center justify-between p-3.5 rounded-lg bg-[#0b2135]/40 border border-cyan-900/30"
+                      onMouseEnter={() => setHoveredTeam(dms.name)}
+                      onMouseLeave={() => setHoveredTeam(null)}
+                      className={`flex items-center justify-between p-3.5 rounded-lg bg-[#0b2135]/40 border transition-colors ${
+                        hoveredTeam === dms.name ? "border-cyan-400/70 bg-[#0b2135]/80" : "border-cyan-900/30"
+                      }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <span
@@ -315,42 +340,34 @@ export function DMSPerformance({ selectedDate, station }: { selectedDate: string
                 </div>
               </div>
 
-              {/* Large pie charts side-by-side */}
-              <div className="w-full md:w-auto flex flex-col sm:flex-row gap-6 items-center justify-center bg-[#0b2135]/20 p-6 rounded-xl border border-cyan-900/20 shrink-0">
-                {/* Charge Distribution */}
+              {/* Large 3D donut charts, stacked so callouts have room */}
+              <div className="w-full md:w-auto flex flex-col gap-8 items-center justify-center bg-[#0b2135]/20 p-6 rounded-xl border border-cyan-900/20 shrink-0">
                 <div className="flex flex-col items-center justify-center">
                   <h4 className="text-xs font-bold text-cyan-200 uppercase tracking-wider mb-4">Charge Distribution</h4>
-                  <div
-                    className="relative w-44 h-44 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.08)] flex items-center justify-center"
-                    style={{ background: conicGradient }}
-                  >
-                    <div className="absolute w-28 h-28 bg-[#071827] rounded-full flex items-center justify-center border border-cyan-900/50 shadow-inner">
-                      <div className="text-center">
-                        <p className="text-2xl font-black text-white">{totalCharged}</p>
-                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mt-1">
-                          Total<br />Charged
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <DonutChart3D
+                    size="lg"
+                    slices={chargeSlicesLarge}
+                    total={totalCharged}
+                    hovered={hoveredTeam}
+                    onHover={setHoveredTeam}
+                    centerLabel="Charged"
+                    emptyText="No charges recorded for this period."
+                    ariaLabel={chargeAria}
+                  />
                 </div>
 
-                {/* Weighed Distribution */}
                 <div className="flex flex-col items-center justify-center">
                   <h4 className="text-xs font-bold text-cyan-200 uppercase tracking-wider mb-4">Weighed Distribution</h4>
-                  <div
-                    className="relative w-44 h-44 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.08)] flex items-center justify-center"
-                    style={{ background: weighedConicGradient }}
-                  >
-                    <div className="absolute w-28 h-28 bg-[#071827] rounded-full flex items-center justify-center border border-cyan-900/50 shadow-inner">
-                      <div className="text-center">
-                        <p className="text-2xl font-black text-white">{totalWeighed}</p>
-                        <p className="text-[8px] uppercase font-bold text-slate-400 tracking-wider mt-1">
-                          Total<br />Weighed
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <DonutChart3D
+                    size="lg"
+                    slices={weighedSlices}
+                    total={totalWeighed}
+                    hovered={hoveredTeam}
+                    onHover={setHoveredTeam}
+                    centerLabel="Weighed"
+                    emptyText="No vehicles weighed for this period."
+                    ariaLabel={weighedAria}
+                  />
                 </div>
               </div>
             </div>

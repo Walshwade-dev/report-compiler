@@ -420,6 +420,7 @@ export default function AnalyticsPage() {
                               width={20}
                               colorScheme="cyan"
                               abbreviation="THK"
+                              value={thikaVal > 0 ? thikaVal : undefined}
                               sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: boundALabel, value: thikaVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
@@ -429,6 +430,7 @@ export default function AnalyticsPage() {
                               width={20}
                               colorScheme="indigo"
                               abbreviation="NBO"
+                              value={nairobiVal > 0 ? nairobiVal : undefined}
                               sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: boundBLabel, value: nairobiVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
@@ -492,6 +494,7 @@ export default function AnalyticsPage() {
                               width={20}
                               colorScheme="cyan"
                               abbreviation="THK"
+                              value={thikaVal > 0 ? thikaVal : undefined}
                               sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: `${boundALabel} Cases`, value: thikaVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
@@ -501,6 +504,7 @@ export default function AnalyticsPage() {
                               width={20}
                               colorScheme="indigo"
                               abbreviation="NBO"
+                              value={nairobiVal > 0 ? nairobiVal : undefined}
                               sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: `${boundBLabel} Cases`, value: nairobiVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
@@ -547,6 +551,7 @@ export default function AnalyticsPage() {
                           height={barHeight}
                           width={36}
                           colorScheme={st.active ? "cyan" : "slate"}
+                          value={casesVal > 0 ? casesVal : undefined}
                           onMouseEnter={() => setHoveredBar({ label: "Cases Cleared", value: casesVal, title: st.name, date: selectedMonthLabel })}
                           onMouseLeave={() => setHoveredBar(null)}
                         />

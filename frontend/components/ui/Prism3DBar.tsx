@@ -97,6 +97,7 @@ export interface Prism3DBarProps {
   title?: string;
   abbreviation?: string;
   sublabel?: string;
+  value?: number | string;
   showHalo?: boolean;
 }
 
@@ -109,6 +110,8 @@ export function Prism3DBar({
   onMouseLeave,
   title,
   abbreviation,
+  sublabel,
+  value,
   showHalo = true,
 }: Prism3DBarProps) {
   const rawId = useId();
@@ -149,8 +152,7 @@ export function Prism3DBar({
   const streak1Y = h * 0.65;
   const streak2Y = h * 0.8;
 
-  // Abbreviation absolute positioned above the halo by ~4em
-  const showAbbr = Boolean(abbreviation && safeHeight > 0);
+  const showLabel = Boolean((abbreviation || value !== undefined) && safeHeight > 0);
   const labelFontSize = Math.min(Math.max(w * 0.48, 9), 11.5);
 
   return (
@@ -161,20 +163,21 @@ export function Prism3DBar({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Abbreviation absolute positioned above the halo by about 4em with matching bar shade */}
-      {showAbbr && (
+      {/* Abbreviation and Value absolute positioned above the halo by 4em with matching bar shade */}
+      {showLabel && (
         <div
           className="absolute left-1/2 -translate-x-1/2 pointer-events-none select-none font-black tracking-wider whitespace-nowrap z-20 flex flex-col items-center transition-transform duration-200 group-hover/prism:scale-110"
           style={{
             bottom: "calc(100% + 4em)",
             color: palette.labelColor,
-            textShadow: `0 0 6px ${palette.glow}, 0 0 12px ${palette.glow}`,
+            textShadow: `0 0 4px ${palette.glow}`,
             fontSize: `${labelFontSize}px`,
-            lineHeight: 1,
+            lineHeight: 1.2,
             letterSpacing: "0.04em",
           }}
         >
-          <span>{abbreviation}</span>
+          {value !== undefined && <span className="mb-0.5">{value}</span>}
+          {abbreviation && <span>{abbreviation}</span>}
         </div>
       )}
 
@@ -182,9 +185,9 @@ export function Prism3DBar({
         width={w}
         height={h}
         viewBox={`0 0 ${w} ${h}`}
-        className="overflow-visible transition-all duration-300 w-full h-full cursor-pointer hover:brightness-125"
+        className="overflow-visible transition-all duration-300 w-full h-full cursor-pointer hover:brightness-110"
         style={{
-          filter: `drop-shadow(0 0 6px ${palette.glow})`,
+          filter: `drop-shadow(0 0 2px ${palette.glow})`,
         }}
       >
         {title ? <title>{title}</title> : null}
@@ -205,8 +208,8 @@ export function Prism3DBar({
           </linearGradient>
           {/* Upward Halo Bloom Gradient */}
           <radialGradient id={`halo-${id}`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={palette.halo[0]} stopOpacity="0.95" />
-            <stop offset="45%" stopColor={palette.halo[1]} stopOpacity="0.5" />
+            <stop offset="0%" stopColor={palette.halo[0]} stopOpacity="0.4" />
+            <stop offset="45%" stopColor={palette.halo[1]} stopOpacity="0.15" />
             <stop offset="100%" stopColor={palette.halo[1]} stopOpacity="0" />
           </radialGradient>
         </defs>
@@ -220,7 +223,7 @@ export function Prism3DBar({
               rx={w * 0.82}
               ry={capH * 0.95}
               fill={`url(#halo-${id})`}
-              opacity={0.9}
+              opacity={0.5}
             />
             <ellipse
               cx={midX}
@@ -228,7 +231,7 @@ export function Prism3DBar({
               rx={w * 0.48}
               ry={capH * 0.45}
               fill="#ffffff"
-              opacity={0.45}
+              opacity={0.15}
             />
           </g>
         )}
@@ -264,13 +267,14 @@ export function Prism3DBar({
           opacity={0.65}
         />
 
-        {/* Hexagonal Top Cap (Luminous White) */}
+        {/* Hexagonal Top Cap */}
         <polygon
           points={topPoints}
           fill={`url(#top-${id})`}
-          stroke="#ffffff"
+          stroke={palette.top[0]}
           strokeWidth={Math.max(w * 0.05, 1)}
           strokeLinejoin="round"
+          opacity={0.8}
         />
 
         {/* Translucent Bottom Facet */}
