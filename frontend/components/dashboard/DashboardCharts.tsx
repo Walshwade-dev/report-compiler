@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Scale, Gavel, CheckCircle2, TrendingUp, X, Maximize2 } from "lucide-react";
 import { getAnalyticsDashboard } from "@/lib/api";
+import { Prism3DBar } from "@/components/ui/Prism3DBar";
 
 interface ComplianceDetail {
   calledIn: number;
@@ -159,6 +160,15 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
     return boundKey;
   };
 
+  const getBoundAbbr = (stationCode: string, boundKey: "Bound A" | "Bound B") => {
+    const label = getTrafficLabel(stationCode, boundKey).toLowerCase();
+    if (label.includes("thika")) return "THK";
+    if (label.includes("nairobi")) return "NBO";
+    if (label.includes("mombasa")) return "MSA";
+    if (label.includes("nakuru")) return "NKR";
+    return boundKey === "Bound A" ? "BDA" : "BDB";
+  };
+
   const activeStation =
     (userStation ? stations.find(s => s.code.toLowerCase() === userStation.toLowerCase()) : null) ||
     stations.find(s => s.compliance.boundA.weighed > 0 || s.compliance.boundB.weighed > 0) ||
@@ -279,18 +289,24 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
 
                   return (
                     <div key={st.code} className="flex flex-col items-center flex-1 group/bar z-10">
-                       <div className="flex items-end gap-1 h-[135px] relative">
-                        <div
+                      <div className="flex items-end gap-1 h-[135px] relative">
+                        <Prism3DBar
+                          height={boundAHeight}
+                          width={15}
+                          colorScheme="cyan"
+                          abbreviation={getBoundAbbr(st.code, "Bound A")}
+                          sublabel="DATA"
                           onMouseEnter={() => setHoveredBar({ label: getTrafficLabel(st.code, "Bound A"), value: hasData ? st.traffic.boundA : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${boundAHeight}px` }}
-                          className="w-3 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer"
                         />
-                        <div
+                        <Prism3DBar
+                          height={boundBHeight}
+                          width={15}
+                          colorScheme="indigo"
+                          abbreviation={getBoundAbbr(st.code, "Bound B")}
+                          sublabel="DATA"
                           onMouseEnter={() => setHoveredBar({ label: getTrafficLabel(st.code, "Bound B"), value: hasData ? st.traffic.boundB : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${boundBHeight}px` }}
-                          className="w-3 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer"
                         />
                       </div>
                       <span className="mt-1.5 text-[9px] font-semibold text-slate-500 text-center truncate w-12">{st.code}</span>
@@ -334,17 +350,23 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
                   return (
                     <div key={st.code} className="flex flex-col items-center flex-1 group/bar z-10">
                       <div className="flex items-end gap-1 h-[135px] relative">
-                        <div
+                        <Prism3DBar
+                          height={boundACasesHeight}
+                          width={15}
+                          colorScheme="emerald"
+                          abbreviation={getBoundAbbr(st.code, "Bound A")}
+                          sublabel="DATA"
                           onMouseEnter={() => setHoveredBar({ label: `${getTrafficLabel(st.code, "Bound A")} - Cases`, value: hasData ? st.cases.boundA : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${boundACasesHeight}px` }}
-                          className="w-3 rounded-t bg-gradient-to-t from-emerald-600 to-emerald-400 hover:brightness-125 transition-all duration-300 cursor-pointer"
                         />
-                        <div
+                        <Prism3DBar
+                          height={boundBCasesHeight}
+                          width={15}
+                          colorScheme="teal"
+                          abbreviation={getBoundAbbr(st.code, "Bound B")}
+                          sublabel="DATA"
                           onMouseEnter={() => setHoveredBar({ label: `${getTrafficLabel(st.code, "Bound B")} - Cases`, value: hasData ? st.cases.boundB : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${boundBCasesHeight}px` }}
-                          className="w-3 rounded-t bg-gradient-to-t from-teal-700 to-teal-500 hover:brightness-125 transition-all duration-300 cursor-pointer"
                         />
                       </div>
                       <span className="mt-1.5 text-[9px] font-semibold text-slate-500 text-center truncate w-12">{st.code}</span>
@@ -392,42 +414,49 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
                   return (
                     <div key={st.code} className="flex flex-col items-center flex-1 group/bar z-10">
                       <div className="flex items-end gap-0.5 h-[135px] relative">
-                        <div
+                        <Prism3DBar
+                          height={aCalled}
+                          width={6}
+                          colorScheme="amber"
                           onMouseEnter={() => setHoveredBar({ label: `Bound A Called`, value: hasData ? st.compliance.boundA.calledIn : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${aCalled}px` }}
-                          className="w-1 rounded-t bg-amber-500"
                         />
-                        <div
+                        <Prism3DBar
+                          height={aWeighed}
+                          width={6}
+                          colorScheme="cyan"
                           onMouseEnter={() => setHoveredBar({ label: `Bound A Weighed`, value: hasData ? st.compliance.boundA.weighed : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${aWeighed}px` }}
-                          className="w-1 rounded-t bg-cyan-500"
                         />
-                        <div
+                        <Prism3DBar
+                          height={aCompliant}
+                          width={6}
+                          colorScheme="emerald"
+                          className="mr-0.5"
                           onMouseEnter={() => setHoveredBar({ label: `Bound A Compliant (${aPercent}%)`, value: hasData ? st.compliance.boundA.compliant : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${aCompliant}px` }}
-                          className="w-1 rounded-t bg-emerald-400 mr-0.5"
                         />
 
-                        <div
+                        <Prism3DBar
+                          height={bCalled}
+                          width={6}
+                          colorScheme="amber"
                           onMouseEnter={() => setHoveredBar({ label: `Bound B Called`, value: hasData ? st.compliance.boundB.calledIn : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${bCalled}px` }}
-                          className="w-1 rounded-t bg-amber-700"
                         />
-                        <div
+                        <Prism3DBar
+                          height={bWeighed}
+                          width={6}
+                          colorScheme="cyan"
                           onMouseEnter={() => setHoveredBar({ label: `Bound B Weighed`, value: hasData ? st.compliance.boundB.weighed : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${bWeighed}px` }}
-                          className="w-1 rounded-t bg-cyan-700"
                         />
-                        <div
+                        <Prism3DBar
+                          height={bCompliant}
+                          width={6}
+                          colorScheme="emerald"
                           onMouseEnter={() => setHoveredBar({ label: `Bound B Compliant (${bPercent}%)`, value: hasData ? st.compliance.boundB.compliant : 0, title: st.name })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${bCompliant}px` }}
-                          className="w-1 rounded-t bg-emerald-600"
                         />
                       </div>
                       <span className="mt-1.5 text-[9px] font-semibold text-slate-500 text-center truncate w-12">{st.code}</span>
@@ -550,14 +579,20 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
                       return (
                         <div key={st.code} className="flex flex-col items-center flex-1 z-10">
                           <div className="flex items-end gap-2 h-[180px]">
-                            <div
-                              style={{ height: `${boundAHeight}px` }}
-                              className="w-5 rounded-t bg-gradient-to-t from-cyan-650 to-cyan-400 hover:brightness-125 transition-all shadow-[0_0_10px_rgba(34,211,238,0.1)]"
+                            <Prism3DBar
+                              height={boundAHeight}
+                              width={25}
+                              colorScheme="cyan"
+                              abbreviation={getBoundAbbr(st.code, "Bound A")}
+                              sublabel="DATA"
                               title={`${st.name} Bound A: ${st.traffic.boundA}`}
                             />
-                            <div
-                              style={{ height: `${boundBHeight}px` }}
-                              className="w-5 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all shadow-[0_0_10px_rgba(99,102,241,0.1)]"
+                            <Prism3DBar
+                              height={boundBHeight}
+                              width={25}
+                              colorScheme="indigo"
+                              abbreviation={getBoundAbbr(st.code, "Bound B")}
+                              sublabel="DATA"
                               title={`${st.name} Bound B: ${st.traffic.boundB}`}
                             />
                           </div>
@@ -603,14 +638,20 @@ export function DashboardCharts({ selectedDate, userStation }: { selectedDate: s
                       return (
                         <div key={st.code} className="flex flex-col items-center flex-1 z-10">
                           <div className="flex items-end gap-2 h-[180px]">
-                            <div
-                              style={{ height: `${boundACasesHeight}px` }}
-                              className="w-5 rounded-t bg-gradient-to-t from-emerald-600 to-emerald-450 hover:brightness-125 transition-all shadow-[0_0_10px_rgba(52,211,153,0.1)]"
+                            <Prism3DBar
+                              height={boundACasesHeight}
+                              width={25}
+                              colorScheme="emerald"
+                              abbreviation={getBoundAbbr(st.code, "Bound A")}
+                              sublabel="DATA"
                               title={`${st.name} Bound A Court Cases: ${st.cases.boundA}`}
                             />
-                            <div
-                              style={{ height: `${boundBCasesHeight}px` }}
-                              className="w-5 rounded-t bg-gradient-to-t from-teal-700 to-teal-500 hover:brightness-125 transition-all shadow-[0_0_10px_rgba(20,184,166,0.1)]"
+                            <Prism3DBar
+                              height={boundBCasesHeight}
+                              width={25}
+                              colorScheme="teal"
+                              abbreviation={getBoundAbbr(st.code, "Bound B")}
+                              sublabel="DATA"
                               title={`${st.name} Bound B Court Cases: ${st.cases.boundB}`}
                             />
                           </div>

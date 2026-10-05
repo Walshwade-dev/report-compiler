@@ -2061,4 +2061,38 @@ Implemented in `frontend/app/reports/weekly/new/page.tsx` and `backend/app/route
 - **Auth Token Transmission**:
   - `handleDownload` leverages `authHeaders()` to ensure `dnk-auth-token` is passed as `Authorization: Bearer <token>` on report downloads.
 
+## 28. Implementation Update — Traffic Census (CC Records) OCR, Concurrent OCR Processing & Race-Condition Prevention
 
+Implemented in `frontend/lib/censusIngest.ts`, `frontend/lib/transgressionIngest.ts`, `frontend/components/report-builder/BatchFileIngest.tsx`, `frontend/components/report-builder/ManualInputsPanel.tsx`, and `backend/app/services/census_ocr_extractor.py`:
+- **Traffic Census OCR Service (`/api/reports/{id}/census/ocr-extract`)**:
+  - Automatically parses scanned Traffic Census (CC Records) forms (PDF/images) extracting shift subtotals for Buses ($\ge 3,500\text{kg}$), Empty Trucks ($3,500 - 7,000\text{kg}$), and Empty Trucks ($> 7,000\text{kg}$).
+  - Canonical shift arrangement based on time intervals:
+    - **Shift A (Row 0)**: `0000 - 0700`
+    - **Shift B (Row 1)**: `0700 - 1800`
+    - **Shift C (Row 2)**: `1800 - 2359`
+  - Validates checksum against Grand Total when present to ensure mathematical integrity.
+- **Concurrent & Asynchronous Processing**:
+  - In `BatchFileIngest.tsx`, Transgression OCR and Census OCR are executed in parallel via `Promise.all([processTransgressionFiles(...), processCensusFiles(...)])`, reducing batch intake latency by up to 50%.
+  - Multi-file uploads within each category are also extracted concurrently with `Promise.all(files.map(...))`.
+- **Atomic Functional State Merge (Data Wiping Prevention)**:
+  - Both `BatchFileIngest.tsx` and `ManualInputsPanel.tsx` utilize React functional state updaters (`setManualInputs(prev => ({ ...prev, ... }))`) to cleanly merge transgression records and census subtotals into `manualInputs`.
+  - Eliminates stale closure overwrites, guaranteeing all extracted data reaches the report building stage without loss.
+
+## 29. Implementation Update — 3D Isometric Crystal Prism Bar Charts with Glowing Halos & Floating Bound Abbreviations
+
+Implemented in `frontend/components/ui/Prism3DBar.tsx`, `frontend/components/dashboard/DashboardCharts.tsx`, `frontend/app/analytics/page.tsx`, and `frontend/app/globals.css`:
+- **`Prism3DBar` Vector Engine (`frontend/components/ui/Prism3DBar.tsx`)**:
+  - Replaces traditional flat bars with mathematical 3D isometric hexagonal crystal prism columns based on modern sci-fi holographic data visualization vectors.
+  - Multi-faceted geometry: illuminated left face (`palette.left`), shaded right face (`palette.right`), specular vertical center ridge highlight, dual diagonal glass reflection streaks (`//` with `mix-blend-mode: overlay`), and translucent bottom facet.
+  - **Luminous Apex Cap**: 6-vertex isometric hexagonal top cap rendered in radiant pure white (`#ffffff` to soft ambient tint).
+  - **Upward Glowing Halo Bloom Light**: Radial gradient dual-ellipse bloom projected above the bar apex creating an atmospheric neon haze with bright core illumination.
+  - **Absolute-Positioned Floating Abbreviations**:
+    - Abbreviations (`THK` for Thika Bound, `NBO` for Nairobi Bound, `MSA` for Mombasa Bound, `NKR` for Nakuru Bound) are positioned using `position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 4em);`.
+    - Floating ~4em above the bar apex and halo bloom into the chart's upper headroom.
+    - Shaded in the exact neon color matching each bar's primary illuminated facet (`#38bdf8` for Cyan, `#818cf8` for Indigo, `#34d399` for Emerald, `#2dd4bf` for Teal, etc.) with matching ambient neon drop-shadows.
+- **Dashboard & Comparative Modal Integration (`frontend/components/dashboard/DashboardCharts.tsx`)**:
+  - `getBoundAbbr(stationCode, boundKey)` dynamically maps weighbridge station bounds (`Juja`, `Athi River`, `Gilgil`, `Kanyonyo`) to 3-letter abbreviations (`THK`, `NBO`, `MSA`, `NKR`).
+  - Integrated across Mini Traffic comparison, Mini Court Cases resolved, and the expanded high-resolution Comparative Analytics modal.
+- **Analytics View Integration (`frontend/app/analytics/page.tsx`)**:
+  - Section 1 Weighbridge Bounds Traffic Comparison and Bounds Court Cases Cleared charts upgraded with 20px wide 3D prism bars with floating `THK` and `NBO` labels.
+  - Cross-station court comparison and Section 3 commodity breakdown charts upgraded to crystal prism rendering.

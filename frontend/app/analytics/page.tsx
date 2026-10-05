@@ -21,6 +21,7 @@ import {
   Flame,
   GitCompare,
 } from "lucide-react";
+import { Prism3DBar } from "@/components/ui/Prism3DBar";
 import {
   getAnalyticsDetails,
   getLoggedInUser,
@@ -413,18 +414,24 @@ export default function AnalyticsPage() {
 
                       return (
                         <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
-                          <div className="flex items-end gap-1 h-[150px]">
-                            <div
+                          <div className="flex items-end gap-1.5 h-[150px]">
+                            <Prism3DBar
+                              height={thikaHeight}
+                              width={20}
+                              colorScheme="cyan"
+                              abbreviation="THK"
+                              sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: boundALabel, value: thikaVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
-                              style={{ height: `${thikaHeight}px` }}
-                              className="w-4 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_8px_rgba(34,211,238,0.2)]"
                             />
-                            <div
+                            <Prism3DBar
+                              height={nairobiHeight}
+                              width={20}
+                              colorScheme="indigo"
+                              abbreviation="NBO"
+                              sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: boundBLabel, value: nairobiVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
-                              style={{ height: `${nairobiHeight}px` }}
-                              className="w-4 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer shadow-[0_0_8px_rgba(99,102,241,0.2)]"
                             />
                           </div>
                           <span className="mt-1 text-[10px] font-semibold text-slate-400">D{d.day}</span>
@@ -479,18 +486,24 @@ export default function AnalyticsPage() {
 
                       return (
                         <div key={d.day} className="flex flex-col items-center flex-1 group z-10">
-                          <div className="flex items-end gap-1 h-[150px]">
-                            <div
+                          <div className="flex items-end gap-1.5 h-[150px]">
+                            <Prism3DBar
+                              height={thikaHeight}
+                              width={20}
+                              colorScheme="cyan"
+                              abbreviation="THK"
+                              sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: `${boundALabel} Cases`, value: thikaVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
-                              style={{ height: `${thikaHeight}px` }}
-                              className="w-4 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 hover:brightness-125 transition-all duration-300 cursor-pointer"
                             />
-                            <div
+                            <Prism3DBar
+                              height={nairobiHeight}
+                              width={20}
+                              colorScheme="indigo"
+                              abbreviation="NBO"
+                              sublabel="DATA"
                               onMouseEnter={() => setHoveredBar({ label: `${boundBLabel} Cases`, value: nairobiVal, title: stationName, date: getFormattedDate(d.day) })}
                               onMouseLeave={() => setHoveredBar(null)}
-                              style={{ height: `${nairobiHeight}px` }}
-                              className="w-4 rounded-t bg-gradient-to-t from-indigo-700 to-indigo-500 hover:brightness-125 transition-all duration-300 cursor-pointer"
                             />
                           </div>
                           <span className="mt-1 text-[10px] font-semibold text-slate-400">D{d.day}</span>
@@ -530,15 +543,12 @@ export default function AnalyticsPage() {
                   return (
                     <div key={st.name} className="flex flex-col items-center group z-10">
                       <div className="flex items-end h-[110px]">
-                        <div
+                        <Prism3DBar
+                          height={barHeight}
+                          width={36}
+                          colorScheme={st.active ? "cyan" : "slate"}
                           onMouseEnter={() => setHoveredBar({ label: "Cases Cleared", value: casesVal, title: st.name, date: selectedMonthLabel })}
                           onMouseLeave={() => setHoveredBar(null)}
-                          style={{ height: `${barHeight}px` }}
-                          className={`w-8 rounded-t transition-all duration-300 cursor-pointer ${
-                            st.active
-                              ? "bg-gradient-to-t from-cyan-500 to-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)] brightness-110 border border-cyan-300/40"
-                              : "bg-gradient-to-t from-slate-700 to-slate-500 hover:brightness-110"
-                          }`}
                         />
                       </div>
                       <span className={`mt-1.5 text-[9.5px] font-semibold text-center truncate w-16 ${st.active ? "text-cyan-300 font-bold" : "text-slate-400"}`}>
@@ -1162,9 +1172,10 @@ export default function AnalyticsPage() {
                                     <span className="text-[9px] font-mono font-bold text-teal-300 mb-0.5 opacity-90 group-hover:opacity-100">
                                       {cg.incidentCount}
                                     </span>
-                                    <div
-                                      style={{ height: `${Math.max(casesHeight, 4)}px` }}
-                                      className="w-3.5 sm:w-5 md:w-6 rounded-t bg-gradient-to-t from-teal-700 via-teal-600 to-teal-400 group-hover:brightness-125 transition-all duration-300 shadow-[0_0_8px_rgba(20,184,166,0.2)]"
+                                    <Prism3DBar
+                                      height={Math.max(casesHeight, 4)}
+                                      width={24}
+                                      colorScheme="teal"
                                     />
                                   </div>
 
@@ -1173,9 +1184,10 @@ export default function AnalyticsPage() {
                                     <span className="text-[9px] font-mono font-bold text-indigo-300 mb-0.5 opacity-90 group-hover:opacity-100">
                                       {tonnesVal}t
                                     </span>
-                                    <div
-                                      style={{ height: `${Math.max(tonnesHeight, 4)}px` }}
-                                      className="w-3.5 sm:w-5 md:w-6 rounded-t bg-gradient-to-t from-indigo-700 via-indigo-500 to-indigo-400 group-hover:brightness-125 transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.2)]"
+                                    <Prism3DBar
+                                      height={Math.max(tonnesHeight, 4)}
+                                      width={24}
+                                      colorScheme="indigo"
                                     />
                                   </div>
                                 </>
@@ -1186,9 +1198,10 @@ export default function AnalyticsPage() {
                                   <span className="text-[10px] font-mono font-bold text-teal-300 mb-1">
                                     {cg.incidentCount}
                                   </span>
-                                  <div
-                                    style={{ height: `${Math.max(casesHeight, 4)}px` }}
-                                    className="w-7 sm:w-10 md:w-12 rounded-t bg-gradient-to-t from-teal-700 via-teal-600 to-teal-400 group-hover:brightness-125 transition-all duration-300 shadow-[0_0_10px_rgba(20,184,166,0.25)]"
+                                  <Prism3DBar
+                                    height={Math.max(casesHeight, 4)}
+                                    width={44}
+                                    colorScheme="teal"
                                   />
                                 </div>
                               )}
@@ -1198,9 +1211,10 @@ export default function AnalyticsPage() {
                                   <span className="text-[10px] font-mono font-bold text-indigo-300 mb-1">
                                     {tonnesVal}t
                                   </span>
-                                  <div
-                                    style={{ height: `${Math.max(tonnesHeight, 4)}px` }}
-                                    className="w-7 sm:w-10 md:w-12 rounded-t bg-gradient-to-t from-indigo-700 via-indigo-500 to-indigo-400 group-hover:brightness-125 transition-all duration-300 shadow-[0_0_10px_rgba(99,102,241,0.25)]"
+                                  <Prism3DBar
+                                    height={Math.max(tonnesHeight, 4)}
+                                    width={44}
+                                    colorScheme="indigo"
                                   />
                                 </div>
                               )}
@@ -1210,9 +1224,10 @@ export default function AnalyticsPage() {
                                   <span className="text-[9px] font-mono font-bold text-violet-300 mb-1">
                                     +{cg.averageExcessKg.toLocaleString()}kg
                                   </span>
-                                  <div
-                                    style={{ height: `${Math.max(avgHeight, 4)}px` }}
-                                    className="w-7 sm:w-10 md:w-12 rounded-t bg-gradient-to-t from-violet-700 via-violet-500 to-purple-400 group-hover:brightness-125 transition-all duration-300 shadow-[0_0_10px_rgba(139,92,246,0.25)]"
+                                  <Prism3DBar
+                                    height={Math.max(avgHeight, 4)}
+                                    width={44}
+                                    colorScheme="violet"
                                   />
                                 </div>
                               )}

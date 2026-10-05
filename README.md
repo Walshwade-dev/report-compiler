@@ -12,6 +12,7 @@ Key capabilities include:
 - **Dual-Shift Mobile Report KPIs**: Direct alignment of Shift A (Day Shift) with Mobile Shift 1 (Team 1) SMS KPIs and Shift B (Night Shift) with Mobile Team 2 SMS KPIs; removed mobile dropdown selector with enlarged, high-legibility totals.
 - **PSV Concession & Axle Breakdown**: PSV Coaches Weighed with 2000KG allowance breakdown (`withinAllowed`, `charged`, `redistributed`, `specialRelease`) and Axle Configuration Breakdown card.
 - **Mobile Checklist**: Scale test calibration verification with a 2000KG tolerance threshold between static multideck and mobile weighbridge scales.
+- **Futuristic 3D Isometric Crystal Prism Charts**: Visual transformation of dashboard and analytics comparative bar charts into 3D hexagonal crystal prism columns featuring radiant white top caps, upward glowing neon halo blooms, and absolute-positioned floating bound abbreviations (`THK`, `NBO`) shaded in matching bar colors.
 
 Administrative report history and deletion controls are isolated in the
 password-gated `/admin` page. Normal users can create and continue report
