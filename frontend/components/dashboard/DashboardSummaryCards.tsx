@@ -224,9 +224,13 @@ export function StaticSummaryCards({ selectedDate, station }: { selectedDate: st
     },
   };
   const isJuja = Boolean((station || "").toLowerCase().includes("juja"));
+  const rawBoundALabel = data.staticByBound.boundA.label || "Bound A";
+  const rawBoundBLabel = data.staticByBound.boundB.label || "Bound B";
+  const safeBoundALabel = rawBoundALabel.toLowerCase().includes("mobile") ? "Bound A" : rawBoundALabel;
+  const safeBoundBLabel = rawBoundBLabel.toLowerCase().includes("mobile") ? "Bound B" : rawBoundBLabel;
   const staticLabels = {
-    boundA: isJuja ? "Thika Bound" : data.staticByBound.boundA.label || "Bound A",
-    boundB: isJuja ? "Nairobi Bound" : data.staticByBound.boundB.label || "Bound B",
+    boundA: isJuja ? "Thika Bound" : safeBoundALabel,
+    boundB: isJuja ? "Nairobi Bound" : safeBoundBLabel,
     total: data.staticByBound.total.label || "Total",
   };
   const isSingleBound = Boolean(data.isSingleBound || (station || "").toLowerCase().includes("kanyonyo"));

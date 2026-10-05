@@ -16,7 +16,7 @@ import {
   Upload,
   UserRound,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/report-builder/StatusBadge";
 import { useReportProgress } from "@/components/report-builder/ReportProgressContext";
@@ -26,6 +26,7 @@ import {
   getMobileExcelReportDownloadUrl,
   getMobileWordReportDownloadUrl,
   getReportSession,
+  getReportSessionBySlot,
   MobileReportUploadResponse,
   ReportSessionResponse,
   resolveApiUrl,
@@ -359,6 +360,8 @@ export default function NewMobileReportPage() {
     return initial;
   });
   const [reportId, setReportId] = useState<string | null>(null);
+  const sessionBoundRef = useRef<string | null>(null);
+  const sessionStationRef = useRef<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
   const [mounted, setMounted] = useState(false);
@@ -623,6 +626,8 @@ export default function NewMobileReportPage() {
     });
 
     setReportId(response.report_id);
+    sessionBoundRef.current = response.metadata?.bound || inputs.bound;
+    sessionStationRef.current = response.metadata?.station || inputs.station;
     setMobileExcelUrl(getMobileExcelReportDownloadUrl(response.report_id));
     localStorage.setItem(MOBILE_REPORT_ID_KEY, response.report_id);
     setSessionStatus("ready");
@@ -713,6 +718,8 @@ export default function NewMobileReportPage() {
 
         try {
           const session = await getReportSession(savedReportId);
+          sessionBoundRef.current = session.metadata?.bound || null;
+          sessionStationRef.current = session.metadata?.station || session.metadata?.weighbridge_name || null;
           const restoredFromSession = mobileInputsFromSession(
             session,
             currentInputs
@@ -823,9 +830,9 @@ export default function NewMobileReportPage() {
     const timeout = setTimeout(() => {
       updateReportSessionMetadata(reportId, {
         report_date: inputs.reportDate,
-        station: inputs.station,
-        bound: inputs.bound,
-        weighbridge_name: inputs.station,
+        station: sessionStationRef.current || inputs.station,
+        bound: sessionBoundRef.current || inputs.bound,
+        weighbridge_name: sessionStationRef.current || inputs.station,
         prepared_by: inputs.preparedBy,
         confirmed_by: inputs.approvedBy,
       }).catch((error) => {
@@ -837,13 +844,95 @@ export default function NewMobileReportPage() {
   }, [
     draftLoaded,
     inputs.approvedBy,
-    inputs.bound,
     inputs.preparedBy,
     inputs.reportDate,
-    inputs.station,
     metadataComplete,
     reportId,
   ]);
+
+  // Switch workspace when bound (shift) or station changes away from active session slot
+  useEffect(() => {
+    if (!draftLoaded || !reportId) return;
+
+    const currentBound = sessionBoundRef.current;
+    const currentStation = sessionStationRef.current;
+
+    const boundChanged = Boolean(
+      currentBound && inputs.bound.toLowerCase().trim() !== currentBound.toLowerCase().trim()
+    );
+    const stationChanged = Boolean(
+      currentStation && inputs.station.toLowerCase().trim() !== currentStation.toLowerCase().trim()
+    );
+
+    if (!boundChanged && !stationChanged) {
+      return;
+    }
+
+    let active = true;
+
+    async function switchMobileSlotWorkspace() {
+      try {
+        const targetDate = inputs.reportDate;
+        const targetStation = inputs.station;
+        const targetBound = inputs.bound;
+
+        if (targetDate && targetStation && targetBound) {
+          const existing = await getReportSessionBySlot(targetDate, targetStation, targetBound);
+          if (!active) return;
+          if (existing) {
+            setReportId(existing.report_id);
+            sessionBoundRef.current = existing.metadata?.bound || targetBound;
+            sessionStationRef.current = existing.metadata?.station || targetStation;
+            localStorage.setItem(MOBILE_REPORT_ID_KEY, existing.report_id);
+            setSessionStatus("ready");
+
+            const restoredFromSession = mobileInputsFromSession(existing, inputs);
+            if (!isAdmin && user) {
+              restoredFromSession.station = resolveUserMobileStation(user);
+              restoredFromSession.preparedBy = user.full_name || user.username || "";
+            }
+            const mobileSection = existing.sections?.mobile_report;
+            const mobileReady = mobileSection?.status === "ready";
+            const hasMobileManualInputs = Boolean(existing.manual_inputs?.mobile_report);
+
+            setInputs(restoredFromSession);
+            setManualStatus(hasMobileManualInputs ? "ready" : "idle");
+            setUploadResponse(existing as MobileReportUploadResponse);
+            setUploadStatus(mobileReady ? "ready" : mobileSection ? "error" : "idle");
+            setSelectedFileName(mobileSection?.filename || "");
+            setMobileExcelUrl(
+              resolveApiUrl(existing.mobile_excel_report?.download_url) ||
+                getMobileExcelReportDownloadUrl(existing.report_id)
+            );
+            return;
+          }
+        }
+
+        // Slot not found - detach workspace cleanly so ensureSession creates an isolated session for this shift
+        if (!active) return;
+        setReportId(null);
+        sessionBoundRef.current = null;
+        sessionStationRef.current = null;
+        localStorage.removeItem(MOBILE_REPORT_ID_KEY);
+        setSessionStatus("idle");
+        setManualStatus("idle");
+        setUploadStatus("idle");
+        setUploadResponse(null);
+        setMobileExcelUrl(null);
+        setBuiltOutputs(null);
+        setBuildStatus("idle");
+        setSelectedFileName("");
+      } catch (error) {
+        console.error("Failed to switch mobile slot workspace:", error);
+      }
+    }
+
+    switchMobileSlotWorkspace();
+
+    return () => {
+      active = false;
+    };
+  }, [draftLoaded, inputs.bound, inputs.station, inputs.reportDate, isAdmin, reportId, user]);
 
   function updateInput<K extends keyof MobileReportInputs>(
     field: K,
@@ -1159,6 +1248,8 @@ export default function NewMobileReportPage() {
     }
     setInputs(initialInputs);
     setReportId(null);
+    sessionBoundRef.current = null;
+    sessionStationRef.current = null;
     setSessionStatus("idle");
     setManualStatus("idle");
     setUploadStatus("idle");
