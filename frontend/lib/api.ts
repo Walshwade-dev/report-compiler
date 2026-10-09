@@ -815,6 +815,7 @@ export type CrossWeighedVehicle = {
   static: {
     station: string;
     bound: string;
+    totalGvwKg: number;
     gvwOverloadKg: number;
     axleOverloadKg: number;
     status: string;

@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  ClipboardPaste,
   Download,
   FileSpreadsheet,
   Gauge,
@@ -12,6 +13,7 @@ import {
   Save,
   Scale,
   Shield,
+  Sparkles,
   Truck,
   Upload,
   UserRound,
@@ -39,6 +41,10 @@ import {
   isSupportedSpreadsheetFile,
   supportedSpreadsheetFileMessage,
 } from "@/lib/files";
+import {
+  parseMobileBriefing,
+  applyBriefingToInputs,
+} from "@/lib/mobileBriefingParser";
 import { MobileReportInputs } from "@/lib/types";
 
 const MOBILE_DRAFT_KEY = "mobile-weighbridge-report-draft";
@@ -406,6 +412,15 @@ export default function NewMobileReportPage() {
   });
   const { setProgress } = useReportProgress();
   const { people } = useReportSettings();
+
+  const [briefingText, setBriefingText] = useState("");
+  const [briefingTargetShift, setBriefingTargetShift] = useState<"shift1" | "shift2">("shift1");
+  const [includeDateAndShift, setIncludeDateAndShift] = useState(true);
+  const [briefingFeedback, setBriefingFeedback] = useState<{
+    type: "success" | "warning";
+    message: string;
+    extractedFields: string[];
+  } | null>(null);
 
   const mobileWordUrl = reportId
     ? getMobileWordReportDownloadUrl(reportId)
@@ -945,6 +960,52 @@ export default function NewMobileReportPage() {
       ...previous,
       [field]: value,
     }));
+  }
+
+  function handleIngestBriefing() {
+    if (!briefingText.trim()) return;
+
+    try {
+      const parsed = parseMobileBriefing(briefingText, {
+        targetShift: briefingTargetShift,
+      });
+
+      if (parsed.extractedFields.length === 0) {
+        setBriefingFeedback({
+          type: "warning",
+          message: "No recognized fields found in the text. Please check the formatting.",
+          extractedFields: [],
+        });
+        return;
+      }
+
+      setInputs((prev) =>
+        applyBriefingToInputs(prev, parsed, {
+          includeDateAndShift,
+        })
+      );
+      setDraftStatus("saving");
+      setBuiltOutputs(null);
+      setBuildStatus((previous) => (previous === "building" ? previous : "idle"));
+
+      setBriefingFeedback({
+        type: "success",
+        message: `Successfully extracted ${parsed.extractedFields.length} field(s)!`,
+        extractedFields: parsed.extractedFields,
+      });
+    } catch (err) {
+      setBriefingFeedback({
+        type: "warning",
+        message:
+          err instanceof Error ? err.message : "Failed to parse briefing text.",
+        extractedFields: [],
+      });
+    }
+  }
+
+  function handleClearBriefing() {
+    setBriefingText("");
+    setBriefingFeedback(null);
   }
 
   async function handleSaveManualInputs(activeReportId?: string) {
@@ -2288,6 +2349,113 @@ export default function NewMobileReportPage() {
               Build the reports to enable downloads.
             </p>
           )}
+
+          <div className="mt-6 border-t border-cyan-900/60 pt-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles aria-hidden="true" className="text-amber-400" size={16} />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-200">
+                  Quick Ingest Briefing
+                </h3>
+              </div>
+              {briefingText && (
+                <button
+                  type="button"
+                  onClick={handleClearBriefing}
+                  className="text-[11px] text-slate-400 hover:text-slate-200 underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            <p className="mt-1 text-xs text-slate-400">
+              Paste patrol briefing message (WhatsApp/SMS) to auto-populate form fields.
+            </p>
+
+            {isMobileTwo && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-[11px] font-medium text-slate-400">Target Shift:</span>
+                <div className="flex rounded-md border border-cyan-900/60 bg-[#071827] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setBriefingTargetShift("shift1")}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded transition ${
+                      briefingTargetShift === "shift1"
+                        ? "bg-cyan-500 text-slate-950 shadow"
+                        : "text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    Shift 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBriefingTargetShift("shift2")}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded transition ${
+                      briefingTargetShift === "shift2"
+                        ? "bg-cyan-500 text-slate-950 shadow"
+                        : "text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    Shift 2
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <label className="mt-3 flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeDateAndShift}
+                onChange={(e) => setIncludeDateAndShift(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-400"
+              />
+              <span>Update Station, Shift & Date from text</span>
+            </label>
+
+            <textarea
+              id="briefing-textarea"
+              rows={7}
+              value={briefingText}
+              onChange={(e) => setBriefingText(e.target.value)}
+              placeholder={`Juja Mobile 2\nDated 08-10-2026\n\nMileage\nVehicle: KDS042Z\nStart Mileage: 88,352 kms\nClosing Mileage: 88, 590 kms\n...\nActual Route\nEnzui-Ukasi-...\n\nDanka Personnel\nDM: George Mberia\nDriver: Cyrus Ng\u00e1ng\u00e1\n\nPolice Officers\nSGT Obilo\nPC Edwin Kibiwott`}
+              className="mt-3 w-full rounded-lg border border-cyan-900/70 bg-[#071827] p-2.5 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+            />
+
+            <button
+              type="button"
+              onClick={handleIngestBriefing}
+              disabled={!briefingText.trim()}
+              className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-md transition hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ClipboardPaste aria-hidden="true" size={15} />
+              Extract & Ingest to Form
+            </button>
+
+            {briefingFeedback && (
+              <div
+                className={`mt-3 rounded-lg border p-3 text-xs ${
+                  briefingFeedback.type === "success"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                }`}
+              >
+                <p className="font-semibold">{briefingFeedback.message}</p>
+                {briefingFeedback.extractedFields.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {briefingFeedback.extractedFields.map((field, idx) => (
+                      <span
+                        key={idx}
+                        className="rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-mono text-cyan-200"
+                      >
+                        {field}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </aside>
       </div>
     </>

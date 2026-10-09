@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/test_classifier.mjs && node scripts/test_metadata_date_sync.mjs && node scripts/test_bound_lifecycle.mjs"
+    "test": "node scripts/test_classifier.mjs && node scripts/test_metadata_date_sync.mjs && node scripts/test_bound_lifecycle.mjs && node scripts/test_mobile_briefing_parser.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
