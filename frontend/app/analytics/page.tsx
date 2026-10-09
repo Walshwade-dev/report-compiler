@@ -855,110 +855,63 @@ export default function AnalyticsPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-[380px] overflow-y-auto custom-scrollbar pr-1">
-                {crossWeighedVehicles.map((v, i) => (
-                  <div
-                    key={`${v.date}-${v.registration}-${i}`}
-                    className="rounded-xl border border-slate-800 bg-[#071827] p-4 shadow-lg transition-all duration-300 hover:border-sky-500/40 hover:bg-[#0b2135]/70 flex flex-col justify-between space-y-3"
-                  >
-                    {/* Header */}
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-bold text-sky-200 rounded border border-sky-500/30 bg-sky-950/30 px-2 py-0.5">
-                          {v.registration}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-200">{v.cargo}</span>
-                      </div>
-                      <span className="text-[10.5px] font-semibold text-slate-400 flex items-center gap-1 font-mono">
-                        <Calendar size={12} className="text-sky-400" />
-                        {v.date}
-                      </span>
-                    </div>
+              <div className="overflow-hidden rounded-lg border border-slate-800 bg-black/40 shadow-inner">
+                <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead className="sticky top-0 z-10 border-b border-slate-800 bg-[#061928] text-[10px] font-extrabold uppercase tracking-wider text-slate-300 shadow-sm">
+                      <tr>
+                        <th className="py-2.5 px-3">Vehicle Reg</th>
+                        <th className="py-2.5 px-3 text-center">Static Weigh (kg)</th>
+                        <th className="py-2.5 px-3 text-center">Mobile Weigh (kg)</th>
+                        <th className="py-2.5 px-3 text-center">Diff (kg)</th>
+                        <th className="py-2.5 px-3 text-center">Diff (%)</th>
+                        <th className="py-2.5 px-3">Cargo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 font-mono text-slate-300">
+                      {crossWeighedVehicles.map((v, i) => {
+                        const staticWt = v.static.totalGvwKg || 0;
+                        const mobileWt = v.mobile.totalGvwKg || 0;
+                        const diffKg = mobileWt - staticWt;
+                        const pctDiff = staticWt > 0 ? ((diffKg / staticWt) * 100).toFixed(1) : "0.0";
+                        const isPos = diffKg > 0;
+                        const isNeg = diffKg < 0;
+                        const colorClass = isPos ? "text-rose-400" : isNeg ? "text-emerald-400" : "text-slate-400";
 
-                    {/* Dual Cards: Mobile vs Static */}
-                    <div className="grid grid-cols-2 gap-2.5 text-xs">
-                      {/* Mobile Card */}
-                      <div className="rounded-lg border border-slate-800/80 bg-slate-900/40 p-2.5 space-y-1.5">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-                          <span className="text-[10px] font-extrabold uppercase text-sky-300">
-                            Mobile Patrol
-                          </span>
-                          <span
-                            className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded border ${
-                              v.mobile.remarks === "CHARGED"
-                                ? "border-rose-800 bg-rose-950/60 text-rose-300"
-                                : v.mobile.remarks === "WARNED"
-                                ? "border-amber-800 bg-amber-950/60 text-amber-200"
-                                : "border-emerald-800 bg-emerald-950/60 text-emerald-300"
-                            }`}
-                          >
-                            {v.mobile.remarks}
-                          </span>
-                        </div>
-                        <div className="flex justify-between font-mono text-[11px]">
-                          <span className="text-slate-400">Total GVW:</span>
-                          <span className="font-bold text-slate-200">{v.mobile.totalGvwKg.toLocaleString()} kg</span>
-                        </div>
-                        <div className="flex justify-between font-mono text-[11px]">
-                          <span className="text-slate-400">Difference:</span>
-                          <span
-                            className={`font-bold ${
-                              v.mobile.differenceKg > 0 ? "text-rose-300/90" : "text-emerald-400/90"
-                            }`}
-                          >
-                            {v.mobile.differenceKg > 0 ? `+${v.mobile.differenceKg.toLocaleString()}` : v.mobile.differenceKg.toLocaleString()} kg
-                          </span>
-                        </div>
-                        <div className="text-[9px] text-slate-400 truncate">
-                          {v.mobile.station} ({v.mobile.bound})
-                        </div>
-                      </div>
-
-                      {/* Static Card */}
-                      <div className="rounded-lg border border-slate-800/80 bg-slate-900/40 p-2.5 space-y-1.5">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-                          <span className="text-[10px] font-extrabold uppercase text-indigo-300">
-                            Static Weighbridge
-                          </span>
-                          <span className="text-[8.5px] font-bold px-1.5 py-0.2 rounded border border-indigo-800 bg-indigo-950/60 text-indigo-300">
-                            {v.static.status}
-                          </span>
-                        </div>
-                        <div className="flex justify-between font-mono text-[11px]">
-                          <span className="text-slate-400">Axle Overload:</span>
-                          <span
-                            className={`font-bold ${
-                              v.static.axleOverloadKg > 0 ? "text-rose-300/90" : "text-slate-400"
-                            }`}
-                          >
-                            {v.static.axleOverloadKg > 0 ? `+${v.static.axleOverloadKg.toLocaleString()}` : "0"} kg
-                          </span>
-                        </div>
-                        <div className="flex justify-between font-mono text-[11px]">
-                          <span className="text-slate-400">GVW Overload:</span>
-                          <span
-                            className={`font-bold ${
-                              v.static.gvwOverloadKg > 0 ? "text-rose-300/90" : "text-slate-400"
-                            }`}
-                          >
-                            {v.static.gvwOverloadKg > 0 ? `+${v.static.gvwOverloadKg.toLocaleString()}` : "0"} kg
-                          </span>
-                        </div>
-                        <div className="text-[9px] text-slate-400 truncate">
-                          {v.static.station} ({v.static.bound})
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Field Perspective Insight */}
-                    <div className="rounded-lg border border-slate-800 bg-[#051421] p-2.5 text-[10.5px] text-slate-300 flex items-start gap-2">
-                      <Info size={14} className="text-sky-400 shrink-0 mt-0.5" />
-                      <span>
-                        <strong className="text-slate-200">Field Perspective:</strong> {v.fieldPerspective}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                        return (
+                          <tr key={`${v.date}-${v.registration}-${i}`} className="hover:bg-white/[0.04] transition-colors">
+                            <td className="py-2 px-3">
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="font-mono text-[11px] font-bold text-sky-200 rounded border border-sky-500/30 bg-sky-950/30 px-1.5 py-0.5">
+                                  {v.registration}
+                                </span>
+                                <span className="text-[9px] text-slate-500 flex items-center gap-1">
+                                  <Calendar size={10} className="text-sky-400" />
+                                  {v.date}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-2 px-3 text-center text-[11px] font-bold text-indigo-300">
+                              {staticWt > 0 ? staticWt.toLocaleString() : "N/A"}
+                            </td>
+                            <td className="py-2 px-3 text-center text-[11px] font-bold text-sky-300">
+                              {mobileWt.toLocaleString()}
+                            </td>
+                            <td className={`py-2 px-3 text-center text-[11px] font-bold ${colorClass}`}>
+                              {diffKg > 0 ? `+${diffKg.toLocaleString()}` : diffKg.toLocaleString()}
+                            </td>
+                            <td className={`py-2 px-3 text-center text-[11px] font-bold ${colorClass}`}>
+                              {diffKg > 0 ? `+${pctDiff}%` : `${pctDiff}%`}
+                            </td>
+                            <td className="py-2 px-3 font-sans font-bold text-white text-[11px] truncate max-w-[150px]" title={v.cargo}>
+                              {v.cargo}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
