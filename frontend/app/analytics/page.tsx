@@ -711,7 +711,7 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="overflow-hidden rounded-lg border border-purple-900/40 bg-black/40 shadow-inner">
-                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
                   <table className="w-full border-collapse text-left text-xs">
                     <thead className="sticky top-0 z-10 border-b border-purple-900/50 bg-[#061928] text-[10px] font-extrabold uppercase tracking-wider text-slate-300 shadow-sm">
                       <tr>
@@ -856,7 +856,7 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="overflow-hidden rounded-lg border border-slate-800 bg-black/40 shadow-inner">
-                <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
+                <div className="max-h-[380px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
                   <table className="w-full border-collapse text-left text-xs">
                     <thead className="sticky top-0 z-10 border-b border-slate-800 bg-[#061928] text-[10px] font-extrabold uppercase tracking-wider text-slate-300 shadow-sm">
                       <tr>
@@ -1214,7 +1214,7 @@ export default function AnalyticsPage() {
 
                 {/* Cargo Detail Table */}
                 <div className="overflow-hidden rounded-lg border border-slate-800/80 bg-black/40 shadow-inner">
-                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead className="sticky top-0 z-10 border-b border-slate-800 bg-[#061928] text-[10px] font-extrabold uppercase tracking-wider text-slate-300 shadow-sm">
                         <tr>
