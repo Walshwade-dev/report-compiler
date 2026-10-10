@@ -2353,7 +2353,6 @@ export default function NewMobileReportPage() {
           <div className="mt-6 border-t border-cyan-900/60 pt-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles aria-hidden="true" className="text-amber-400" size={16} />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-200">
                   Quick Ingest Briefing
                 </h3>
@@ -2376,30 +2375,14 @@ export default function NewMobileReportPage() {
             {isMobileTwo && (
               <div className="mt-3 flex items-center gap-2">
                 <span className="text-[11px] font-medium text-slate-400">Target Shift:</span>
-                <div className="flex rounded-md border border-cyan-900/60 bg-[#071827] p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setBriefingTargetShift("shift1")}
-                    className={`px-2.5 py-1 text-xs font-semibold rounded transition ${
-                      briefingTargetShift === "shift1"
-                        ? "bg-cyan-500 text-slate-950 shadow"
-                        : "text-slate-300 hover:text-white"
-                    }`}
-                  >
-                    Shift 1
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBriefingTargetShift("shift2")}
-                    className={`px-2.5 py-1 text-xs font-semibold rounded transition ${
-                      briefingTargetShift === "shift2"
-                        ? "bg-cyan-500 text-slate-950 shadow"
-                        : "text-slate-300 hover:text-white"
-                    }`}
-                  >
-                    Shift 2
-                  </button>
-                </div>
+                <select
+                  value={briefingTargetShift}
+                  onChange={(e) => setBriefingTargetShift(e.target.value as "shift1" | "shift2")}
+                  className="rounded-md border border-cyan-900/60 bg-[#071827] px-2.5 py-1 text-xs font-semibold text-slate-200 shadow-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none transition-colors"
+                >
+                  <option value="shift1">Day Shift (Shift A)</option>
+                  <option value="shift2">Night Shift (Shift B)</option>
+                </select>
               </div>
             )}
 
@@ -2415,11 +2398,11 @@ export default function NewMobileReportPage() {
 
             <textarea
               id="briefing-textarea"
-              rows={7}
+              rows={9}
               value={briefingText}
               onChange={(e) => setBriefingText(e.target.value)}
               placeholder={`Juja Mobile 2\nDated 08-10-2026\n\nMileage\nVehicle: KDS042Z\nStart Mileage: 88,352 kms\nClosing Mileage: 88, 590 kms\n...\nActual Route\nEnzui-Ukasi-...\n\nDanka Personnel\nDM: George Mberia\nDriver: Cyrus Ng\u00e1ng\u00e1\n\nPolice Officers\nSGT Obilo\nPC Edwin Kibiwott`}
-              className="mt-3 w-full rounded-lg border border-cyan-900/70 bg-[#071827] p-2.5 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+              className="mt-3 w-full rounded-lg border border-cyan-900/70 bg-[#071827] p-2.5 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 custom-scrollbar scrollbar-thin scrollbar-thumb-cyan-500/50 scrollbar-track-[#071827]/50"
             />
 
             <button
