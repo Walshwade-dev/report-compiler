@@ -2402,7 +2402,7 @@ export default function NewMobileReportPage() {
               value={briefingText}
               onChange={(e) => setBriefingText(e.target.value)}
               placeholder={`Juja Mobile 2\nDated 08-10-2026\n\nMileage\nVehicle: KDS042Z\nStart Mileage: 88,352 kms\nClosing Mileage: 88, 590 kms\n...\nActual Route\nEnzui-Ukasi-...\n\nDanka Personnel\nDM: George Mberia\nDriver: Cyrus Ng\u00e1ng\u00e1\n\nPolice Officers\nSGT Obilo\nPC Edwin Kibiwott`}
-              className="mt-3 w-full rounded-lg border border-cyan-900/70 bg-[#071827] p-2.5 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 custom-scrollbar scrollbar-thin scrollbar-thumb-cyan-500/50 scrollbar-track-[#071827]/50"
+              className="mt-3 w-full rounded-lg border border-cyan-900/70 bg-[#071827] p-2.5 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50"
             />
 
             <button
