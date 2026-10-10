@@ -152,7 +152,7 @@ export function TopDMsTable({ selectedDate, station }: { selectedDate: string; s
         </div>
 
         {/* Scrollable Table Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="relative w-8 h-8">
@@ -165,7 +165,7 @@ export function TopDMsTable({ selectedDate, station }: { selectedDate: string; s
               <span className="text-slate-500 text-xs">No data available</span>
             </div>
           ) : (
-            <div className="overflow-x-auto custom-scrollbar">
+            <div className="overflow-x-auto custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
               <table className="w-full text-left text-xs text-slate-300">
                 <thead className="text-[10px] text-cyan-200 uppercase tracking-wider bg-cyan-950/20 sticky top-0 backdrop-blur-sm z-10">
                   <tr>
@@ -273,7 +273,7 @@ export function TopDMsTable({ selectedDate, station }: { selectedDate: string; s
             </div>
 
             {/* Modal Content - Wide Table */}
-            <div className="overflow-y-auto p-6 flex-1 custom-scrollbar">
+            <div className="overflow-y-auto p-6 flex-1 custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
               <div className="overflow-x-auto rounded-xl border border-cyan-950 bg-[#0b2135]/20 shadow-inner">
                 <table className="w-full text-left text-sm text-slate-300 border-collapse">
                   <thead className="text-xs text-cyan-200 uppercase tracking-wider bg-cyan-950/40 sticky top-0 backdrop-blur-sm z-10 border-b border-cyan-900/40">

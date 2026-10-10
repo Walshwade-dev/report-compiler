@@ -171,7 +171,7 @@ export function DMSPerformance({ selectedDate, station }: { selectedDate: string
         {/* Content */}
         <div className="flex flex-col gap-4 flex-1 min-h-0 justify-between">
           {/* Top: Sliced List */}
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
             <h3 className="text-xs font-bold text-cyan-200 uppercase tracking-wider mb-2.5">Top Performers</h3>
             {dmsData.length === 0 ? (
               <p className="text-xs text-slate-500">No active mobile charge data.</p>
@@ -297,11 +297,11 @@ export function DMSPerformance({ selectedDate, station }: { selectedDate: string
             </div>
 
             {/* Modal Body */}
-            <div className="overflow-y-auto p-6 flex flex-col md:flex-row gap-8 items-center md:items-start custom-scrollbar">
+            <div className="overflow-y-auto p-6 flex flex-col md:flex-row gap-8 items-center md:items-start custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
               {/* Leaderboard list */}
               <div className="flex-1 w-full space-y-3">
                 <h4 className="text-xs font-bold text-cyan-200 uppercase tracking-wider mb-2">All Participating Teams</h4>
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50">
                   {dmsData.map((dms, idx) => (
                     <div
                       key={dms.name}

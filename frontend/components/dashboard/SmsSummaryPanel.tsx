@@ -187,7 +187,7 @@ export function SmsSummaryPanel({
 
               {/* SMS text card container */}
               <div
-                className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-xl border border-cyan-900/40 bg-[#071827]/90 p-3.5 shadow-inner transition-colors hover:border-cyan-500/30 custom-scrollbar"
+                className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-xl border border-cyan-900/40 bg-[#071827]/90 p-3.5 shadow-inner transition-colors hover:border-cyan-500/30 custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50"
               >
                 <pre className="font-mono text-[11px] text-slate-300 leading-relaxed whitespace-pre-wrap select-all pr-2">
                   {activeItem.text}
@@ -312,7 +312,7 @@ export function SmsSummaryPanel({
                 </button>
               </div>
             </div>
-            <div className="custom-scrollbar overflow-y-auto p-5">
+            <div className="custom-scrollbar [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50 overflow-y-auto p-5">
               <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-slate-200">
                 {modalItem.text}
               </pre>
