@@ -193,22 +193,21 @@ export default function MonthlyReportPage() {
           <div className="space-y-5">
             {/* 1. Report Type Selection */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-cyan-200">
+              <label htmlFor="report-type" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-cyan-200">
                 Report Type
               </label>
-              <div className="relative">
-                <select
-                  value={reportType}
-                  onChange={(e) => setReportType(e.target.value)}
-                  className="w-full rounded-lg border border-cyan-900 bg-[#071827] px-4 py-2.5 text-sm font-medium text-cyan-100 outline-none transition focus:border-cyan-400"
-                >
-                  {REPORT_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                id="report-type"
+                value={reportType}
+                onChange={(e) => setReportType(e.target.value)}
+                className="w-full rounded-lg border border-cyan-900 bg-[#071827] px-4 py-2.5 text-sm font-medium text-cyan-100 outline-none focus:border-cyan-400 cursor-pointer [color-scheme:dark]"
+              >
+                {REPORT_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id} className="bg-[#071827] text-white">
+                    {opt.name}
+                  </option>
+                ))}
+              </select>
               <p className="mt-1.5 text-[11px] text-slate-400">
                 Official consolidated return template with Shift A, Shift B, and 24-Hour hourly breakdowns.
               </p>
@@ -217,7 +216,7 @@ export default function MonthlyReportPage() {
             {/* 2. Station Scope */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-cyan-200">
+                <label htmlFor="station-scope" className="block text-xs font-bold uppercase tracking-wider text-cyan-200">
                   Station Scope
                 </label>
                 {isLocked && (
@@ -227,18 +226,19 @@ export default function MonthlyReportPage() {
                 )}
               </div>
               <select
+                id="station-scope"
                 disabled={isLocked}
                 value={station}
                 onChange={(e) => setStation(e.target.value)}
-                className={`w-full rounded-lg border border-cyan-900 bg-[#071827] px-4 py-2.5 text-sm font-medium text-cyan-100 outline-none transition focus:border-cyan-400 ${
-                  isLocked ? "opacity-75 cursor-not-allowed bg-[#071827]/70" : ""
+                className={`w-full rounded-lg border border-cyan-900 bg-[#071827] px-4 py-2.5 text-sm font-medium text-cyan-100 outline-none focus:border-cyan-400 [color-scheme:dark] ${
+                  isLocked ? "opacity-75 cursor-not-allowed bg-[#071827]/70" : "cursor-pointer"
                 }`}
               >
                 {isLocked ? (
-                  <option value={station}>{station}</option>
+                  <option value={station} className="bg-[#071827] text-white">{station}</option>
                 ) : (
                   MOBILE_WEIGHBRIDGE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
+                    <option key={opt} value={opt} className="bg-[#071827] text-white">
                       {opt}
                     </option>
                   ))
@@ -248,19 +248,20 @@ export default function MonthlyReportPage() {
 
             {/* 3. Target Month & Year */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-cyan-200">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-cyan-200">
                 Reporting Period
-              </label>
+              </span>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[11px] font-medium text-slate-400 block mb-1">Month</span>
+                  <label htmlFor="report-month" className="text-[11px] font-medium text-slate-400 block mb-1">Month</label>
                   <select
+                    id="report-month"
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-cyan-100 outline-none transition focus:border-cyan-400"
+                    className="w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-cyan-100 outline-none focus:border-cyan-400 cursor-pointer [color-scheme:dark]"
                   >
                     {MONTH_OPTIONS.map((m) => (
-                      <option key={m.value} value={m.value}>
+                      <option key={m.value} value={m.value} className="bg-[#071827] text-white">
                         {m.label}
                       </option>
                     ))}
@@ -268,14 +269,15 @@ export default function MonthlyReportPage() {
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-medium text-slate-400 block mb-1">Year</span>
+                  <label htmlFor="report-year" className="text-[11px] font-medium text-slate-400 block mb-1">Year</label>
                   <select
+                    id="report-year"
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-cyan-100 outline-none transition focus:border-cyan-400"
+                    className="w-full rounded-lg border border-cyan-900 bg-[#071827] px-3 py-2 text-sm text-cyan-100 outline-none focus:border-cyan-400 cursor-pointer [color-scheme:dark]"
                   >
                     {YEAR_OPTIONS.map((y) => (
-                      <option key={y} value={y}>
+                      <option key={y} value={y} className="bg-[#071827] text-white">
                         {y}
                       </option>
                     ))}
