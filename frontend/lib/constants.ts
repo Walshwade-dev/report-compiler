@@ -35,6 +35,16 @@ export const REPORT_NAV_ITEMS = [
 
         active: false,
       },
+
+      {
+        label: "Monthly Report",
+
+        href: "/reports/monthly/new",
+
+        icon: "calendar",
+
+        active: false,
+      },
     ],
   },
 ];
@@ -47,6 +57,15 @@ export const WEIGHBRIDGE_OPTIONS = [
   "KANYONYO",
   "SUSWA",
   "ISINYA"
+];
+
+export const MOBILE_WEIGHBRIDGE_OPTIONS = [
+  "Juja mobile",
+  "Athi River mobile",
+  "Gilgil mobile",
+  "Kanyonyo mobile",
+  "Suswa mobile",
+  "Isinya mobile",
 ];
 
 export const BOUND_OPTIONS = [

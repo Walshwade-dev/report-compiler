@@ -1,6 +1,7 @@
 "use client";
 import {
   BarChart3,
+  Calendar,
   ChevronDown,
   FileText,
   LayoutDashboard,
@@ -133,6 +134,8 @@ export function ReportSidebar({ onOpenSettings }: ReportSidebarProps) {
                           >
                             {item.icon === "file" ? (
                               <FileText size={16} />
+                            ) : item.icon === "calendar" ? (
+                              <Calendar size={16} />
                             ) : (
                               <Truck size={16} />
                             )}

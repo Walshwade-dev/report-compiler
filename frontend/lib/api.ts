@@ -2,7 +2,7 @@ import { UPLOAD_ENDPOINTS } from "./constants";
 import type { TransgressionOcrResponse, CensusOcrResponse } from "./types";
 
 const DEPLOYED_API_ORIGIN = "https://report-app-px6c.onrender.com";
-const LOCAL_API_ORIGIN = "http://127.0.0.1:8000";
+const LOCAL_API_ORIGIN = process.env.NEXT_PUBLIC_LOCAL_API_BASE_URL || "http://127.0.0.1:8005";
 const ENV_API_ORIGIN = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "");
 
 export const API_ORIGIN = ENV_API_ORIGIN || DEPLOYED_API_ORIGIN;
@@ -15,7 +15,7 @@ function isLocalBrowser() {
   return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 }
 
-function getApiOrigin() {
+export function getApiOrigin() {
   if (ENV_API_ORIGIN) {
     return ENV_API_ORIGIN;
   }
