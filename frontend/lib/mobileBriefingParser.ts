@@ -31,6 +31,66 @@ export interface IngestBriefingOptions {
   targetShift?: "shift1" | "shift2" | "auto";
 }
 
+export function cleanUpper(val?: string | null): string {
+  return val ? val.trim().toUpperCase() : "";
+}
+
+/**
+ * Normalizes DM name:
+ * Strips any leading "DM", "DM.", "DM:", "D.M.", trims, and ensures standard "DM " prefix in uppercase.
+ * e.g. "George Mberia" -> "DM GEORGE MBERIA"
+ *      "DM George Mberia" -> "DM GEORGE MBERIA"
+ *      "DMERIC ROTICH" -> "DM ERIC ROTICH"
+ */
+export function formatDmName(rawName?: string | null): string {
+  if (!rawName) return "";
+  let clean = rawName.trim().toUpperCase();
+  clean = clean.replace(/^(?:D\.?M\.?[:\s\-]*)/i, "").trim();
+  if (clean.startsWith("DM") && clean.length > 2 && /^[A-Z]/.test(clean.substring(2))) {
+    clean = clean.substring(2).trim();
+  }
+  if (!clean) return "";
+  return `DM ${clean.replace(/\s+/g, " ")}`;
+}
+
+/**
+ * Normalizes Driver name:
+ * Strips any leading "DRIVER", "DRV", "DRIVER:", trims, and ensures standard "DRIVER " prefix in uppercase.
+ * e.g. "Cyrus Ng'ang'a" -> "DRIVER CYRUS NG'ANG'A"
+ *      "Driver Cyrus Ng'ang'a" -> "DRIVER CYRUS NG'ANG'A"
+ */
+export function formatDriverName(rawName?: string | null): string {
+  if (!rawName) return "";
+  let clean = rawName.trim().toUpperCase();
+  clean = clean.replace(/^(?:DRIVER|DRV)[:\s\-]*/i, "").trim();
+  if (!clean) return "";
+  return `DRIVER ${clean.replace(/\s+/g, " ")}`;
+}
+
+/**
+ * Normalizes Police Officer name:
+ * Standardizes common Kenya Police rank prefixes (SGT, PC, CPL, IP, CI) in uppercase.
+ * e.g. "Sgt Obilo" -> "SGT OBILO"
+ *      "pc Edwin Kibiwott" -> "PC EDWIN KIBIWOTT"
+ *      "Obilo" -> "OBILO"
+ */
+export function formatPoliceName(rawName?: string | null): string {
+  if (!rawName) return "";
+  let clean = rawName.trim().toUpperCase();
+  clean = clean
+    .replace(/^SERGEANT[:\s\-]*/i, "SGT ")
+    .replace(/^S\.?G\.?T\.?[:\s\-]*/i, "SGT ")
+    .replace(/^CONSTABLE[:\s\-]*/i, "PC ")
+    .replace(/^P\.?C\.?[:\s\-]*/i, "PC ")
+    .replace(/^CORPORAL[:\s\-]*/i, "CPL ")
+    .replace(/^C\.?P\.?L\.?[:\s\-]*/i, "CPL ")
+    .replace(/^CHIEF\s+INSPECTOR[:\s\-]*/i, "CI ")
+    .replace(/^C\.?I\.?[:\s\-]*/i, "CI ")
+    .replace(/^INSPECTOR[:\s\-]*/i, "IP ")
+    .replace(/^I\.?P\.?[:\s\-]*/i, "IP ");
+  return clean.replace(/\s+/g, " ").trim();
+}
+
 /**
  * Parses free-form text from patrol briefings (such as WhatsApp or SMS messages)
  * and extracts standard mobile weighbridge report fields.
@@ -146,13 +206,13 @@ export function parseMobileBriefing(
     // DM
     const dmMatch = blockText.match(/\bDM\s*[:\-]\s*([^\n/]+)/i);
     if (dmMatch) {
-      data.dmEntry = dmMatch[1].trim();
+      data.dmEntry = formatDmName(dmMatch[1]);
     }
 
     // Driver
     const driverMatch = blockText.match(/\bDriver\s*[:\-]\s*([^\n/]+)/i);
     if (driverMatch) {
-      data.driverEntry = driverMatch[1].trim();
+      data.driverEntry = formatDriverName(driverMatch[1]);
     }
 
     // Police
@@ -163,10 +223,10 @@ export function parseMobileBriefing(
       const inlineVal = pInline[1].trim();
       if (/[/,&]|\band\b/i.test(inlineVal)) {
         const parts = inlineVal.split(/[/,&]|\band\b/i).map((p) => p.trim());
-        data.policeOfficerOne = parts[0] || "";
-        data.policeOfficerTwo = parts[1] || "";
+        data.policeOfficerOne = formatPoliceName(parts[0]) || "";
+        data.policeOfficerTwo = formatPoliceName(parts[1]) || "";
       } else {
-        data.policeOfficerOne = inlineVal;
+        data.policeOfficerOne = formatPoliceName(inlineVal);
       }
     }
     if (!data.policeOfficerOne || !data.policeOfficerTwo) {
@@ -176,11 +236,11 @@ export function parseMobileBriefing(
       if (pIdx !== -1) {
         let nextIdx = pIdx + 1;
         if (!data.policeOfficerOne && blockLines[nextIdx] && !blockLines[nextIdx].includes(":")) {
-          data.policeOfficerOne = blockLines[nextIdx].trim();
+          data.policeOfficerOne = formatPoliceName(blockLines[nextIdx]);
           nextIdx++;
         }
         if (!data.policeOfficerTwo && blockLines[nextIdx] && !blockLines[nextIdx].includes(":")) {
-          data.policeOfficerTwo = blockLines[nextIdx].trim();
+          data.policeOfficerTwo = formatPoliceName(blockLines[nextIdx]);
         }
       }
     }
@@ -422,39 +482,39 @@ export function applyBriefingToInputs(
   }
 
   // Shift 1 / Single shift
-  if (parsed.mobileVehicleReg) next.mobileVehicleReg = parsed.mobileVehicleReg;
-  if (parsed.startMileage) next.startMileage = parsed.startMileage;
-  if (parsed.stopMileage) next.stopMileage = parsed.stopMileage;
-  if (parsed.dmEntry) next.dmEntry = parsed.dmEntry;
-  if (parsed.driverEntry) next.driverEntry = parsed.driverEntry;
-  if (parsed.policeOfficerOne) next.policeOfficerOne = parsed.policeOfficerOne;
-  if (parsed.policeOfficerTwo) next.policeOfficerTwo = parsed.policeOfficerTwo;
+  if (parsed.mobileVehicleReg) next.mobileVehicleReg = cleanUpper(parsed.mobileVehicleReg);
+  if (parsed.startMileage) next.startMileage = parsed.startMileage.trim();
+  if (parsed.stopMileage) next.stopMileage = parsed.stopMileage.trim();
+  if (parsed.dmEntry) next.dmEntry = formatDmName(parsed.dmEntry);
+  if (parsed.driverEntry) next.driverEntry = formatDriverName(parsed.driverEntry);
+  if (parsed.policeOfficerOne) next.policeOfficerOne = formatPoliceName(parsed.policeOfficerOne);
+  if (parsed.policeOfficerTwo) next.policeOfficerTwo = formatPoliceName(parsed.policeOfficerTwo);
 
   // Shift 2
   if (parsed.shiftTwoMobileVehicleReg)
-    next.shiftTwoMobileVehicleReg = parsed.shiftTwoMobileVehicleReg;
+    next.shiftTwoMobileVehicleReg = cleanUpper(parsed.shiftTwoMobileVehicleReg);
   if (parsed.shiftTwoStartMileage)
-    next.shiftTwoStartMileage = parsed.shiftTwoStartMileage;
+    next.shiftTwoStartMileage = parsed.shiftTwoStartMileage.trim();
   if (parsed.shiftTwoStopMileage)
-    next.shiftTwoStopMileage = parsed.shiftTwoStopMileage;
-  if (parsed.shiftTwoDmEntry) next.shiftTwoDmEntry = parsed.shiftTwoDmEntry;
+    next.shiftTwoStopMileage = parsed.shiftTwoStopMileage.trim();
+  if (parsed.shiftTwoDmEntry) next.shiftTwoDmEntry = formatDmName(parsed.shiftTwoDmEntry);
   if (parsed.shiftTwoDriverEntry)
-    next.shiftTwoDriverEntry = parsed.shiftTwoDriverEntry;
+    next.shiftTwoDriverEntry = formatDriverName(parsed.shiftTwoDriverEntry);
   if (parsed.shiftTwoPoliceOfficerOne)
-    next.shiftTwoPoliceOfficerOne = parsed.shiftTwoPoliceOfficerOne;
+    next.shiftTwoPoliceOfficerOne = formatPoliceName(parsed.shiftTwoPoliceOfficerOne);
   if (parsed.shiftTwoPoliceOfficerTwo)
-    next.shiftTwoPoliceOfficerTwo = parsed.shiftTwoPoliceOfficerTwo;
+    next.shiftTwoPoliceOfficerTwo = formatPoliceName(parsed.shiftTwoPoliceOfficerTwo);
 
   // Route & compliance counters
-  if (parsed.route) next.route = parsed.route;
+  if (parsed.route) next.route = cleanUpper(parsed.route);
   if (parsed.transgressionsCount !== undefined)
-    next.transgressionsCount = parsed.transgressionsCount;
+    next.transgressionsCount = parsed.transgressionsCount.trim();
   if (parsed.casesClearedInCourt !== undefined)
-    next.casesClearedInCourt = parsed.casesClearedInCourt;
+    next.casesClearedInCourt = parsed.casesClearedInCourt.trim();
   if (parsed.exemptedPermit !== undefined)
-    next.exemptedPermit = parsed.exemptedPermit;
+    next.exemptedPermit = parsed.exemptedPermit.trim();
   if (parsed.manuallyWeighed !== undefined)
-    next.manuallyWeighed = parsed.manuallyWeighed;
+    next.manuallyWeighed = parsed.manuallyWeighed.trim();
 
   return next;
 }

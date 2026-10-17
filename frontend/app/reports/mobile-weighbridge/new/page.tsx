@@ -44,6 +44,9 @@ import {
 import {
   parseMobileBriefing,
   applyBriefingToInputs,
+  formatDmName,
+  formatDriverName,
+  formatPoliceName,
 } from "@/lib/mobileBriefingParser";
 import { MobileReportInputs } from "@/lib/types";
 
@@ -254,6 +257,7 @@ type TextInputProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   type?: "date" | "number" | "text";
   min?: number;
   uppercase?: boolean;
@@ -275,6 +279,7 @@ function TextInput({
   label,
   value,
   onChange,
+  onBlur,
   type = "text",
   min,
   uppercase = true,
@@ -299,6 +304,7 @@ function TextInput({
         min={min}
         value={value}
         placeholder={placeholder}
+        onBlur={onBlur}
         onChange={(event) =>
           onChange(
             uppercase && type === "text"
@@ -368,6 +374,8 @@ export default function NewMobileReportPage() {
   const [reportId, setReportId] = useState<string | null>(null);
   const sessionBoundRef = useRef<string | null>(null);
   const sessionStationRef = useRef<string | null>(null);
+  const sessionDateRef = useRef<string | null>(null);
+  const sessionCreationPromiseRef = useRef<Promise<string> | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
   const [mounted, setMounted] = useState(false);
@@ -522,14 +530,14 @@ export default function NewMobileReportPage() {
       start_time: "0000",
       end_time: "0800",
       danka_staff: [
-        inputs.dmEntry,
-        inputs.driverEntry,
+        formatDmName(inputs.dmEntry),
+        formatDriverName(inputs.driverEntry),
       ]
         .filter(Boolean)
         .join(" / "),
       police_officers: [
-        inputs.policeOfficerOne,
-        inputs.policeOfficerTwo,
+        formatPoliceName(inputs.policeOfficerOne),
+        formatPoliceName(inputs.policeOfficerTwo),
       ]
         .filter(Boolean)
         .join(" / "),
@@ -543,14 +551,14 @@ export default function NewMobileReportPage() {
       start_time: "0800",
       end_time: "0000",
       danka_staff: [
-        inputs.shiftTwoDmEntry,
-        inputs.shiftTwoDriverEntry,
+        formatDmName(inputs.shiftTwoDmEntry),
+        formatDriverName(inputs.shiftTwoDriverEntry),
       ]
         .filter(Boolean)
         .join(" / "),
       police_officers: [
-        inputs.shiftTwoPoliceOfficerOne,
-        inputs.shiftTwoPoliceOfficerTwo,
+        formatPoliceName(inputs.shiftTwoPoliceOfficerOne),
+        formatPoliceName(inputs.shiftTwoPoliceOfficerTwo),
       ]
         .filter(Boolean)
         .join(" / "),
@@ -574,14 +582,14 @@ export default function NewMobileReportPage() {
           confirmed_by: inputs.approvedBy,
           route: inputs.route,
           danka_staff: [
-            inputs.dmEntry,
-            inputs.driverEntry,
+            formatDmName(inputs.dmEntry),
+            formatDriverName(inputs.driverEntry),
           ]
             .filter(Boolean)
             .join(" / "),
           police_officers: [
-            inputs.policeOfficerOne,
-            inputs.policeOfficerTwo,
+            formatPoliceName(inputs.policeOfficerOne),
+            formatPoliceName(inputs.policeOfficerTwo),
           ]
             .filter(Boolean)
             .join(" / "),
@@ -623,6 +631,9 @@ export default function NewMobileReportPage() {
     if (reportId) {
       return reportId;
     }
+    if (sessionCreationPromiseRef.current) {
+      return sessionCreationPromiseRef.current;
+    }
 
     if (!metadataComplete) {
       throw new Error("Enter report date, station, and shift first.");
@@ -631,23 +642,33 @@ export default function NewMobileReportPage() {
     setSessionStatus("busy");
     setStatusMessage(null);
 
-    const response = await createReportSession({
-      report_date: inputs.reportDate,
-      station: inputs.station,
-      bound: inputs.bound,
-      weighbridge_name: inputs.station,
-      prepared_by: inputs.preparedBy,
-      confirmed_by: inputs.approvedBy,
-    });
+    const promise = (async () => {
+      try {
+        const response = await createReportSession({
+          report_date: inputs.reportDate,
+          station: inputs.station,
+          bound: inputs.bound,
+          weighbridge_name: inputs.station,
+          prepared_by: inputs.preparedBy,
+          confirmed_by: inputs.approvedBy,
+        });
 
-    setReportId(response.report_id);
-    sessionBoundRef.current = response.metadata?.bound || inputs.bound;
-    sessionStationRef.current = response.metadata?.station || inputs.station;
-    setMobileExcelUrl(getMobileExcelReportDownloadUrl(response.report_id));
-    localStorage.setItem(MOBILE_REPORT_ID_KEY, response.report_id);
-    setSessionStatus("ready");
+        setReportId(response.report_id);
+        sessionDateRef.current = response.metadata?.report_date || inputs.reportDate;
+        sessionBoundRef.current = response.metadata?.bound || inputs.bound;
+        sessionStationRef.current = response.metadata?.station || inputs.station;
+        setMobileExcelUrl(getMobileExcelReportDownloadUrl(response.report_id));
+        localStorage.setItem(MOBILE_REPORT_ID_KEY, response.report_id);
+        setSessionStatus("ready");
 
-    return response.report_id;
+        return response.report_id;
+      } finally {
+        sessionCreationPromiseRef.current = null;
+      }
+    })();
+
+    sessionCreationPromiseRef.current = promise;
+    return promise;
   }, [
     inputs.approvedBy,
     inputs.bound,
@@ -733,6 +754,7 @@ export default function NewMobileReportPage() {
 
         try {
           const session = await getReportSession(savedReportId);
+          sessionDateRef.current = session.metadata?.report_date || null;
           sessionBoundRef.current = session.metadata?.bound || null;
           sessionStationRef.current = session.metadata?.station || session.metadata?.weighbridge_name || null;
           const restoredFromSession = mobileInputsFromSession(
@@ -865,21 +887,25 @@ export default function NewMobileReportPage() {
     reportId,
   ]);
 
-  // Switch workspace when bound (shift) or station changes away from active session slot
+  // Switch workspace when bound (shift), station, or report date changes away from active session slot
   useEffect(() => {
     if (!draftLoaded || !reportId) return;
 
+    const currentDate = sessionDateRef.current;
     const currentBound = sessionBoundRef.current;
     const currentStation = sessionStationRef.current;
 
+    const dateChanged = Boolean(
+      currentDate && inputs.reportDate && inputs.reportDate.trim() !== currentDate.trim()
+    );
     const boundChanged = Boolean(
-      currentBound && inputs.bound.toLowerCase().trim() !== currentBound.toLowerCase().trim()
+      currentBound && inputs.bound && inputs.bound.toLowerCase().trim() !== currentBound.toLowerCase().trim()
     );
     const stationChanged = Boolean(
-      currentStation && inputs.station.toLowerCase().trim() !== currentStation.toLowerCase().trim()
+      currentStation && inputs.station && inputs.station.toLowerCase().trim() !== currentStation.toLowerCase().trim()
     );
 
-    if (!boundChanged && !stationChanged) {
+    if (!dateChanged && !boundChanged && !stationChanged) {
       return;
     }
 
@@ -896,6 +922,7 @@ export default function NewMobileReportPage() {
           if (!active) return;
           if (existing) {
             setReportId(existing.report_id);
+            sessionDateRef.current = existing.metadata?.report_date || targetDate;
             sessionBoundRef.current = existing.metadata?.bound || targetBound;
             sessionStationRef.current = existing.metadata?.station || targetStation;
             localStorage.setItem(MOBILE_REPORT_ID_KEY, existing.report_id);
@@ -926,6 +953,7 @@ export default function NewMobileReportPage() {
         // Slot not found - detach workspace cleanly so ensureSession creates an isolated session for this shift
         if (!active) return;
         setReportId(null);
+        sessionDateRef.current = null;
         sessionBoundRef.current = null;
         sessionStationRef.current = null;
         localStorage.removeItem(MOBILE_REPORT_ID_KEY);
@@ -1101,14 +1129,33 @@ export default function NewMobileReportPage() {
     }
 
     try {
-      const id = await handleSaveManualInputs();
+      let id = await handleSaveManualInputs();
 
       setUploadStatus("busy");
       setStatusMessage(null);
       setBuiltOutputs(null);
       setBuildStatus("idle");
 
-      const response = await uploadMobileReportFile(id, file);
+      let response: MobileReportUploadResponse;
+      try {
+        response = await uploadMobileReportFile(id, file);
+      } catch (uploadErr) {
+        const errMsg = uploadErr instanceof Error ? uploadErr.message : "";
+        if (
+          errMsg.includes("not found") ||
+          errMsg.includes("404") ||
+          errMsg.toLowerCase().includes("session")
+        ) {
+          setReportId(null);
+          localStorage.removeItem(MOBILE_REPORT_ID_KEY);
+          id = await ensureSession();
+          await handleSaveManualInputs(id);
+          response = await uploadMobileReportFile(id, file);
+        } else {
+          throw uploadErr;
+        }
+      }
+
       setUploadResponse(response);
       setUploadStatus(
         response.sections.mobile_report?.status === "ready"
@@ -1309,6 +1356,7 @@ export default function NewMobileReportPage() {
     }
     setInputs(initialInputs);
     setReportId(null);
+    sessionDateRef.current = null;
     sessionBoundRef.current = null;
     sessionStationRef.current = null;
     setSessionStatus("idle");
@@ -1651,6 +1699,7 @@ export default function NewMobileReportPage() {
                     label="DM Entry"
                     value={inputs.dmEntry}
                     onChange={(value) => updateInput("dmEntry", value)}
+                    onBlur={() => updateInput("dmEntry", formatDmName(inputs.dmEntry))}
                   />
 
                   <TextInput
@@ -1658,6 +1707,7 @@ export default function NewMobileReportPage() {
                     label="Driver Entry"
                     value={inputs.driverEntry}
                     onChange={(value) => updateInput("driverEntry", value)}
+                    onBlur={() => updateInput("driverEntry", formatDriverName(inputs.driverEntry))}
                   />
                 </div>
               </div>
@@ -1675,6 +1725,7 @@ export default function NewMobileReportPage() {
                     label="Police Officer 1"
                     value={inputs.policeOfficerOne}
                     onChange={(value) => updateInput("policeOfficerOne", value)}
+                    onBlur={() => updateInput("policeOfficerOne", formatPoliceName(inputs.policeOfficerOne))}
                   />
 
                   <TextInput
@@ -1682,6 +1733,7 @@ export default function NewMobileReportPage() {
                     label="Police Officer 2"
                     value={inputs.policeOfficerTwo}
                     onChange={(value) => updateInput("policeOfficerTwo", value)}
+                    onBlur={() => updateInput("policeOfficerTwo", formatPoliceName(inputs.policeOfficerTwo))}
                   />
                 </div>
               </div>
@@ -1748,6 +1800,7 @@ export default function NewMobileReportPage() {
                       label="DM Entry"
                       value={inputs.shiftTwoDmEntry}
                       onChange={(value) => updateInput("shiftTwoDmEntry", value)}
+                      onBlur={() => updateInput("shiftTwoDmEntry", formatDmName(inputs.shiftTwoDmEntry))}
                     />
 
                     <TextInput
@@ -1757,6 +1810,7 @@ export default function NewMobileReportPage() {
                       onChange={(value) =>
                         updateInput("shiftTwoDriverEntry", value)
                       }
+                      onBlur={() => updateInput("shiftTwoDriverEntry", formatDriverName(inputs.shiftTwoDriverEntry))}
                     />
 
                     <TextInput
@@ -1766,6 +1820,7 @@ export default function NewMobileReportPage() {
                       onChange={(value) =>
                         updateInput("shiftTwoPoliceOfficerOne", value)
                       }
+                      onBlur={() => updateInput("shiftTwoPoliceOfficerOne", formatPoliceName(inputs.shiftTwoPoliceOfficerOne))}
                     />
 
                     <TextInput
@@ -1775,6 +1830,7 @@ export default function NewMobileReportPage() {
                       onChange={(value) =>
                         updateInput("shiftTwoPoliceOfficerTwo", value)
                       }
+                      onBlur={() => updateInput("shiftTwoPoliceOfficerTwo", formatPoliceName(inputs.shiftTwoPoliceOfficerTwo))}
                     />
                   </div>
 

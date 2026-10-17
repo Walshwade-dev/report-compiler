@@ -44,10 +44,10 @@ assert.strictEqual(
   "ENZUI-UKASI-NGUNI-MWINGI-KANYONYO-MATUU-KITHIMANI-THIKA-JUJA",
   "Route mismatch"
 );
-assert.strictEqual(parsed.dmEntry, "George Mberia", "DM mismatch");
-assert.strictEqual(parsed.driverEntry, "Cyrus Ngángá", "Driver mismatch");
-assert.strictEqual(parsed.policeOfficerOne, "SGT Obilo", "Police 1 mismatch");
-assert.strictEqual(parsed.policeOfficerTwo, "PC Edwin Kibiwott", "Police 2 mismatch");
+assert.strictEqual(parsed.dmEntry, "DM GEORGE MBERIA", "DM mismatch");
+assert.strictEqual(parsed.driverEntry, "DRIVER CYRUS NGÁNGÁ", "Driver mismatch");
+assert.strictEqual(parsed.policeOfficerOne, "SGT OBILO", "Police 1 mismatch");
+assert.strictEqual(parsed.policeOfficerTwo, "PC EDWIN KIBIWOTT", "Police 2 mismatch");
 
 console.log("✅ Sample text parsed successfully with all fields matching!");
 
@@ -85,7 +85,10 @@ const applied = applyBriefingToInputs(dummyInputs, parsed);
 assert.strictEqual(applied.station, "Juja mobile");
 assert.strictEqual(applied.reportDate, "2026-10-08");
 assert.strictEqual(applied.bound, "Mobile 2");
-assert.strictEqual(applied.dmEntry, "George Mberia");
+assert.strictEqual(applied.dmEntry, "DM GEORGE MBERIA");
+assert.strictEqual(applied.driverEntry, "DRIVER CYRUS NGÁNGÁ");
+assert.strictEqual(applied.policeOfficerOne, "SGT OBILO");
+assert.strictEqual(applied.policeOfficerTwo, "PC EDWIN KIBIWOTT");
 assert.strictEqual(applied.startMileage, "88352");
 assert.strictEqual(applied.stopMileage, "88590");
 
@@ -96,10 +99,10 @@ const parsedShift2 = parseMobileBriefing(sampleText, { targetShift: "shift2" });
 assert.strictEqual(parsedShift2.shiftTwoMobileVehicleReg, "KDS042Z");
 assert.strictEqual(parsedShift2.shiftTwoStartMileage, "88352");
 assert.strictEqual(parsedShift2.shiftTwoStopMileage, "88590");
-assert.strictEqual(parsedShift2.shiftTwoDmEntry, "George Mberia");
-assert.strictEqual(parsedShift2.shiftTwoDriverEntry, "Cyrus Ngángá");
-assert.strictEqual(parsedShift2.shiftTwoPoliceOfficerOne, "SGT Obilo");
-assert.strictEqual(parsedShift2.shiftTwoPoliceOfficerTwo, "PC Edwin Kibiwott");
+assert.strictEqual(parsedShift2.shiftTwoDmEntry, "DM GEORGE MBERIA");
+assert.strictEqual(parsedShift2.shiftTwoDriverEntry, "DRIVER CYRUS NGÁNGÁ");
+assert.strictEqual(parsedShift2.shiftTwoPoliceOfficerOne, "SGT OBILO");
+assert.strictEqual(parsedShift2.shiftTwoPoliceOfficerTwo, "PC EDWIN KIBIWOTT");
 
 console.log("✅ Shift 2 targeting verified!");
 console.log("All mobile briefing parser tests passed! 🎉");
