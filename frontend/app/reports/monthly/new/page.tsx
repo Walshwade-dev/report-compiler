@@ -40,6 +40,12 @@ const REPORT_TYPE_OPTIONS = [
     badge: "Official KeNHA Return Format",
     description: "Daily Shift A & B Compliance Summaries + 24-Hour Traffic Distribution Matrix",
   },
+  {
+    id: "juja_cluster_invoicing",
+    name: "JUJA Cluster Invoicing Report",
+    badge: "Master Invoicing Specification",
+    description: "Static (Thika & Nairobi) + Mobile Units Combined Invoicing, Deployment & Charged Vehicle Returns",
+  },
 ];
 
 export function resolveUserMobileStation(user: { station?: string | null; username?: string | null; full_name?: string | null } | null): string {
@@ -133,13 +139,17 @@ export default function MonthlyReportPage() {
       const a = document.createElement("a");
       a.href = url;
       const cleanStation = station.trim().replace(/\s+/g, "_");
-      a.download = `${cleanStation}_Monthly_Summary_${monthName}_${selectedYear}.xlsx`;
+      const downloadFilename =
+        reportType === "juja_cluster_invoicing"
+          ? `Monthly JUJA Cluster Invoicing Report ${monthName.toUpperCase()} ${selectedYear}.xlsx`
+          : `${cleanStation}_Monthly_Summary_${monthName}_${selectedYear}.xlsx`;
+      a.download = downloadFilename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      setSuccessMessage(`Workbook successfully generated: ${cleanStation}_Monthly_Summary_${monthName}_${selectedYear}.xlsx`);
+      setSuccessMessage(`Workbook successfully generated: ${downloadFilename}`);
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred during report generation.");
     } finally {
@@ -209,7 +219,9 @@ export default function MonthlyReportPage() {
                 ))}
               </select>
               <p className="mt-1.5 text-[11px] text-slate-400">
-                Official consolidated return template with Shift A, Shift B, and 24-Hour hourly breakdowns.
+                {reportType === "juja_cluster_invoicing"
+                  ? "Juja Static (Thika & Nairobi Bound) Invoicing Sheet, Mobile Combined Compliance, and Charged Registers."
+                  : "Official consolidated return template with Shift A, Shift B, and 24-Hour hourly breakdowns."}
               </p>
             </div>
 
@@ -303,7 +315,9 @@ export default function MonthlyReportPage() {
               <div className="space-y-1.5 text-xs text-slate-300">
                 <div className="flex justify-between py-0.5">
                   <span className="text-slate-400">Station Unit:</span>
-                  <span className="font-semibold text-cyan-100">{station}</span>
+                  <span className="font-semibold text-cyan-100">
+                    {reportType === "juja_cluster_invoicing" ? "Juja Cluster (Static & Mobile)" : station}
+                  </span>
                 </div>
                 <div className="flex justify-between py-0.5">
                   <span className="text-slate-400">Return Format:</span>
@@ -315,24 +329,49 @@ export default function MonthlyReportPage() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                   Included Return Datasets:
                 </span>
-                <ul className="space-y-1.5 text-xs text-slate-300">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
-                    <span>Daily Shift A & Shift B Compliance Summaries</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
-                    <span>Mobile Total Combined Operations Table</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
-                    <span>24-Hour Traffic Distribution Hourly Matrix</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
-                    <span>Hourly Totals & Monthly Baseline Averages</span>
-                  </li>
-                </ul>
+                {reportType === "juja_cluster_invoicing" ? (
+                  <ul className="space-y-1.5 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Juja Static (Thika & Nairobi) Invoicing Sheet</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Juja Mobile Operations Reconciled Table</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Monthly JUJA Cluster Grand Total Summary</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Mobile Deployment Records & Patrol Summary Log</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>All Charged & Charged Above 2T Vehicle Registers</span>
+                    </li>
+                  </ul>
+                ) : (
+                  <ul className="space-y-1.5 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Daily Shift A & Shift B Compliance Summaries</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Mobile Total Combined Operations Table</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>24-Hour Traffic Distribution Hourly Matrix</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Hourly Totals & Monthly Baseline Averages</span>
+                    </li>
+                  </ul>
+                )}
               </div>
             </div>
 
