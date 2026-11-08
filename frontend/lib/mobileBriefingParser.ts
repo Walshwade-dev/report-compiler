@@ -107,6 +107,9 @@ export function parseMobileBriefing(
     return result;
   }
 
+  // Convert the ingested content to uppercase entirely
+  text = text.toUpperCase();
+
   const lines = text
     .split("\n")
     .map((l) => l.trim())
@@ -483,38 +486,38 @@ export function applyBriefingToInputs(
 
   // Shift 1 / Single shift
   if (parsed.mobileVehicleReg) next.mobileVehicleReg = cleanUpper(parsed.mobileVehicleReg);
-  if (parsed.startMileage) next.startMileage = parsed.startMileage.trim();
-  if (parsed.stopMileage) next.stopMileage = parsed.stopMileage.trim();
-  if (parsed.dmEntry) next.dmEntry = formatDmName(parsed.dmEntry);
-  if (parsed.driverEntry) next.driverEntry = formatDriverName(parsed.driverEntry);
-  if (parsed.policeOfficerOne) next.policeOfficerOne = formatPoliceName(parsed.policeOfficerOne);
-  if (parsed.policeOfficerTwo) next.policeOfficerTwo = formatPoliceName(parsed.policeOfficerTwo);
+  if (parsed.startMileage) next.startMileage = parsed.startMileage.trim().toUpperCase();
+  if (parsed.stopMileage) next.stopMileage = parsed.stopMileage.trim().toUpperCase();
+  if (parsed.dmEntry) next.dmEntry = formatDmName(parsed.dmEntry).toUpperCase();
+  if (parsed.driverEntry) next.driverEntry = formatDriverName(parsed.driverEntry).toUpperCase();
+  if (parsed.policeOfficerOne) next.policeOfficerOne = formatPoliceName(parsed.policeOfficerOne).toUpperCase();
+  if (parsed.policeOfficerTwo) next.policeOfficerTwo = formatPoliceName(parsed.policeOfficerTwo).toUpperCase();
 
   // Shift 2
   if (parsed.shiftTwoMobileVehicleReg)
     next.shiftTwoMobileVehicleReg = cleanUpper(parsed.shiftTwoMobileVehicleReg);
   if (parsed.shiftTwoStartMileage)
-    next.shiftTwoStartMileage = parsed.shiftTwoStartMileage.trim();
+    next.shiftTwoStartMileage = parsed.shiftTwoStartMileage.trim().toUpperCase();
   if (parsed.shiftTwoStopMileage)
-    next.shiftTwoStopMileage = parsed.shiftTwoStopMileage.trim();
-  if (parsed.shiftTwoDmEntry) next.shiftTwoDmEntry = formatDmName(parsed.shiftTwoDmEntry);
+    next.shiftTwoStopMileage = parsed.shiftTwoStopMileage.trim().toUpperCase();
+  if (parsed.shiftTwoDmEntry) next.shiftTwoDmEntry = formatDmName(parsed.shiftTwoDmEntry).toUpperCase();
   if (parsed.shiftTwoDriverEntry)
-    next.shiftTwoDriverEntry = formatDriverName(parsed.shiftTwoDriverEntry);
+    next.shiftTwoDriverEntry = formatDriverName(parsed.shiftTwoDriverEntry).toUpperCase();
   if (parsed.shiftTwoPoliceOfficerOne)
-    next.shiftTwoPoliceOfficerOne = formatPoliceName(parsed.shiftTwoPoliceOfficerOne);
+    next.shiftTwoPoliceOfficerOne = formatPoliceName(parsed.shiftTwoPoliceOfficerOne).toUpperCase();
   if (parsed.shiftTwoPoliceOfficerTwo)
-    next.shiftTwoPoliceOfficerTwo = formatPoliceName(parsed.shiftTwoPoliceOfficerTwo);
+    next.shiftTwoPoliceOfficerTwo = formatPoliceName(parsed.shiftTwoPoliceOfficerTwo).toUpperCase();
 
   // Route & compliance counters
   if (parsed.route) next.route = cleanUpper(parsed.route);
   if (parsed.transgressionsCount !== undefined)
-    next.transgressionsCount = parsed.transgressionsCount.trim();
+    next.transgressionsCount = parsed.transgressionsCount.trim().toUpperCase();
   if (parsed.casesClearedInCourt !== undefined)
-    next.casesClearedInCourt = parsed.casesClearedInCourt.trim();
+    next.casesClearedInCourt = parsed.casesClearedInCourt.trim().toUpperCase();
   if (parsed.exemptedPermit !== undefined)
-    next.exemptedPermit = parsed.exemptedPermit.trim();
+    next.exemptedPermit = parsed.exemptedPermit.trim().toUpperCase();
   if (parsed.manuallyWeighed !== undefined)
-    next.manuallyWeighed = parsed.manuallyWeighed.trim();
+    next.manuallyWeighed = parsed.manuallyWeighed.trim().toUpperCase();
 
   return next;
 }

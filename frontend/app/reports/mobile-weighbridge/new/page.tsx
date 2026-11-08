@@ -1048,10 +1048,11 @@ export default function NewMobileReportPage() {
   }
 
   function handleIngestBriefing() {
-    if (!briefingText.trim()) return;
+    const rawUpper = briefingText.trim().toUpperCase();
+    if (!rawUpper) return;
 
     try {
-      const parsed = parseMobileBriefing(briefingText, {
+      const parsed = parseMobileBriefing(rawUpper, {
         targetShift: briefingTargetShift,
       });
 
@@ -2513,7 +2514,23 @@ export default function NewMobileReportPage() {
               id="briefing-textarea"
               rows={9}
               value={briefingText}
-              onChange={(e) => setBriefingText(e.target.value)}
+              onChange={(e) => setBriefingText(e.target.value.toUpperCase())}
+              onPaste={(e) => {
+                const pasted = e.clipboardData?.getData("text");
+                if (pasted) {
+                  e.preventDefault();
+                  const target = e.target as HTMLTextAreaElement;
+                  const start = target.selectionStart ?? 0;
+                  const end = target.selectionEnd ?? 0;
+                  const current = target.value;
+                  const upperPasted = pasted.toUpperCase();
+                  const updated =
+                    current.substring(0, start) +
+                    upperPasted +
+                    current.substring(end);
+                  setBriefingText(updated.toUpperCase());
+                }
+              }}
               placeholder={`Juja Mobile 2\nDated 08-10-2026\n\nMileage\nVehicle: KDS042Z\nStart Mileage: 88,352 kms\nClosing Mileage: 88, 590 kms\n...\nActual Route\nEnzui-Ukasi-...\n\nDanka Personnel\nDM: George Mberia\nDriver: Cyrus Ng\u00e1ng\u00e1\n\nPolice Officers\nSGT Obilo\nPC Edwin Kibiwott`}
               className="mt-3 w-full rounded-lg border border-cyan-900/70 bg-[#071827] p-2.5 text-xs text-slate-100 placeholder:text-slate-500 font-mono focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-cyan-500/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-cyan-400/50"
             />

@@ -105,4 +105,32 @@ assert.strictEqual(parsedShift2.shiftTwoPoliceOfficerOne, "SGT OBILO");
 assert.strictEqual(parsedShift2.shiftTwoPoliceOfficerTwo, "PC EDWIN KIBIWOTT");
 
 console.log("✅ Shift 2 targeting verified!");
+
+// Test lowercase content conversion to uppercase
+const lowercaseBriefing = `juja mobile 1
+dated 12-10-2026
+vehicle: kca123a
+start mileage: 12,000 kms
+stop mileage: 12,300 kms
+dm: john doe
+driver: jane smith
+police officers: pc mwangi and cpl mutua
+route: thika - garissa road`;
+const parsedLower = parseMobileBriefing(lowercaseBriefing);
+assert.strictEqual(parsedLower.mobileVehicleReg, "KCA123A");
+assert.strictEqual(parsedLower.dmEntry, "DM JOHN DOE");
+assert.strictEqual(parsedLower.driverEntry, "DRIVER JANE SMITH");
+assert.strictEqual(parsedLower.policeOfficerOne, "PC MWANGI");
+assert.strictEqual(parsedLower.policeOfficerTwo, "CPL MUTUA");
+assert.strictEqual(parsedLower.route, "THIKA - GARISSA ROAD");
+
+const appliedLower = applyBriefingToInputs(dummyInputs, parsedLower);
+assert.strictEqual(appliedLower.mobileVehicleReg, "KCA123A");
+assert.strictEqual(appliedLower.dmEntry, "DM JOHN DOE");
+assert.strictEqual(appliedLower.driverEntry, "DRIVER JANE SMITH");
+assert.strictEqual(appliedLower.policeOfficerOne, "PC MWANGI");
+assert.strictEqual(appliedLower.policeOfficerTwo, "CPL MUTUA");
+assert.strictEqual(appliedLower.route, "THIKA - GARISSA ROAD");
+console.log("✅ Lowercase briefing conversion to uppercase verified!");
+
 console.log("All mobile briefing parser tests passed! 🎉");
