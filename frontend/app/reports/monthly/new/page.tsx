@@ -46,6 +46,12 @@ const REPORT_TYPE_OPTIONS = [
     badge: "Master Invoicing Specification",
     description: "Static (Thika & Nairobi) + Mobile Units Combined Invoicing, Deployment & Charged Vehicle Returns",
   },
+  {
+    id: "juja_summary_update",
+    name: "JUJA Summary Update",
+    badge: "9-Sheet Consolidated Return",
+    description: "Thika & Nairobi M-Deck & HSWIM Daily and Hourly Traffic Breakdown Matrices + Juja Consolidated Return",
+  },
 ];
 
 export function resolveUserMobileStation(user: { station?: string | null; username?: string | null; full_name?: string | null } | null): string {
@@ -142,6 +148,8 @@ export default function MonthlyReportPage() {
       const downloadFilename =
         reportType === "juja_cluster_invoicing"
           ? `Monthly JUJA Cluster Invoicing Report ${monthName.toUpperCase()} ${selectedYear}.xlsx`
+          : reportType === "juja_summary_update"
+          ? `JUJA Summary Update  ${monthName.toUpperCase()}- ${selectedYear}.xlsx`
           : `${cleanStation}_Monthly_Summary_${monthName}_${selectedYear}.xlsx`;
       a.download = downloadFilename;
       document.body.appendChild(a);
@@ -221,6 +229,8 @@ export default function MonthlyReportPage() {
               <p className="mt-1.5 text-[11px] text-slate-400">
                 {reportType === "juja_cluster_invoicing"
                   ? "Juja Static (Thika & Nairobi Bound) Invoicing Sheet, Mobile Combined Compliance, and Charged Registers."
+                  : reportType === "juja_summary_update"
+                  ? "All 9 sheets: Thika & Nairobi M-Deck & HSWIM daily metrics, 24-hour hourly matrices, and Juja consolidated returns."
                   : "Official consolidated return template with Shift A, Shift B, and 24-Hour hourly breakdowns."}
               </p>
             </div>
@@ -316,7 +326,11 @@ export default function MonthlyReportPage() {
                 <div className="flex justify-between py-0.5">
                   <span className="text-slate-400">Station Unit:</span>
                   <span className="font-semibold text-cyan-100">
-                    {reportType === "juja_cluster_invoicing" ? "Juja Cluster (Static & Mobile)" : station}
+                    {reportType === "juja_cluster_invoicing"
+                      ? "Juja Cluster (Static & Mobile)"
+                      : reportType === "juja_summary_update"
+                      ? "Juja Station (Thika & Nairobi Bounds)"
+                      : station}
                   </span>
                 </div>
                 <div className="flex justify-between py-0.5">
@@ -329,7 +343,30 @@ export default function MonthlyReportPage() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                   Included Return Datasets:
                 </span>
-                {reportType === "juja_cluster_invoicing" ? (
+                {reportType === "juja_summary_update" ? (
+                  <ul className="space-y-1.5 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Thika Bound M-Deck Daily Summary & Hourly Matrices</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Nairobi Bound M-Deck Daily Summary & Hourly Matrices</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Juja Weighbridge Consolidated Daily Summary Return</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Juja HSWIM 24-Hour Combined Cleared Hourly Return</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
+                      <span>Juja M-Decks 24-Hour Combined Weighed Hourly Return</span>
+                    </li>
+                  </ul>
+                ) : reportType === "juja_cluster_invoicing" ? (
                   <ul className="space-y-1.5 text-xs text-slate-300">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 size={13} className="text-cyan-400 shrink-0" />
