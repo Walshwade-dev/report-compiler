@@ -12,6 +12,7 @@ import { useReportProgress } from "@/components/report-builder/ReportProgressCon
 import { PreviewFormat, ReportSection } from "@/lib/types";
 import { useReportSession } from "@/lib/hooks/useReportSession";
 import { useReportUploads } from "@/lib/hooks/useReportUploads";
+import { MissingReportAlertModal } from "@/components/report-builder/MissingReportAlertModal";
 
 export default function NewReportPage() {
   const {
@@ -40,6 +41,8 @@ export default function NewReportPage() {
     handleResetReport,
     metadataComplete,
     loadSessionData,
+    missingReportInfo,
+    handleSwitchToMissingDate,
   } = useReportSession();
 
   const {
@@ -231,6 +234,15 @@ export default function NewReportPage() {
           />
         </div>
       </div>
+
+      <MissingReportAlertModal
+        isOpen={Boolean(missingReportInfo?.isMissing)}
+        missingDate={missingReportInfo?.prevDate || ""}
+        attemptedDate={missingReportInfo?.targetDate || metadata.date}
+        station={weighbridgeName}
+        bound={boundName}
+        onSwitchDate={handleSwitchToMissingDate}
+      />
     </>
   );
 }

@@ -13,6 +13,10 @@ import {
   getLoggedInUser,
   resetReportSession,
 } from "../api";
+import {
+  checkMissingPreviousReport,
+  MissingReportCheckResult,
+} from "../reportContinuity";
 
 
 const ACTIVE_WEIGHBRIDGE_KEY = "active-weighbridge-name";
@@ -187,6 +191,8 @@ export function useReportSession() {
   const [finalReportDownloadUrl, setFinalReportDownloadUrl] = useState<string | null>(null);
   const [excelReportDownloadUrl, setExcelReportDownloadUrl] = useState<string | null>(null);
   const [manualSaveStatus, setManualSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [missingReportInfo, setMissingReportInfo] = useState<MissingReportCheckResult | null>(null);
+  const [checkingContinuity, setCheckingContinuity] = useState(false);
 
   const initialSaveDone = useRef(false);
   const reportIdRef = useRef<string | null>(null);
@@ -209,6 +215,8 @@ export function useReportSession() {
     Boolean(metadata.preparedBy) &&
     Boolean(metadata.approvedBy) &&
     !reportId &&
+    !checkingContinuity &&
+    !missingReportInfo?.isMissing &&
     createStatus === "idle";
 
   // Function to load session details from backend response
@@ -358,6 +366,16 @@ export function useReportSession() {
     if (reportId || createStatus === "creating") return;
 
     try {
+      const continuity = await checkMissingPreviousReport(
+        metadata.date,
+        weighbridgeName,
+        boundName
+      );
+      if (continuity.isMissing) {
+        setMissingReportInfo(continuity);
+        return;
+      }
+
       setCreateStatus("creating");
       setCreateError(null);
 
@@ -757,6 +775,41 @@ export function useReportSession() {
     restoreSession();
   }, [loadSessionData]);
 
+  // Check for missing previous day report before allowing session creation
+  useEffect(() => {
+    if (!metadata.date || reportId) {
+      setMissingReportInfo(null);
+      return;
+    }
+
+    let active = true;
+    setCheckingContinuity(true);
+
+    checkMissingPreviousReport(metadata.date, weighbridgeName, boundName)
+      .then((res) => {
+        if (!active) return;
+        setMissingReportInfo(res.isMissing ? res : null);
+      })
+      .catch((err) => {
+        console.error("Continuity check error:", err);
+      })
+      .finally(() => {
+        if (active) setCheckingContinuity(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [metadata.date, weighbridgeName, boundName, reportId]);
+
+  const handleSwitchToMissingDate = useCallback((targetDate: string) => {
+    setMissingReportInfo(null);
+    setMetadata((prev) => ({
+      ...prev,
+      date: targetDate,
+    }));
+  }, []);
+
   return {
     sessionData,
     metadata,
@@ -789,5 +842,7 @@ export function useReportSession() {
     handleResetReport,
     metadataComplete,
     loadSessionData,
+    missingReportInfo,
+    handleSwitchToMissingDate,
   };
 }

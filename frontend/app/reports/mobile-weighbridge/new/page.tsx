@@ -41,6 +41,12 @@ import {
   isSupportedSpreadsheetFile,
   supportedSpreadsheetFileMessage,
 } from "@/lib/files";
+import { MissingReportAlertModal } from "@/components/report-builder/MissingReportAlertModal";
+import {
+  checkMissingPreviousReport,
+  MissingReportCheckResult,
+  formatDisplayDate,
+} from "@/lib/reportContinuity";
 import {
   parseMobileBriefing,
   applyBriefingToInputs,
@@ -391,6 +397,8 @@ export default function NewMobileReportPage() {
   const [manualStatus, setManualStatus] = useState<WorkflowStatus>("idle");
   const [uploadStatus, setUploadStatus] = useState<WorkflowStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [missingReportInfo, setMissingReportInfo] = useState<MissingReportCheckResult | null>(null);
+  const [checkingContinuity, setCheckingContinuity] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [downloadTarget, setDownloadTarget] = useState<
     "word" | "excel" | null
@@ -639,6 +647,19 @@ export default function NewMobileReportPage() {
       throw new Error("Enter report date, station, and shift first.");
     }
 
+    const continuity = await checkMissingPreviousReport(
+      inputs.reportDate,
+      inputs.station,
+      inputs.bound
+    );
+    if (continuity.isMissing) {
+      setMissingReportInfo(continuity);
+      setSessionStatus("idle");
+      throw new Error(
+        `Previous report for ${formatDisplayDate(continuity.prevDate)} must be created first.`
+      );
+    }
+
     setSessionStatus("busy");
     setStatusMessage(null);
 
@@ -811,8 +832,42 @@ export default function NewMobileReportPage() {
     return () => clearTimeout(timeout);
   }, [draftLoaded, inputs]);
 
+  // Check for missing previous day report before allowing mobile session creation
   useEffect(() => {
-    if (!draftLoaded || reportId || !metadataComplete || sessionStatus === "busy") {
+    if (!inputs.reportDate || !inputs.station || !inputs.bound || reportId) {
+      setMissingReportInfo(null);
+      return;
+    }
+
+    let active = true;
+    setCheckingContinuity(true);
+
+    checkMissingPreviousReport(inputs.reportDate, inputs.station, inputs.bound)
+      .then((res) => {
+        if (!active) return;
+        setMissingReportInfo(res.isMissing ? res : null);
+      })
+      .catch((err) => {
+        console.error("Mobile continuity check error:", err);
+      })
+      .finally(() => {
+        if (active) setCheckingContinuity(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [inputs.reportDate, inputs.station, inputs.bound, reportId]);
+
+  useEffect(() => {
+    if (
+      !draftLoaded ||
+      reportId ||
+      !metadataComplete ||
+      sessionStatus === "busy" ||
+      checkingContinuity ||
+      missingReportInfo?.isMissing
+    ) {
       return;
     }
 
@@ -847,6 +902,7 @@ export default function NewMobileReportPage() {
     return () => clearTimeout(timeout);
   }, [
     autoSessionKey,
+    checkingContinuity,
     draftLoaded,
     inputs.approvedBy,
     inputs.bound,
@@ -854,6 +910,7 @@ export default function NewMobileReportPage() {
     inputs.reportDate,
     inputs.station,
     metadataComplete,
+    missingReportInfo?.isMissing,
     reportId,
     sessionStatus,
     ensureSession,
@@ -2497,6 +2554,18 @@ export default function NewMobileReportPage() {
           </div>
         </aside>
       </div>
+
+      <MissingReportAlertModal
+        isOpen={Boolean(missingReportInfo?.isMissing)}
+        missingDate={missingReportInfo?.prevDate || ""}
+        attemptedDate={missingReportInfo?.targetDate || inputs.reportDate}
+        station={inputs.station}
+        bound={inputs.bound}
+        onSwitchDate={(targetDate) => {
+          setMissingReportInfo(null);
+          updateInput("reportDate", targetDate);
+        }}
+      />
     </>
   );
 }
